@@ -305,7 +305,7 @@ fun TrailApp(
                 // background behind the column, that height was a shaded band over the map.
                 if (net != null) StatusLine(net)
                 if (note != null) NoteLine(note)
-                if (recording) TrackLine(stats)
+                if (recording) TrackLine(stats, recording = !paused)
                 // THE ORDER IS THE THUMB'S, NOT THE LIST'S. Baba, 15.9.2026: the record circle sits
                 // in the middle, straight above the phone's own home button, with the centre key
                 // beside it; the three that are pressed rarely spread out from there.
@@ -347,7 +347,12 @@ fun TrailApp(
                             lastCentreTap = now
                         },
                     ) { hasFix -> PositionMark(hasFix, locked = follow) }
-                    RecordKey(recording = recording, paused = paused, onPress = onRecord)
+                    RecordKey(
+                        recording = recording,
+                        paused = paused,
+                        metres = stats.distanceM,
+                        onPress = onRecord,
+                    )
                     // ONE BUTTON FOR THE MAP. It says which one is on and turns to the next.
                     Key(
                         glyph = layer.short,
@@ -647,6 +652,19 @@ private fun MapSurface(
     onCanvas: (VtmCanvas) -> Unit,
     onReady: () -> Unit,
 ) {
+    // THE HAND-OVER, BEFORE THE BRANCH (18.9.2026).
+    //
+    // It sat after the Google branch's own `return`, so it ran for VTM and never once for Google:
+    // the walk he was recording was handed to an engine that was not on the screen. Saving the
+    // track and recalling it worked, because that is a different path — which is exactly why it
+    // looked like the recording was being lost rather than misdelivered.
+    //
+    // Above the branch it runs for whichever engine is up, every time the line grows, a fix
+    // arrives, the lock changes or a canvas appears.
+    LaunchedEffect(generation, line.size, fix?.timeMs, follow) {
+        Canvases.handOver(points, line, fix, follow)
+    }
+
     // TWO ENGINES, ONE SCREEN (17.9.2026), which reverses the note that stood here — that Google's
     // SDK was gone with the key that was compiled in. It is back with a key that is locked to this
     // package and this signing certificate, because he asked for their vector map at their speed
@@ -722,9 +740,7 @@ private fun MapSurface(
     // it ran nothing — the track he was recording vanished, the lock stopped holding, the route
     // and the points went with them. It is keyed on the canvas too now, so every map that
     // appears inherits the whole state rather than an empty screen.
-    LaunchedEffect(generation, line.size, fix?.timeMs, follow) {
-        Canvases.handOver(points, line, fix, follow)
-    }
+
 }
 
 /**
@@ -1010,18 +1026,28 @@ private fun accuracyInk(metres: Float?): Color = when {
 
 private fun ink(active: Boolean): Color = if (active) Paint.Sand else Paint.Dim
 
-/** The walk, shown only while there is one. Idle it is empty space, not a row of zeros. */
+/**
+ * THE WALK, AND WHAT COLOUR IT IS IN (18.9.2026).
+ *
+ * Red while it is recording, sand when it is paused. His reasoning, and it is right: these are the
+ * numbers that say the phone is writing a file, and a colour says that at arm's length where four
+ * words do not. Colour is the only state channel in this app (design-language.md), and recording
+ * is exactly the state worth one.
+ *
+ * Idle it is empty space, not a row of zeros.
+ */
 @Composable
-private fun TrackLine(stats: TrackStats) {
+private fun TrackLine(stats: TrackStats, recording: Boolean) {
+    val ink = if (recording) Paint.Red else Paint.Sand
     Panel {
         Row(
             Modifier.fillMaxWidth().background(Paint.Bar).padding(horizontal = GAP, vertical = 2.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Label(Geo.formatDistance(stats.distanceM), Paint.Sand, size = 13)
-            Label(Geo.formatDuration(stats.durationMs), Paint.Sand, size = 13)
-            Label("↑ ${stats.ascentM.toInt()} m", Paint.Sand, size = 13)
-            Label("${stats.points} pts", Paint.Sand, size = 13)
+            Label(Geo.formatDistance(stats.distanceM), ink, size = 13)
+            Label(Geo.formatDuration(stats.durationMs), ink, size = 13)
+            Label("↑ ${stats.ascentM.toInt()}", ink, size = 13)
+            Label("${stats.points} pts", ink, size = 13)
         }
     }
 }
@@ -1115,7 +1141,12 @@ private fun RowScope.Key(
  * than taking a key on a screen that is meant to be nearly empty.
  */
 @Composable
-private fun RowScope.RecordKey(recording: Boolean, paused: Boolean, onPress: () -> Unit) {
+private fun RowScope.RecordKey(
+    recording: Boolean,
+    paused: Boolean,
+    metres: Double,
+    onPress: () -> Unit,
+) {
     Box(
         Modifier.weight(1f).height(KEY).clickable(onClick = onPress),
         contentAlignment = Alignment.Center,
@@ -1131,9 +1162,23 @@ private fun RowScope.RecordKey(recording: Boolean, paused: Boolean, onPress: () 
                     drawCircle(Paint.Red, radius = r * 0.35f, center = c)
                 }
 
+                // FILLED, BUT NOT SOLID, WHILE THE NUMBER IS IN IT (18.9.2026). A filled circle
+                // with dark digits over it reads at arm's length; a ring with digits inside does
+                // not, because the ring and the numerals fight for the same few pixels.
                 recording -> drawCircle(Paint.Red, radius = r, center = c)
                 else -> drawCircle(Paint.Red, radius = r, center = c, style = Stroke(3.dp.toPx()))
             }
+        }
+        // HOW FAR, INSIDE THE KEY ITSELF. His reasoning, 18.9.2026: a number that moves is the
+        // proof that the phone is still writing, and it belongs on the thing he is watching
+        // rather than only on a line at the bottom. Metres, no unit — the unit never changes and
+        // the digits are what he is reading.
+        if (recording || paused) {
+            Label(
+                text = metres.toInt().toString(),
+                colour = if (paused) Paint.Red else Paint.Ground,
+                size = 11,
+            )
         }
     }
 }

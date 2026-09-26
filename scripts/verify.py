@@ -249,7 +249,8 @@ check("no bar is painted on a column",
       "Column(\n                Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding()" in map_screen,
       "the background belongs to the line and to the key row, not to their container")
 check("an empty line takes no height at all",
-      "if (note != null) NoteLine(note)" in screens and "if (recording) TrackLine(stats)" in screens,
+      "if (note != null) NoteLine(note)" in screens
+      and "if (recording) TrackLine(stats, recording = !paused)" in screens,
       "drawn only when there is something in them, rather than at zero opacity")
 # Reversed on 15.9.2026 after reading Thunderforest's terms: the attribution may not be removed
 # from an app. One dim line, on the fetched layers only, guarded by creditOnMap.
@@ -862,6 +863,12 @@ check("nothing asked of Google's map before it exists is dropped",
       "pendingCentre" in (MAIN / "GoogleCanvas.kt").read_text()
       and "made.onReady = { onReady() }" in screens,
       "it waits and is applied when the map arrives")
+# 18.9.2026: the hand-over sat AFTER the Google branch's own return, so it ran for VTM and never
+# once for Google — the walk he was recording was handed to an engine that was not on the screen.
+check("the hand-over runs before the engine is chosen",
+      screens.index("Canvases.handOver(points, line, fix, follow)")
+      < screens.index("if (layer.family == MapLayer.Family.GOOGLE) {"),
+      "or it reaches only the engine whose branch it happens to sit in")
 check("a line drawn survives a change of engine",
       "object Shown" in (MAIN / "Canvases.kt").read_text() and "Shown.route?.let" in screens,
       "the routers never cared which map was up; the answer was being lost with the canvas")
