@@ -1169,13 +1169,15 @@ private fun RowScope.RecordKey(
                 else -> drawCircle(Paint.Red, radius = r, center = c, style = Stroke(3.dp.toPx()))
             }
         }
-        // HOW FAR, INSIDE THE KEY ITSELF. His reasoning, 18.9.2026: a number that moves is the
-        // proof that the phone is still writing, and it belongs on the thing he is watching
-        // rather than only on a line at the bottom. Metres, no unit — the unit never changes and
-        // the digits are what he is reading.
+        // TWO DIGITS, AND ONLY EVER TWO (18.9.2026, at his word).
+        //
+        // This is not a measurement — the distance is on the line at the bottom, whole and
+        // honest. It is a heartbeat: the last two metres of it, turning over as he walks, so a
+        // glance at the key says the phone is still writing. Two digits also stay inside a circle
+        // at every value, where 1084 would spill out of it and 108 would be tight.
         if (recording || paused) {
             Label(
-                text = metres.toInt().toString(),
+                text = "%02d".format(metres.toInt().coerceAtLeast(0) % 100),
                 colour = if (paused) Paint.Red else Paint.Ground,
                 size = 11,
             )
