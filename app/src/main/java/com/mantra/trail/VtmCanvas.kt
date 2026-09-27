@@ -77,7 +77,6 @@ class VtmCanvas(private val context: Context, private val store: Store) {
         context,
         object : android.view.GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: android.view.MotionEvent): Boolean {
-                android.util.Log.i("MantraParcels", "tap confirmed at ${e.x},${e.y}")
                 val at = map.viewport().fromScreenPoint(e.x, e.y)
                 ParcelsShown.tap(at.latitude, at.longitude)
                 return false
@@ -92,7 +91,6 @@ class VtmCanvas(private val context: Context, private val store: Store) {
         map.setMapPosition(store.lastLat, store.lastLon, (1 shl store.lastZoom).toDouble())
         @Suppress("ClickableViewAccessibility")
         view.setOnTouchListener { _, event ->
-            if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) android.util.Log.i("MantraParcels", "touch down")
             taps.onTouchEvent(event)
             false
         }

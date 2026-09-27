@@ -1385,10 +1385,72 @@ class CoreTest {
         assertNull(Parcels.containing(parcels, 44.0005, 15.0030))  // the sea
     }
 
-    @Test fun theMunicipalityIsReadFromItsLabel() {
-        val json = """{"features":[{"properties":{"label":"334723-KUKLJICA"}}]}"""
-        assertEquals("334723" to "KUKLJICA", Parcels.parseZoning(json))
-        assertNull(Parcels.parseZoning("""{"features":[]}"""))
+    // The plain text GetFeatureInfo returned for a tap on 2451 in Kukljica, 27.9.2026, verbatim.
+    private val infoText = """
+        Results for FeatureType 'http://cp_wms:CP.CadastralParcel':
+        --------------------------------------------
+        ID = 6438471
+        GEOMETRY = [GEOMETRY (Polygon) with 6 points]
+        BROJ_CESTICE = 2451
+        MATICNI_BROJ_KO = 334723
+        --------------------------------------------
+    """.trimIndent()
+
+    @Test fun theTapReadsIdNumberAndMunicipalityFromThePlainText() {
+        val p = Parcels.parcelFromInfo(infoText)
+        assertNotNull(p)
+        assertEquals(6438471L, p!!.id)
+        assertEquals("2451", p.number)
+        assertEquals("334723-2451", p.reference)
+        assertEquals("334723", p.municipality)
+        assertTrue(p.rings.isEmpty())
+    }
+
+    @Test fun aTapInTheSeaFindsNothing() {
+        assertNull(Parcels.parcelFromInfo("no features were found\n"))
+        assertNull(Parcels.parseInfo(""))
+    }
+
+    @Test fun theMunicipalityIsReadFromTheZoningLayer() {
+        val text = "Results for FeatureType 'http://cp_wms:CP.CadastralZoning':\n" +
+            "--------------------------------------------\nID = 1354\n" +
+            "GEOMETRY = [GEOMETRY (MultiPolygon) with 1124 points]\nLABEL = 334723-KUKLJICA\n" +
+            "--------------------------------------------\n"
+        assertEquals("334723" to "KUKLJICA", Parcels.zoningFromInfo(text))
+    }
+
+    @Test fun theTapAsksTheMiddlePixelOfASmallBoxInPlainText() {
+        val url = Parcels.infoUrl(44.0368, 15.2279)
+        assertTrue(url.contains("REQUEST=GetFeatureInfo"))
+        assertTrue(url.contains("INFO_FORMAT=text/plain"))   // JSON and GML are refused
+        assertTrue(url.contains("I=50&J=50"))
+        assertTrue(url.contains("STYLES=&"))
+    }
+
+    @Test fun searchTakesTheExactNumberAndNotOneThatBeginsWithIt() {
+        val json = """[{"key1":"111","value1":"24510"},{"key1":"6438471","value1":"2451"}]"""
+        assertEquals(6438471L, Parcels.parseSearch(json, "2451"))
+        assertNull(Parcels.parseSearch("[]", "2451"))
+        assertTrue(Parcels.searchUrl("2449/3", "334723").endsWith("search=2449%2F3&municipalityRegNum=334723"))
+    }
+
+    @Test fun aShapeThatArrivesLaterGoesIntoItsOwnMarkOnly() {
+        val parcels = Parcels.parseParcels(twoParcels)
+        val waiting = Parcels.Mark("334723-2450", "2450", 0xFFEF4444L, emptyList(), 6438470L)
+        val other = Parcels.Mark("334723-9", "9", 0xFF34D399L, emptyList(), 9L)
+        val marks = Parcels.withShapes(listOf(waiting, other), parcels)
+        assertEquals(5, marks[0].rings[0].size)
+        assertEquals(0xFFEF4444L, marks[0].colour)
+        assertTrue(marks[1].rings.isEmpty())
+        assertEquals(listOf(other), Parcels.shapeless(marks))
+    }
+
+    @Test fun aMarkWithoutItsShapeYetSurvivesBeingWrittenAndRead() {
+        val m = Parcels.Mark("334723-2451", "2451", 0xFFE8A64BL, emptyList(), 6438471L)
+        val back = Parcels.decode(Parcels.encode(listOf(m)))
+        assertEquals(1, back.size)
+        assertEquals("2451", back[0].number)
+        assertTrue(back[0].rings.isEmpty())
     }
 
     @Test fun theRecordCarriesEveryPossessorWithShareAndAddress() {
@@ -1410,6 +1472,16 @@ class CoreTest {
         assertEquals("Ana Primjer", r.sheets[0].owners[0].name)
         assertEquals("2/3", r.sheets[0].owners[1].share)
         assertEquals("Mare Uzorak", r.sheets[1].owners[0].name)
+        assertEquals(0, r.landBooks.size)
+    }
+
+    @Test fun theRecordNamesTheLandRegistryUnit() {
+        val json = """{"parcelNumber":"2451","lrUnitsFromParcelLinks":[{"lrUnitNumber":"37","mainBookName":"KUKLJICA",
+            "institutionName":"Zemljišnoknjižni odjel Zadar","lrUnitTypeName":"VLASNIČKI"}]}"""
+        val book = Parcels.parseRecord(json).landBooks.single()
+        assertEquals("37", book.unit)
+        assertEquals("KUKLJICA", book.book)
+        assertEquals("Zemljišnoknjižni odjel Zadar", book.office)
     }
 
     @Test fun aRecordWithNoSheetsIsEmptyNotAnError() {

@@ -208,6 +208,26 @@ fun TrailApp(
         Canvases.refreshParcels()
     }
 
+    // THE SHAPES COME LATER (27.9.2026). Only the state's slow WFS has them, so a highlight is
+    // kept at once with its number and colour, and its outline is fetched behind it; whatever is
+    // still missing is asked again when the app opens and when the K panel does.
+    var fetchingShapes by remember { mutableStateOf(false) }
+
+    suspend fun fillShapes() {
+        if (fetchingShapes) return
+        val missing = Parcels.shapeless(marks)
+        if (missing.isEmpty()) return
+        fetchingShapes = true
+        val answer = runCatching { ParcelNet.shapes(missing.map { it.reference }) }
+        fetchingShapes = false
+        val found = answer.getOrNull()
+        if (found.isNullOrEmpty()) {
+            Trail.say("The outline of ${missing.joinToString(", ") { it.number }} did not come yet; K asks again")
+            return
+        }
+        setMarks(Parcels.withShapes(marks, found))
+    }
+
     suspend fun openCard(parcel: Parcels.Parcel) {
         card = ParcelCard(parcel)
         val answer = runCatching { ParcelNet.record(parcel.id) }
@@ -226,7 +246,6 @@ fun TrailApp(
             return
         }
         val answer = runCatching { ParcelNet.at(lat, lon) }
-        android.util.Log.i("MantraParcels", "answer ${answer.getOrNull()?.number} ${answer.exceptionOrNull()}")
         val parcel = answer.getOrNull()
             // With no signal, a parcel he highlighted is still his: its shape is on the phone.
             ?: marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }
@@ -245,7 +264,10 @@ fun TrailApp(
         ParcelsShown.on = store.cadastreOn
         ParcelsShown.marks = store.parcelMarks
         ParcelsShown.onTap = { lat, lon -> scope.launch { tapped(lat, lon) } }
+        fillShapes()
     }
+
+    LaunchedEffect(parcelPanel) { if (parcelPanel) fillShapes() }
 
     // The ink follows the ground: dark on the pale maps, sand on the photographs and the night theme.
     LaunchedEffect(ready, layer.id, settings, UiTick.n) {
@@ -392,7 +414,11 @@ fun TrailApp(
                             } else {
                                 parcelColour = colour
                                 store.parcelColour = colour
-                                setMarks(Parcels.withMark(marks, Parcels.markOf(shown.parcel, colour)))
+                                // A colour changed on a mark that has its shape keeps the shape.
+                                val had = marks.firstOrNull { it.reference == shown.parcel.reference }
+                                val mark = Parcels.markOf(shown.parcel, colour)
+                                setMarks(Parcels.withMark(marks, if (mark.rings.isEmpty() && had != null) mark.copy(rings = had.rings) else mark))
+                                scope.launch { fillShapes() }
                             }
                         },
                         defaultColour = parcelColour,
@@ -508,17 +534,25 @@ fun TrailApp(
                 },
                 onFound = { found ->
                     setMarks(found.fold(marks) { acc, p -> Parcels.withMark(acc, Parcels.markOf(p, parcelColour)) })
+                    // The map goes to the first one when its outline has come; the card opens now.
                     found.firstOrNull()?.let { first ->
-                        val (lat, lon) = first.middle
-                        Canvases.goTo(lat, lon, 18)
                         parcelPanel = false
-                        scope.launch { openCard(first) }
+                        scope.launch {
+                            launch { openCard(first) }
+                            fillShapes()
+                            marks.firstOrNull { it.reference == first.reference && it.rings.isNotEmpty() }?.let { m ->
+                                val (lat, lon) = Parcels.Parcel(m.id, m.number, m.reference, null, m.rings).middle
+                                Canvases.goTo(lat, lon, 18)
+                            }
+                        }
                     }
                 },
                 onGo = { mark ->
                     val p = Parcels.Parcel(mark.id, mark.number, mark.reference, null, mark.rings)
-                    val (lat, lon) = p.middle
-                    Canvases.goTo(lat, lon, 18)
+                    if (mark.rings.isNotEmpty()) {
+                        val (lat, lon) = p.middle
+                        Canvases.goTo(lat, lon, 18)
+                    }
                     parcelPanel = false
                     if (mark.id != 0L) scope.launch { openCard(p) }
                 },
@@ -2619,6 +2653,14 @@ private fun ParcelCardView(
                         }
                     }
                     if (record.sheets.isEmpty()) Label("no possessors listed", Paint.Dim, size = 12, align = TextAlign.Start)
+                    // The land book is where the legal owners are written; the cadastre's
+                    // possessors above are who holds the land, which is not always the same.
+                    record.landBooks.forEach { book ->
+                        Spacer(Modifier.height(4.dp))
+                        Label("LAND REGISTRY", Paint.Amber, size = 11, align = TextAlign.Start)
+                        Label("z.k. uložak ${book.unit} · k.o. ${book.book} · ${book.kind.lowercase()}", Paint.Sand, size = 12, align = TextAlign.Start)
+                        Label(book.office, Paint.Dim, size = 11, align = TextAlign.Start)
+                    }
                 }
                 card.problem != null -> Label(card.problem, Paint.Red, size = 12, align = TextAlign.Start)
                 else -> Label("asking the cadastre for the owners…", Paint.Dim, size = 12, align = TextAlign.Start)
@@ -2791,7 +2833,13 @@ private fun ParcelsPanel(
                 ) {
                     Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(mark.colour)))
                     Label(mark.number, Paint.Sand, size = 15, align = TextAlign.Start)
-                    Label("k.o. ${mark.reference.substringBefore('-')}", Paint.Dim, size = 11, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                    Label(
+                        text = "k.o. ${mark.reference.substringBefore('-')}" + if (mark.rings.isEmpty()) " · outline coming" else "",
+                        colour = Paint.Dim,
+                        size = 11,
+                        align = TextAlign.Start,
+                        modifier = Modifier.weight(1f),
+                    )
                     Label("✕", Paint.Red, size = 16, modifier = Modifier.clickable { onRemove(mark) }.padding(4.dp))
                 }
             }

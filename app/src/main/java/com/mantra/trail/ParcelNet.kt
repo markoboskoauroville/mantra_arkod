@@ -17,12 +17,11 @@ object ParcelNet {
 
     class Refused(message: String) : Exception(message)
 
-    private fun get(url: String): String {
+    private fun get(url: String, readMs: Int = 25_000): String {
         val open = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
-            readTimeout = 25_000
+            readTimeout = readMs
             setRequestProperty("User-Agent", "MantraTrail/1")
-            setRequestProperty("Accept", "application/json")
         }
         try {
             val code = open.responseCode
@@ -33,11 +32,9 @@ object ParcelNet {
         }
     }
 
-    /** The parcel under a finger, or null when the finger is in the sea or on a road with no number. */
+    /** The parcel under a finger, in a fifth of a second; null in the sea or on an unnumbered road. */
     suspend fun at(lat: Double, lon: Double): Parcels.Parcel? = withContext(Dispatchers.IO) {
-        val round = Parcels.parseParcels(get(Parcels.aroundUrl(lat, lon)))
-        android.util.Log.i("MantraParcels", "${round.size} parcels round the tap")
-        Parcels.containing(round, lat, lon)
+        Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon)))
     }
 
     suspend fun record(parcelId: Long): Parcels.Record = withContext(Dispatchers.IO) {
@@ -46,17 +43,27 @@ object ParcelNet {
 
     /** The cadastral municipality under the middle of the screen: ("334723", "KUKLJICA"). */
     suspend fun municipality(lat: Double, lon: Double): Pair<String, String>? = withContext(Dispatchers.IO) {
-        Parcels.parseZoning(get(Parcels.zoningUrl(lat, lon)))
+        Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning")))
     }
 
-    /** Parcels by number, in one municipality, in one request. */
+    /** Parcels by number in one municipality, through OSS's search: one quick request each. */
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
-            if (numbers.isEmpty()) return@withContext emptyList()
-            val found = Parcels.parseParcels(get(Parcels.byReferenceUrl(numbers.map { "$municipality-$it" })))
-            // In the order he typed them, so the first he asked for is the one the map goes to.
-            numbers.mapNotNull { n -> found.firstOrNull { it.number == n } }
+            numbers.mapNotNull { n ->
+                val id = Parcels.parseSearch(get(Parcels.searchUrl(n, municipality)), n) ?: return@mapNotNull null
+                Parcels.Parcel(id, n, "$municipality-$n", null, emptyList())
+            }
         }
+
+    /**
+     * THE SHAPES, WHICH ONLY THE SLOW SERVICE HAS. One WFS request for all the references at once,
+     * given a whole minute, because it has been seen to take thirty seconds. Asked in the
+     * background after a highlight and again whenever a mark is still without its shape.
+     */
+    suspend fun shapes(references: List<String>): List<Parcels.Parcel> = withContext(Dispatchers.IO) {
+        if (references.isEmpty()) return@withContext emptyList()
+        Parcels.parseParcels(get(Parcels.byReferenceUrl(references), readMs = 60_000))
+    }
 
     /**
      * ONE TILE OF THE STATE'S PICTURE, IN OUR INK: fetched, every pixel recoloured, written back as
@@ -113,7 +120,6 @@ object ParcelsShown {
     var onTap: ((Double, Double) -> Unit)? = null
 
     fun tap(lat: Double, lon: Double) {
-        android.util.Log.i("MantraParcels", "tap $lat,$lon handler=${onTap != null}")
         onTap?.invoke(lat, lon)
     }
 }

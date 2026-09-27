@@ -118,3 +118,15 @@ On the Pixel 7 emulator v82 drew the cadastre over Kukljica exactly as the porta
 on parcel 2451 did nothing: a VTM layer listening for its TAP gesture was never called. The tap is
 now caught by Android's own GestureDetector on the map view, which passes every touch on to the
 map, and "single tap confirmed" keeps the double tap for zooming.
+
+## 27.9.2026 — v85, a tap answers in a fifth of a second
+
+v84's trace showed the tap arriving at once and the card appearing fourteen seconds later: the WFS
+box query took 14 s, and 30 s with an Oracle "maximum open cursors" error when the state's
+database was busy. Measured alternatives, all public: the WMS's own GetFeatureInfo in text/plain
+(0.2 s: id, number, municipality), OSS parcel-info (0.3 s), OSS's search by number within a
+municipality (0.13 s), and GetFeatureInfo on the zoning layer for the municipality (0.2 s). Only
+the parcel's outline needs the WFS, so a highlight is kept at once and its outline is fetched
+behind it, with a minute's patience, and asked again when the app opens and when K is pressed.
+The card now also names the land-registry unit (z.k. uložak, main book, court office), where the
+legal owners are written; the land book itself is not open without a separate lookup.

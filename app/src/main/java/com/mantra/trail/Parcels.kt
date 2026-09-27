@@ -121,21 +121,57 @@ object Parcels {
             "&SRSNAME=urn:ogc:def:crs:EPSG::4326&TYPENAMES=$typeName"
 
     /**
-     * The parcels round a point, a box about twenty metres across. With EPSG::4326 as a URN the
-     * box is latitude first; the polygons still come back longitude first, as GeoJSON has it.
+     * WHAT IS UNDER A POINT, ASKED OF THE PICTURE ITSELF (27.9.2026). The WFS took fourteen seconds
+     * for a box twenty metres across, and thirty with an Oracle "maximum open cursors" error when
+     * the state's database was busy; the WMS's own GetFeatureInfo answers in a fifth of a second.
+     * It will only speak text/plain or HTML (JSON and GML are "not allowed"), so [parseInfo] reads
+     * the plain text. A 101-pixel box a few metres across, asked about its middle pixel.
      */
-    fun aroundUrl(lat: Double, lon: Double, metres: Double = 10.0): String {
-        val dLat = metres / 111_320.0
-        val dLon = metres / (111_320.0 * Math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
-        return wfs("cp:CadastralParcel") + "&COUNT=60" +
-            "&BBOX=${lat - dLat},${lon - dLon},${lat + dLat},${lon + dLon},urn:ogc:def:crs:EPSG::4326"
+    fun infoUrl(lat: Double, lon: Double, layer: String = "cp:CP.CadastralParcel"): String {
+        val d = 0.0002
+        return "$WMS?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=$layer&QUERY_LAYERS=$layer" +
+            "&STYLES=&CRS=EPSG:4326&BBOX=${lat - d},${lon - d},${lat + d},${lon + d}" +
+            "&WIDTH=101&HEIGHT=101&I=50&J=50&FEATURE_COUNT=1&INFO_FORMAT=text/plain"
     }
 
-    /** The cadastral municipality under a point: "334723-KUKLJICA". */
-    fun zoningUrl(lat: Double, lon: Double): String {
-        val d = 0.00005
-        return wfs("cp:CadastralZoning") + "&COUNT=1" +
-            "&BBOX=${lat - d},${lon - d},${lat + d},${lon + d},urn:ogc:def:crs:EPSG::4326"
+    /** The first feature of a plain-text answer as KEY to value; null when nothing was there. */
+    fun parseInfo(text: String): Map<String, String>? {
+        if (text.contains("no features were found")) return null
+        val block = text.split(Regex("-{10,}")).drop(1).firstOrNull() ?: return null
+        val pairs = block.lines().mapNotNull { line ->
+            val at = line.indexOf(" = ")
+            if (at <= 0) null else line.substring(0, at).trim() to line.substring(at + 3).trim()
+        }.toMap()
+        return pairs.ifEmpty { null }
+    }
+
+    /** The parcel a GetFeatureInfo found: id, number and municipality. No shape: that is slow. */
+    fun parcelFromInfo(text: String): Parcel? {
+        val info = parseInfo(text) ?: return null
+        val id = info["ID"]?.toLongOrNull() ?: return null
+        val number = info["BROJ_CESTICE"] ?: return null
+        val ko = info["MATICNI_BROJ_KO"] ?: return null
+        return Parcel(id, number, "$ko-$number", null, emptyList())
+    }
+
+    /** "334723-KUKLJICA" from the zoning layer's plain text. */
+    fun zoningFromInfo(text: String): Pair<String, String>? {
+        val label = parseInfo(text)?.get("LABEL") ?: return null
+        if (!label.contains('-')) return null
+        return label.substringBefore('-') to label.substringAfter('-')
+    }
+
+    /** OSS's own search, a number inside a municipality: a tenth of a second. */
+    fun searchUrl(number: String, municipality: String): String =
+        "https://oss.uredjenazemlja.hr/oss/public/search-cad-parcels/parcel-numbers?search=" +
+            URLEncoder.encode(number, "UTF-8") + "&municipalityRegNum=" + URLEncoder.encode(municipality, "UTF-8")
+
+    /** The id of exactly that number; the search also offers numbers that merely begin with it. */
+    fun parseSearch(json: String, number: String): Long? {
+        val a = JSONArray(json)
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }
+            .firstOrNull { it.optString("value1") == number }
+            ?.optString("key1")?.toLongOrNull()
     }
 
     /** Parcels by their full references, "334723-2450", as many as are asked at once. */
@@ -212,14 +248,6 @@ object Parcels {
         }
     }
 
-    /** "334723-KUKLJICA" into its number and its name. */
-    fun parseZoning(json: String): Pair<String, String>? {
-        val f = JSONObject(json).optJSONArray("features")?.optJSONObject(0) ?: return null
-        val label = f.optJSONObject("properties")?.optString("label").orEmpty()
-        if (!label.contains('-')) return null
-        return label.substringBefore('-') to label.substringAfter('-')
-    }
-
     /** Ray casting, on the plane: at the size of a parcel the earth is flat enough. */
     fun contains(ring: List<Pair<Double, Double>>, lat: Double, lon: Double): Boolean {
         var inside = false
@@ -243,6 +271,9 @@ object Parcels {
 
     data class Use(val name: String, val areaM2: String, val sheet: String)
 
+    /** A land-registry unit the parcel is entered in: where its legal owners are written. */
+    data class LandBook(val unit: String, val book: String, val office: String, val kind: String)
+
     data class Record(
         val number: String,
         val municipality: String,
@@ -251,10 +282,12 @@ object Parcels {
         val areaM2: String,
         val uses: List<Use>,
         val sheets: List<Sheet>,
+        val landBooks: List<LandBook> = emptyList(),
     )
 
     fun parseRecord(json: String): Record {
         val o = JSONObject(json)
+        val books = o.optJSONArray("lrUnitsFromParcelLinks") ?: JSONArray()
         val parts = o.optJSONArray("parcelParts") ?: JSONArray()
         val sheets = o.optJSONArray("possessionSheets") ?: JSONArray()
         return Record(
@@ -277,6 +310,11 @@ object Parcels {
                         Owner(w.optString("name").trim(), w.optString("ownership"), w.optString("address").trim())
                     },
                 )
+            },
+            landBooks = (0 until books.length()).mapNotNull { i ->
+                val b = books.optJSONObject(i) ?: return@mapNotNull null
+                LandBook(b.optString("lrUnitNumber"), b.optString("mainBookName"),
+                    b.optString("institutionName"), b.optString("lrUnitTypeName"))
             },
         )
     }
@@ -326,6 +364,7 @@ object Parcels {
                 if (a != null && b != null) a to b else null
             }
         }.filter { it.size >= 3 }
+        // A mark may have no shape yet: the WFS was slow when it was made, and it is asked again.
         Mark(f[0], f[1], colour, rings, f[3].toLongOrNull() ?: 0L)
     }
 
@@ -338,4 +377,13 @@ object Parcels {
 
     fun markOf(parcel: Parcel, colour: Long): Mark =
         Mark(parcel.reference, parcel.number, colour, parcel.rings, parcel.id)
+
+    /** The marks still waiting for their shape. */
+    fun shapeless(marks: List<Mark>): List<Mark> = marks.filter { it.rings.isEmpty() }
+
+    /** Shapes that arrived, put into the marks they belong to; every other mark untouched. */
+    fun withShapes(marks: List<Mark>, found: List<Parcel>): List<Mark> = marks.map { m ->
+        val p = found.firstOrNull { it.reference == m.reference }
+        if (m.rings.isEmpty() && p != null && p.rings.isNotEmpty()) m.copy(rings = p.rings, id = if (m.id == 0L) p.id else m.id) else m
+    }
 }
