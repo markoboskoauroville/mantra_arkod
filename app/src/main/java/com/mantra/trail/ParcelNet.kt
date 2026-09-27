@@ -36,6 +36,7 @@ object ParcelNet {
     /** The parcel under a finger, or null when the finger is in the sea or on a road with no number. */
     suspend fun at(lat: Double, lon: Double): Parcels.Parcel? = withContext(Dispatchers.IO) {
         val round = Parcels.parseParcels(get(Parcels.aroundUrl(lat, lon)))
+        android.util.Log.i("MantraParcels", "${round.size} parcels round the tap")
         Parcels.containing(round, lat, lon)
     }
 
@@ -112,6 +113,7 @@ object ParcelsShown {
     var onTap: ((Double, Double) -> Unit)? = null
 
     fun tap(lat: Double, lon: Double) {
+        android.util.Log.i("MantraParcels", "tap $lat,$lon handler=${onTap != null}")
         onTap?.invoke(lat, lon)
     }
 }

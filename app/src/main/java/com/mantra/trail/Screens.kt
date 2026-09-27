@@ -226,6 +226,7 @@ fun TrailApp(
             return
         }
         val answer = runCatching { ParcelNet.at(lat, lon) }
+        android.util.Log.i("MantraParcels", "answer ${answer.getOrNull()?.number} ${answer.exceptionOrNull()}")
         val parcel = answer.getOrNull()
             // With no signal, a parcel he highlighted is still his: its shape is on the phone.
             ?: marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }
