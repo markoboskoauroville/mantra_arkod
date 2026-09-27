@@ -1,6 +1,6 @@
 # Mantra Trail — the finished state
 
-    version      86 (cadastre: v82–v86)
+    version      87 (cadastre: v82–v87)
     repository   markoboskoauroville/MANTRA_TRAIL (public)
     artefact     1-mantra-trail-v1.apk, release tag v1
     built by     GitHub Actions only (android-app.md §1a). Never on a desk.
@@ -66,6 +66,7 @@ waiting for a stop that might not come.
 | `MapCanvas.kt` | the mapsforge view, the four layers, the track line, the accuracy ring. |
 | `Screens.kt` | the whole interface. |
 | `Store.kt` | the four things remembered: layer, map file, export folder, level zero. |
+| `Outline.kt` | a parcel's outline read off the WMS picture: paint fill, Moore trace, Douglas–Peucker. No Android. |
 | `Parcels.kt` | the cadastre: WMS tile boxes, WFS and OSS addresses, parsing, which parcel holds a tap, the highlights and how they are kept. No Android. |
 | `ParcelNet.kt` | the cadastre over the wire, the tile recoloured into our ink, and `ParcelsShown` (switch, ink, marks, tap). |
 | `scripts/verify.py` | the structural checks a compiler will not run. |
@@ -80,10 +81,12 @@ Test 1 may be run on a desk with kotlinc and a JUnit jar, because the five files
 ## THE CADASTRE (v82, 27.9.2026)
 
 Every parcel in Croatia with its number, drawn half-transparent over whichever map is up (both
-engines), on by default. **K** at the top left opens the panel: the switch, search by number in
+engines), on by default. **K** in the key row (where T was; the compass is chosen in settings) opens the panel: the switch, search by number in
 the cadastral municipality under the middle of the map (several numbers at once), a colour, and the
-list of highlighted parcels. **A tap on a parcel** (zoom 15 and in) opens its card: number,
+list of highlighted parcels. **The first tap on a parcel** (zoom 15 and in) highlights it, outlined
+in under a second from the state's own picture (`Outline.kt`); **a tap on a highlighted parcel** opens its card: number,
 municipality, area, address, land use, and every possessor on every possession sheet with share
 and address, from the state's public OSS. At the bottom of the card, the **highlight tick** and the
-**five trail colours**. A highlight keeps the parcel's shape on the phone, so it draws, and its card
+**five trail colours**, and **TXT** at the top right writes the whole sheet and the outline to a text
+file (the tracks folder, else Downloads). A highlight keeps the parcel's shape on the phone, so it draws, and its card
 opens, with no signal; the owners and the lines themselves need the network.

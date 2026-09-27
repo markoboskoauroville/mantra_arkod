@@ -50,3 +50,15 @@ Proved, with screenshots, at Kukljica (Rt Loparić) over openhiking-croatia.map:
 
 NOT tested: the Google engine's cadastre overlay and its tap (no Google key on the emulator); the
 K switch turning the layer off and on; a real phone and a real thumb (Test 4 is his).
+
+## v87 — one tap highlights, the next opens the sheet; K; TXT (27.9.2026), Pixel 7 emulator
+
+Proved, with screenshots, in Zagreb (Ribnjak) over openhiking-croatia.map:
+- K in the key row where T was; the compass's three states in settings ("Compass on the map");
+- first tap on 5925: highlighted in amber within 3 s, "5925 highlighted · tap it again for its
+  sheet"; the traced outline encloses 323 m² against the official 330 m²;
+- second tap on 5925: the sheet, tick on, amber marked, TXT beside the ✕;
+- TXT: "saved parcel 335240-5925.txt in Downloads"; the file read back off the phone holds the
+  municipality, area, address, land use, possessor, land registry unit and the seven corners.
+NOT tested: the Google engine; a parcel larger than 300 m across (the 900 m and 2700 m pictures);
+the TXT into a chosen tracks folder; his thumb.
