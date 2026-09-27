@@ -307,7 +307,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             cadastreLayer = layer
             cadastreInk = ParcelsShown.ink
         }
-        drawMarks(ParcelsShown.marks)
+        drawMarks(ParcelsShown.drawn())
     }
 
     /** The switch in the parcels panel, and a change of ink: the layer is made again or taken off. */

@@ -98,6 +98,9 @@ object Parcels {
     const val INK_LIGHT = 0xFFF2DDB4L
     const val INK_ALPHA = 0.62
 
+    /** The selection's colour: cyan, which none of the five highlight colours is. */
+    const val SELECTION = 0xFF22D3EEL
+
     fun inkFor(layerId: String, theme: String, googleView: String? = null): Long = when {
         layerId == Layers.IMAGERY.id -> INK_LIGHT
         googleView == "satellite" -> INK_LIGHT

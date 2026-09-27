@@ -1640,4 +1640,9 @@ class CoreTest {
         val text = Parcels.toText(Parcels.parseParcels(twoParcels)[1], null, "now")
         assertTrue(text.contains("could not be read"))
     }
+
+    @Test fun theSelectionIsNoneOfTheFiveHighlightColours() {
+        val five = listOf(0xFF34D399L, 0xFFE8A64BL, 0xFFEF4444L, 0xFF60A5FAL, 0xFFF2DDB4L)
+        assertFalse(Parcels.SELECTION in five)
+    }
 }

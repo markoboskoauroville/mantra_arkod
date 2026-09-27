@@ -113,7 +113,7 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
             pendingCentre = null
             ready.setOnMapClickListener { at -> ParcelsShown.tap(at.latitude, at.longitude) }
             refreshCadastre()
-            drawMarks(ParcelsShown.marks)
+            drawMarks(ParcelsShown.drawn())
             onReady?.invoke()
 
             ready.setOnCameraIdleListener {

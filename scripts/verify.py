@@ -13,7 +13,7 @@ TESTS = ROOT / "app/src/test/java/com/mantra/trail/CoreTest.kt"
 # Lowered once, on 15.9.2026, and only because a FEATURE left: the bubble level and its twelve
 # cases went with it when he asked for the compass alone. A floor drops when the thing it counted
 # is gone, never because tests were dropped (never-back-to-zero.md).
-TEST_FLOOR = 201
+TEST_FLOOR = 202
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -986,6 +986,17 @@ check("a first tap highlights, a tap on a highlighted parcel opens its sheet",
       "Screens.kt examined")
 check("the sheet has TXT", 'Label("TXT"' in screens_src and "Folder.saveText(" in screens_src,
       "Screens.kt examined")
+
+check("a tap selects one parcel and forgets the last; only the sheet keeps a highlight",
+      "fun select(parcel: Parcels.Parcel?)" in screens_src and "ParcelsShown.selection" in screens_src
+      and "Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)" not in screens_src,
+      "Screens.kt examined")
+check("the sheet has CPY beside TXT", 'Label("CPY"' in screens_src and "clipboard.setText(" in screens_src,
+      "Screens.kt examined")
+check("Google's map has the round search field, and the settings hide it",
+      "private fun GoogleSearchBar" in screens_src and "searchBar && layer.family == MapLayer.Family.GOOGLE" in screens_src
+      and "Search bar on Google's map" in (MAIN / "Settings.kt").read_text(),
+      "Screens.kt and Settings.kt examined")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

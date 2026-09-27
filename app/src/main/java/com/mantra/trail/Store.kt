@@ -241,7 +241,13 @@ class Store(context: Context) {
         get() = prefs.getLong(KEY_PARCEL_COLOUR, 0xFFE8A64BL)
         set(v) = prefs.edit().putLong(KEY_PARCEL_COLOUR, v).apply()
 
+    /** The round search bar over Google's map, shown unless he hides it (27.9.2026). */
+    var googleSearchBar: Boolean
+        get() = prefs.getBoolean(KEY_GOOGLE_SEARCH, true)
+        set(v) = prefs.edit().putBoolean(KEY_GOOGLE_SEARCH, v).apply()
+
     companion object {
+        private const val KEY_GOOGLE_SEARCH = "googleSearchBar"
         private const val KEY_CADASTRE = "cadastreOn"
         private const val KEY_PARCEL_MARKS = "parcelMarks"
         private const val KEY_PARCEL_COLOUR = "parcelColour"

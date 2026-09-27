@@ -133,9 +133,9 @@ object Canvases {
     /** The cadastre switched, re-inked or re-marked: both engines told, whichever is up (27.9.2026). */
     fun refreshParcels() {
         vtm?.refreshCadastre()
-        vtm?.drawMarks(ParcelsShown.marks)
+        vtm?.drawMarks(ParcelsShown.drawn())
         google?.refreshCadastre()
-        google?.drawMarks(ParcelsShown.marks)
+        google?.drawMarks(ParcelsShown.drawn())
     }
 
     /** A found parcel: the map goes there. */

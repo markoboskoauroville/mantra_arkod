@@ -152,6 +152,17 @@ object ParcelsShown {
     @Volatile
     var marks: List<Parcels.Mark> = emptyList()
 
+    /**
+     * THE PARCEL UNDER THE LAST TAP (27.9.2026, his correction of v87): *"only one parcel can be
+     * highlighted at a time ... this is just to mark current click, so new deletes the old click
+     * highlight."* Drawn in its own colour, over the marks, and never kept.
+     */
+    @Volatile
+    var selection: Parcels.Mark? = null
+
+    /** Everything the engines draw: his marks, and the selection on top. */
+    fun drawn(): List<Parcels.Mark> = marks + listOfNotNull(selection)
+
     /** Set by the screen; called by either engine with where the finger landed. */
     @Volatile
     var onTap: ((Double, Double) -> Unit)? = null

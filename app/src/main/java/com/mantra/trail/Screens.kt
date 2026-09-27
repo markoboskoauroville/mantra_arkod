@@ -200,6 +200,8 @@ fun TrailApp(
     var parcelColour by remember { mutableLongStateOf(store.parcelColour) }
     var card by remember { mutableStateOf<ParcelCard?>(null) }
     var parcelPanel by remember { mutableStateOf(false) }
+    var searchBar by remember { mutableStateOf(store.googleSearchBar) }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
 
     fun setMarks(next: List<Parcels.Mark>) {
         marks = next
@@ -246,17 +248,34 @@ fun TrailApp(
     }
 
     /**
-     * ONE TAP HIGHLIGHTS, THE NEXT OPENS THE SHEET (27.9.2026). His rule: *"if parcel is
-     * highlighted, second tap is opening the sheet for that parcel."* A highlighted parcel is
-     * recognised on the phone by its outline, so its sheet opens even with no signal; any other
-     * parcel is asked of the state, outlined from the state's own picture, and marked in the
-     * colour last chosen.
+     * ONE TAP SELECTS, A TAP ON THE SELECTION OPENS THE SHEET (27.9.2026). v87 kept every tapped
+     * parcel highlighted; his correction: *"only one parcel can be highlighted at a time. What
+     * stays highlighted, it's only what user choose to highlight and choose the color. And this is
+     * just to mark current click, so new deletes the old click highlight."* So a tap outlines one
+     * parcel in cyan and forgets the one before; the tick and the colours on the sheet are what
+     * keep a parcel. A parcel he highlighted is selected from its own outline on the phone, so the
+     * two taps work on it with no signal.
      */
+    var selected by remember { mutableStateOf<Parcels.Parcel?>(null) }
+
+    fun select(parcel: Parcels.Parcel?) {
+        selected = parcel
+        ParcelsShown.selection = parcel?.takeIf { it.rings.isNotEmpty() }?.let { Parcels.markOf(it, Parcels.SELECTION) }
+        Canvases.refreshParcels()
+    }
+
     suspend fun tapped(lat: Double, lon: Double) {
         if (!ParcelsShown.on) return
-        marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }?.let { m ->
+        val current = selected
+        if (current != null && current.rings.any { Parcels.contains(it, lat, lon) }) {
             Trail.say(null)
-            openCard(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
+            openCard(current)
+            return
+        }
+        marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }?.let { m ->
+            card = null
+            select(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
+            Trail.say("${m.number} · tap it again for its sheet")
             return
         }
         if (Canvases.currentZoom() < Parcels.TAP_ZOOM) {
@@ -269,17 +288,15 @@ fun TrailApp(
             Trail.say(if (answer.isFailure) "The cadastre did not answer: ${answer.exceptionOrNull()?.message}" else "No parcel there")
             return
         }
-        // Marked already but its outline still coming: that is highlighted too.
-        marks.firstOrNull { it.reference == parcel.reference }?.let { m ->
-            openCard(parcel.copy(rings = m.rings))
+        // The selection whose outline could not be traced is still the selection.
+        if (current != null && current.reference == parcel.reference) {
+            openCard(current)
             return
         }
         card = null
         val rings = runCatching { ParcelNet.outline(lat, lon) }.getOrNull()
-        val marked = Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)
-        setMarks(Parcels.withMark(marks, marked))
-        Trail.say("${parcel.number} highlighted · tap it again for its sheet")
-        if (rings == null) fillShapes()
+        select(parcel.copy(rings = rings.orEmpty()))
+        Trail.say("${parcel.number} · tap it again for its sheet")
     }
 
     LaunchedEffect(Unit) {
@@ -398,6 +415,11 @@ fun TrailApp(
                 Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
             ) {
                 FixLine(fix, zoom, layer)
+                // THE ROUND SEARCH FIELD, as Google Maps has it (27.9.2026), on Google's map only
+                // and only while the settings show it.
+                if (searchBar && layer.family == MapLayer.Family.GOOGLE) {
+                    GoogleSearchBar(store = store, near = fix)
+                }
             }
 
             Column(
@@ -416,6 +438,13 @@ fun TrailApp(
                         card = shown,
                         markedColour = mark?.colour,
                         onClose = { card = null },
+                        onCopy = {
+                            val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
+                                .format(java.util.Date())
+                            val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
+                            clipboard.setText(androidx.compose.ui.text.AnnotatedString(Parcels.toText(parcel, shown.record, stamp)))
+                            Trail.say("parcel ${parcel.number} copied")
+                        },
                         onText = {
                             val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
                                 .format(java.util.Date())
@@ -575,6 +604,7 @@ fun TrailApp(
                     if (mark.id != 0L) scope.launch { openCard(p) }
                 },
                 onRemove = { mark -> setMarks(Parcels.without(marks, mark.reference)) },
+                onClearAll = { setMarks(emptyList()) },
                 onClose = { parcelPanel = false },
             )
         }
@@ -754,6 +784,11 @@ fun TrailApp(
                 onCompass = {
                     compass = (compass + 1) % 3
                     store.compassMode = compass
+                },
+                searchBar = searchBar,
+                onSearchBar = {
+                    searchBar = !searchBar
+                    store.googleSearchBar = searchBar
                 },
                 version = version,
                 installedMaps = installedMaps,
@@ -2624,6 +2659,7 @@ private fun ParcelCardView(
     defaultColour: Long,
     onClose: () -> Unit,
     onText: () -> Unit,
+    onCopy: () -> Unit,
     onHighlight: (Long?) -> Unit,
 ) {
     val record = card.record
@@ -2647,7 +2683,16 @@ private fun ParcelCardView(
                 align = TextAlign.Start,
                 modifier = Modifier.weight(1f),
             )
-            // TXT, at the top right beside the way out (27.9.2026): the whole sheet to a text file.
+            // CPY and TXT, at the top right beside the way out (27.9.2026): the whole sheet to the
+            // clipboard, or to a text file.
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
+                    .clickable(onClick = onCopy)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) { Label("CPY", Paint.Amber, size = 13) }
+            Spacer(Modifier.width(GAP))
             Box(
                 Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -2738,6 +2783,7 @@ private fun ParcelsPanel(
     onFound: (List<Parcels.Parcel>) -> Unit,
     onGo: (Parcels.Mark) -> Unit,
     onRemove: (Parcels.Mark) -> Unit,
+    onClearAll: () -> Unit,
     onClose: () -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
@@ -2849,7 +2895,22 @@ private fun ParcelsPanel(
             }
             line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
 
-            Label("HIGHLIGHTED  ${marks.size}", Paint.Amber, size = 12, align = TextAlign.Start)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Label("HIGHLIGHTED  ${marks.size}", Paint.Amber, size = 12, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                // One press for all of them: v87 highlighted every parcel tapped, and those are
+                // not ones he chose (27.9.2026). Asks once before it clears.
+                if (marks.isNotEmpty()) {
+                    var sure by remember { mutableStateOf(false) }
+                    Label(
+                        text = if (sure) "press again to remove all" else "remove all",
+                        colour = Paint.Red,
+                        size = 12,
+                        modifier = Modifier
+                            .clickable { if (sure) { onClearAll(); sure = false } else sure = true }
+                            .padding(6.dp),
+                    )
+                }
+            }
             if (marks.isEmpty()) {
                 Label("None yet. Tap a parcel on the map and tick highlight, or find one here.", Paint.Dim, size = 12, align = TextAlign.Start)
             }
@@ -2874,6 +2935,114 @@ private fun ParcelsPanel(
                         modifier = Modifier.weight(1f),
                     )
                     Label("✕", Paint.Red, size = 16, modifier = Modifier.clickable { onRemove(mark) }.padding(4.dp))
+                }
+            }
+        }
+    }
+}
+
+
+/**
+ * THE SEARCH FIELD ON GOOGLE'S MAP (27.9.2026). Marko: *"a search field at the top, round entry
+ * field, same as in google maps, when user can search for the street."* A pill across the top; the
+ * keyboard's search key asks Google Places (his key, biased to where he is, one billed request per
+ * press and never on its own); the answers drop down under it and a tap on one takes the map
+ * there. The ✕ empties it.
+ */
+@Composable
+private fun GoogleSearchBar(store: Store, near: Fix?) {
+    var text by remember { mutableStateOf("") }
+    var found by remember { mutableStateOf<List<Places.Place>>(emptyList()) }
+    var line by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
+    fun go() {
+        if (text.isBlank()) return
+        keyboard?.hide()
+        line = "searching…"
+        scope.launch {
+            val here = near ?: Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
+            val (places, problem) = Places.search(text.trim(), here, store)
+            found = places
+            line = problem ?: if (places.isEmpty()) "nothing found" else null
+        }
+    }
+
+    Column(
+        Modifier.fillMaxWidth().padding(start = 12.dp, end = 72.dp, top = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White)
+                .padding(horizontal = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                if (text.isEmpty()) {
+                    Text("Search here", color = Color(0xFF70757A), fontSize = 16.sp)
+                }
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Color(0xFF202124), fontSize = 16.sp),
+                    cursorBrush = SolidColor(Color(0xFF1A73E8)),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Search,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (text.isNotEmpty()) {
+                Text(
+                    "✕",
+                    color = Color(0xFF70757A),
+                    fontSize = 18.sp,
+                    modifier = Modifier
+                        .clickable {
+                            text = ""
+                            found = emptyList()
+                            line = null
+                        }
+                        .padding(start = 10.dp),
+                )
+            }
+        }
+        line?.let {
+            Box(
+                Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) { Text(it, color = Color(0xFF3C4043), fontSize = 14.sp) }
+        }
+        if (found.isNotEmpty()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 300.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                found.forEach { place ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                Canvases.goTo(place.lat, place.lon, 17)
+                                text = place.name
+                                found = emptyList()
+                            }
+                            .padding(horizontal = 18.dp, vertical = 10.dp),
+                    ) {
+                        Text(place.name, color = Color(0xFF202124), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(place.where, color = Color(0xFF70757A), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }

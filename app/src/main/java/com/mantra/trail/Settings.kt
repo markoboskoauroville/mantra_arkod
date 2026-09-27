@@ -122,6 +122,8 @@ fun SettingsFace(
     onClose: () -> Unit,
     compassMode: Int = 0,
     onCompass: () -> Unit = {},
+    searchBar: Boolean = true,
+    onSearchBar: () -> Unit = {},
 ) {
     val state = remember(store) { SettingsState(store) }
 
@@ -164,7 +166,7 @@ fun SettingsFace(
             // THE COMPASS OVER THE MAP (27.9.2026). It was T on the map's own key row; that key is
             // the cadastre's now, and the compass's three states are chosen here: dark ink for a
             // light map, light ink for a dark one, or none.
-            Group("Compass") {
+            Group("On the map") {
                 Line(
                     title = "Compass on the map",
                     under = when (compassMode) {
@@ -173,6 +175,14 @@ fun SettingsFace(
                         else -> "off · press to change"
                     },
                     onPress = onCompass,
+                )
+                Rule()
+                // THE SEARCH BAR ON GOOGLE'S MAP (27.9.2026): *"this search entry button can be
+                // hidden or shown in the settings."*
+                Line(
+                    title = "Search bar on Google's map",
+                    under = if (searchBar) "shown · press to hide" else "hidden · press to show",
+                    onPress = onSearchBar,
                 )
             }
 

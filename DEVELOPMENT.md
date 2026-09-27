@@ -157,3 +157,19 @@ was refused. The WFS is kept only for parcels found by search, which have no poi
 TXT writes the whole sheet and the outline's corners, into the tracks folder if one is chosen,
 otherwise the phone's Downloads. The compass's three states moved to settings; the old check that
 held it on the key row was rewritten, not deleted.
+
+## 27.9.2026 — v88, the tap selects; CPY; the search field on Google's map
+
+His correction of v87 (screenshot: six parcels red): *"only one parcel can be highlighted at a
+time. What stays highlighted, it's only what user choose to highlight and choose the color. And
+this is just to mark current click, so new deletes the old click highlight."* A tap is now a
+SELECTION: one parcel, cyan (none of the five colours), never kept; a new tap replaces it; a tap on
+the selection opens the sheet. The tick and the swatches on the sheet are the only way a tap keeps a
+parcel; search still marks what it finds. "remove all" in the K panel clears what v87 marked.
+
+Then: *"beside text export ... CPY, copy. It copies the parcel data to the clipboard"* — the same
+text as TXT. And *"to the google map layer a search field at the top, round entry field, same as in
+google maps ... can be hidden or shown in the settings"* — a white pill under the top line on the
+Google views, the keyboard's search key asks Places (his key, near him, one request per press),
+results drop down, a tap takes the map there; "Search bar on Google's map" in settings, shown by
+default. The compass row and it share a group, "On the map".
