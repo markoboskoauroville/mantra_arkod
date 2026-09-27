@@ -57,12 +57,12 @@ object ParcelNet {
 
     /**
      * THE SHAPES, WHICH ONLY THE SLOW SERVICE HAS. One WFS request for all the references at once,
-     * given a whole minute, because it has been seen to take thirty seconds. Asked in the
+     * given a minute and a half, because it was measured at twenty-nine seconds (27.9.2026). Asked in the
      * background after a highlight and again whenever a mark is still without its shape.
      */
     suspend fun shapes(references: List<String>): List<Parcels.Parcel> = withContext(Dispatchers.IO) {
         if (references.isEmpty()) return@withContext emptyList()
-        Parcels.parseParcels(get(Parcels.byReferenceUrl(references), readMs = 60_000))
+        Parcels.parseParcels(get(Parcels.byReferenceUrl(references), readMs = 90_000))
     }
 
     /**

@@ -218,9 +218,15 @@ fun TrailApp(
         val missing = Parcels.shapeless(marks)
         if (missing.isEmpty()) return
         fetchingShapes = true
-        val answer = runCatching { ParcelNet.shapes(missing.map { it.reference }) }
+        // Three quiet tries: the state's WFS answers in half a minute when it answers, and now
+        // and then refuses with a busy database, which the next try usually gets past.
+        var found: List<Parcels.Parcel>? = null
+        for (attempt in 1..3) {
+            found = runCatching { ParcelNet.shapes(missing.map { it.reference }) }.getOrNull()
+            if (!found.isNullOrEmpty()) break
+            delay(5_000)
+        }
         fetchingShapes = false
-        val found = answer.getOrNull()
         if (found.isNullOrEmpty()) {
             Trail.say("The outline of ${missing.joinToString(", ") { it.number }} did not come yet; K asks again")
             return
