@@ -1315,4 +1315,158 @@ class CoreTest {
         assertTrue(d.contains("${fakeKey.length}"))
         assertFalse(d.contains(fakeKey.substring(0, 8)))
     }
+
+    // --- Parcels: the cadastre (27.9.2026) ------------------------------------------------------
+
+    // Two squares side by side, shaped as the state's WFS answers: GeoJSON, longitude first.
+    private val twoParcels = """
+        {"type":"FeatureCollection","features":[
+         {"type":"Feature","id":"CP.6438470","geometry":{"type":"Polygon","coordinates":[[[15.0,44.0],[15.001,44.0],[15.001,44.001],[15.0,44.001],[15.0,44.0]]]},
+          "properties":{"areaValue":{"value":12401,"@uom":"m2"},"inspireId":{"localId":"CP.6438470","namespace":"HR.DGU.CP"},"label":"2450","nationalCadastralReference":"334723-2450"}},
+         {"type":"Feature","id":"CP.10480898","geometry":{"type":"MultiPolygon","coordinates":[[[[15.001,44.0],[15.002,44.0],[15.002,44.001],[15.001,44.001],[15.001,44.0]]]]},
+          "properties":{"inspireId":{"localId":"CP.10480898"},"label":"154/1","nationalCadastralReference":"334723-154/1"}}
+        ]}
+    """.trimIndent()
+
+    @Test fun cadastreTileBoxIsTheWholeWorldAtZoomZero() {
+        val b = Parcels.tileBox(0, 0, 0)
+        assertEquals(-20037508.34, b[0], 0.01)
+        assertEquals(-20037508.34, b[1], 0.01)
+        assertEquals(20037508.34, b[2], 0.01)
+        assertEquals(20037508.34, b[3], 0.01)
+    }
+
+    @Test fun cadastreTileBoxMatchesTheOneMeasuredOverKukljica() {
+        // The box that returned the parcels of Kukljica from the live WMS on 27.9.2026, computed
+        // independently in Python for tile 17/71086/47645.
+        val b = Parcels.tileBox(17, 71086, 47645)
+        assertEquals(1696902.03, b[0], 0.05)
+        assertEquals(5469833.74, b[1], 0.05)
+        assertEquals(1697207.78, b[2], 0.05)
+        assertEquals(5470139.49, b[3], 0.05)
+    }
+
+    @Test fun cadastreTilePathBecomesAWmsRequestAndNothingElseIsTouched() {
+        val asked = Parcels.resolve(Parcels.WMS + "/17/71086/47645")
+        assertTrue(asked.startsWith(Parcels.WMS + "?SERVICE=WMS"))
+        assertTrue(asked.contains("REQUEST=GetMap"))
+        assertTrue(asked.contains("STYLES=&"))          // the server refuses a GetMap without it
+        assertTrue(asked.contains("CRS=EPSG:3857"))
+        assertTrue(asked.contains("BBOX=1696902.0"))
+        val other = "https://tile.example/1/2/3.png"
+        assertEquals(other, Parcels.resolve(other))
+        assertEquals(Parcels.WMS + "/a/b/c", Parcels.resolve(Parcels.WMS + "/a/b/c"))
+    }
+
+    @Test fun parcelNumbersAreReadOutOfWhatHeTyped() {
+        assertEquals(listOf("2450", "2449/3", "2451"), Parcels.numbers("2450, 2449/3  2451;2450"))
+        assertEquals(emptyList<String>(), Parcels.numbers("Kukljica, abc, /3, 12/"))
+    }
+
+    @Test fun parcelsAreParsedWithTheirIdNumberAreaAndLatitudeFirstRings() {
+        val parcels = Parcels.parseParcels(twoParcels)
+        assertEquals(2, parcels.size)
+        val first = parcels[0]
+        assertEquals(6438470L, first.id)
+        assertEquals("2450", first.number)
+        assertEquals("334723", first.municipality)
+        assertEquals(12401, first.areaM2)
+        assertEquals(44.0, first.rings[0][0].first, 1e-9)   // latitude first, though GeoJSON is not
+        assertEquals(15.0, first.rings[0][0].second, 1e-9)
+        assertEquals(10480898L, parcels[1].id)
+        assertNull(parcels[1].areaM2)
+        assertEquals(1, parcels[1].rings.size)               // the MultiPolygon's outer ring
+    }
+
+    @Test fun theTapFindsTheParcelItLandedInAndNotItsNeighbour() {
+        val parcels = Parcels.parseParcels(twoParcels)
+        assertEquals("2450", Parcels.containing(parcels, 44.0005, 15.0005)?.number)
+        assertEquals("154/1", Parcels.containing(parcels, 44.0005, 15.0015)?.number)
+        assertNull(Parcels.containing(parcels, 44.0005, 15.0030))  // the sea
+    }
+
+    @Test fun theMunicipalityIsReadFromItsLabel() {
+        val json = """{"features":[{"properties":{"label":"334723-KUKLJICA"}}]}"""
+        assertEquals("334723" to "KUKLJICA", Parcels.parseZoning(json))
+        assertNull(Parcels.parseZoning("""{"features":[]}"""))
+    }
+
+    @Test fun theRecordCarriesEveryPossessorWithShareAndAddress() {
+        // Invented people: a real record's names do not belong in a repository.
+        val json = """
+            {"parcelId":1,"parcelNumber":"154/1","cadMunicipalityName":"KUKLJICA","cadMunicipalityRegNum":"334723",
+             "address":"DONJE POLJE","area":"501",
+             "parcelParts":[{"name":"ORANICA","area":"101","possessionSheetNumber":"376"},{"name":"VOĆNJAK","area":"400","possessionSheetNumber":"365"}],
+             "possessionSheets":[
+               {"possessionSheetNumber":"376","possessors":[{"name":"Ana Primjer ","ownership":"1/3","address":"Kukljica 1"},{"name":"Ivo Primjer","ownership":"2/3","address":""}]},
+               {"possessionSheetNumber":"365","possessors":[{"name":"Mare Uzorak","ownership":"1/1","address":"Zadar"}]}]}
+        """.trimIndent()
+        val r = Parcels.parseRecord(json)
+        assertEquals("154/1", r.number)
+        assertEquals("KUKLJICA", r.municipality)
+        assertEquals(2, r.uses.size)
+        assertEquals("VOĆNJAK", r.uses[1].name)
+        assertEquals(2, r.sheets.size)
+        assertEquals("Ana Primjer", r.sheets[0].owners[0].name)
+        assertEquals("2/3", r.sheets[0].owners[1].share)
+        assertEquals("Mare Uzorak", r.sheets[1].owners[0].name)
+    }
+
+    @Test fun aRecordWithNoSheetsIsEmptyNotAnError() {
+        val r = Parcels.parseRecord("""{"parcelNumber":"9"}""")
+        assertEquals(0, r.sheets.size)
+        assertEquals(0, r.uses.size)
+    }
+
+    @Test fun highlightedParcelsSurviveBeingWrittenAndRead() {
+        val parcels = Parcels.parseParcels(twoParcels)
+        val marks = listOf(Parcels.markOf(parcels[0], 0xFFE8A64BL), Parcels.markOf(parcels[1], 0xFF34D399L))
+        val back = Parcels.decode(Parcels.encode(marks))
+        assertEquals(2, back.size)
+        assertEquals("334723-2450", back[0].reference)
+        assertEquals("154/1", back[1].number)
+        assertEquals(0xFFE8A64BL, back[0].colour)
+        assertEquals(6438470L, back[0].id)
+        assertEquals(5, back[0].rings[0].size)
+        assertEquals(44.001, back[0].rings[0][2].first, 1e-6)
+        assertEquals(emptyList<Parcels.Mark>(), Parcels.decode(""))
+        assertEquals(emptyList<Parcels.Mark>(), Parcels.decode("garbage|line"))
+    }
+
+    @Test fun aParcelIsHighlightedOnceAndANewColourReplacesTheOld() {
+        val p = Parcels.parseParcels(twoParcels)[0]
+        var marks = Parcels.withMark(emptyList(), Parcels.markOf(p, 0xFFE8A64BL))
+        marks = Parcels.withMark(marks, Parcels.markOf(p, 0xFFEF4444L))
+        assertEquals(1, marks.size)
+        assertEquals(0xFFEF4444L, marks[0].colour)
+        assertEquals(0, Parcels.without(marks, p.reference).size)
+    }
+
+    @Test fun theStatesBlackBecomesOurInkAndClearStaysClear() {
+        assertEquals(0, Parcels.recolour(0x00000000, Parcels.INK_LIGHT))
+        val black = 0xFF000000.toInt()
+        val c = Parcels.recolour(black, Parcels.INK_LIGHT)
+        assertEquals(0xF2DDB4, c and 0xFFFFFF)
+        assertEquals((255 * Parcels.INK_ALPHA).toInt(), (c ushr 24) and 0xFF)
+    }
+
+    @Test fun theInkIsLightOnPhotographsAndTheNightThemeAndDarkElsewhere() {
+        assertEquals(Parcels.INK_LIGHT, Parcels.inkFor(Layers.IMAGERY.id, "MANTRA"))
+        assertEquals(Parcels.INK_LIGHT, Parcels.inkFor("offline", "NEWTRON"))
+        assertEquals(Parcels.INK_DARK, Parcels.inkFor("offline", "MANTRA"))
+        assertEquals(Parcels.INK_LIGHT, Parcels.inkFor("google-sat", "MANTRA", "satellite"))
+        assertEquals(Parcels.INK_DARK, Parcels.inkFor("google", "NEWTRON", "roadmap"))
+    }
+
+    @Test fun searchAsksForEveryNumberInOneEncodedFilter() {
+        val url = Parcels.byReferenceUrl(listOf("334723-2450", "334723-2449/3"))
+        assertTrue(url.contains("CQL_FILTER=nationalCadastralReference%20IN%20%28%27334723-2450%27%2C%27334723-2449%2F3%27%29"))
+        assertFalse(url.contains(" "))
+    }
+
+    @Test fun areaIsWrittenTheWayASurveyorWritesIt() {
+        assertEquals("12 401 m²", Parcels.areaLabel(12401))
+        assertEquals("501 m²", Parcels.areaLabel(501))
+        assertEquals("area unknown", Parcels.areaLabel(null))
+    }
 }

@@ -11,6 +11,12 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.Polygon
+import com.google.android.gms.maps.model.PolygonOptions
+import com.google.android.gms.maps.model.Tile
+import com.google.android.gms.maps.model.TileOverlay
+import com.google.android.gms.maps.model.TileOverlayOptions
+import com.google.android.gms.maps.model.TileProvider
 
 /**
  * GOOGLE'S OWN RENDERER (17.9.2026).
@@ -52,6 +58,20 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
     private var liveLine: Polyline? = null
     private val marks = ArrayList<Marker>()
     private var wanted: MapLayer.GoogleView = MapLayer.GoogleView.NORMAL
+    private var cadastre: TileOverlay? = null
+    private var cadastreInk: Long = 0L
+    private val markShapes = ArrayList<Polygon>()
+
+    /**
+     * THE CADASTRE ON GOOGLE'S MAP (27.9.2026): the same WMS tiles in the same ink as on the file,
+     * fetched and recoloured by [ParcelNet.tile] on the SDK's own worker thread.
+     */
+    private val cadastreTiles = TileProvider { x, y, zoom ->
+        if (zoom < Parcels.MIN_ZOOM || zoom > Parcels.MAX_ZOOM) return@TileProvider TileProvider.NO_TILE
+        runCatching {
+            Tile(Parcels.TILE_PX, Parcels.TILE_PX, ParcelNet.tile(Parcels.tileUrl(zoom, x, y), ParcelsShown.ink))
+        }.getOrNull() ?: TileProvider.NO_TILE
+    }
 
     /** Told when the map is real, so the screen can draw what belongs on it. */
     var onReady: (() -> Unit)? = null
@@ -91,6 +111,9 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
             pendingPosition = null
             pendingBearing = null
             pendingCentre = null
+            ready.setOnMapClickListener { at -> ParcelsShown.tap(at.latitude, at.longitude) }
+            refreshCadastre()
+            drawMarks(ParcelsShown.marks)
             onReady?.invoke()
 
             ready.setOnCameraIdleListener {
@@ -106,6 +129,43 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
         wanted = layer.googleView ?: MapLayer.GoogleView.NORMAL
         apply(wanted)
         return null
+    }
+
+    /** On, off, or in a new ink: the overlay made again, since a fetched tile keeps its colour. */
+    fun refreshCadastre() {
+        val ready = map ?: return
+        if (ParcelsShown.on == (cadastre != null) && cadastreInk == ParcelsShown.ink) return
+        cadastre?.remove()
+        cadastre = null
+        if (ParcelsShown.on) {
+            cadastre = ready.addTileOverlay(TileOverlayOptions().tileProvider(cadastreTiles).zIndex(1f))
+            cadastreInk = ParcelsShown.ink
+        }
+    }
+
+    /** His highlighted parcels: the outline in its colour and a faint wash of it inside. */
+    fun drawMarks(marks: List<Parcels.Mark>) {
+        val ready = map ?: return
+        markShapes.forEach { it.remove() }
+        markShapes.clear()
+        marks.forEach { mark ->
+            mark.rings.filter { it.size >= 3 }.forEach { ring ->
+                markShapes.add(
+                    ready.addPolygon(
+                        PolygonOptions()
+                            .addAll(ring.map { LatLng(it.first, it.second) })
+                            .strokeColor(mark.colour.toInt())
+                            .strokeWidth(6f)
+                            .fillColor((mark.colour.toInt() and 0x00FFFFFF) or 0x33000000)
+                            .zIndex(2f)
+                    )
+                )
+            }
+        }
+    }
+
+    fun goTo(lat: Double, lon: Double, zoom: Int) {
+        map?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lon), zoom.toFloat()))
     }
 
     private fun apply(view: MapLayer.GoogleView) {

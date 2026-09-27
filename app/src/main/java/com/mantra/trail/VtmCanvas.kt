@@ -63,12 +63,30 @@ class VtmCanvas(private val context: Context, private val store: Store) {
     private var mapFileStream: FileInputStream? = null
     private var headingDeg: Double = Double.NaN
     private var lastFix: Fix? = null
+    private var cadastreLayer: BitmapTileLayer? = null
+    private var cadastreInk: Long = 0L
+    private val markPaths = ArrayList<PathLayer>()
+
+    /**
+     * THE FINGER ON A PARCEL (27.9.2026). A layer that only listens: a single tap is turned into a
+     * place on the ground and handed on, and the map keeps the gesture, so panning and the double
+     * tap to zoom are untouched.
+     */
+    private inner class TapLayer : org.oscim.layers.Layer(view.map()), org.oscim.event.GestureListener {
+        override fun onGesture(g: org.oscim.event.Gesture, e: org.oscim.event.MotionEvent): Boolean {
+            if (g !is org.oscim.event.Gesture.Tap) return false
+            val at = map.viewport().fromScreenPoint(e.x, e.y)
+            ParcelsShown.tap(at.latitude, at.longitude)
+            return false
+        }
+    }
 
     init {
         // The ground behind every map, before any of them is drawn: black, because this is a dark
         // application and VTM's own default is light grey.
         org.oscim.renderer.MapRenderer.setBackgroundColor(android.graphics.Color.BLACK)
         map.setMapPosition(store.lastLat, store.lastLon, (1 shl store.lastZoom).toDouble())
+        map.layers().add(TapLayer())
     }
 
     /**
@@ -130,6 +148,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             labelLayer = labels
             applyTheme(store.themeName)
             restoreOverlays()
+            placeCadastre()
             map.updateMap(true)
             null
         } catch (e: Exception) {
@@ -190,6 +209,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
                 val tiles = BitmapTileLayer(map, source)
                 map.layers().add(tiles)
                 bitmapLayer = tiles
+                placeCadastre()
                 map.clearMap()
                 map.updateMap(true)
                 null
@@ -215,6 +235,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             map.layers().add(bitmaps)
             bitmapLayer = bitmaps
             restoreOverlays()
+            placeCadastre()
             map.updateMap(true)
             null
         } catch (e: Exception) {
@@ -238,6 +259,8 @@ class VtmCanvas(private val context: Context, private val store: Store) {
      * Only what this class added is removed now, by reference, one at a time.
      */
     private fun clearBaseLayers() {
+        cadastreLayer?.let { map.layers().remove(it) }
+        cadastreLayer = null
         bitmapLayer?.let { map.layers().remove(it) }
         bitmapLayer = null
         buildingLayer?.let { map.layers().remove(it) }
@@ -248,6 +271,68 @@ class VtmCanvas(private val context: Context, private val store: Store) {
         baseLayer = null
         mapFileStream?.let { runCatching { it.close() } }
         mapFileStream = null
+    }
+
+    // --- the cadastre (27.9.2026) ------------------------------------------------------------
+
+    /**
+     * The state's parcels, over whichever map is drawn: just above the map itself, under the walk
+     * and his marks. Asked for again when the ink changes, because a tile already fetched carries
+     * the old colour in its pixels.
+     */
+    private fun placeCadastre() {
+        cadastreLayer?.let { map.layers().remove(it) }
+        cadastreLayer = null
+        if (ParcelsShown.on && (baseLayer != null || bitmapLayer != null)) {
+            val source = BitmapTileSource.builder()
+                .url(Parcels.WMS)
+                .tilePath(Parcels.TILE_PATH)
+                .httpFactory(TileHttp.Factory())
+                .zoomMin(Parcels.MIN_ZOOM)
+                .zoomMax(Parcels.MAX_ZOOM)
+                .build()
+            val layer = BitmapTileLayer(map, source)
+            val under = listOfNotNull(labelLayer, buildingLayer, baseLayer, bitmapLayer)
+                .map { map.layers().indexOf(it) }
+                .maxOrNull() ?: -1
+            if (under >= 0 && under + 1 <= map.layers().size) map.layers().add(under + 1, layer)
+            else map.layers().add(layer)
+            cadastreLayer = layer
+            cadastreInk = ParcelsShown.ink
+        }
+        drawMarks(ParcelsShown.marks)
+    }
+
+    /** The switch in the parcels panel, and a change of ink: the layer is made again or taken off. */
+    fun refreshCadastre() {
+        if (ParcelsShown.on == (cadastreLayer != null) && cadastreInk == ParcelsShown.ink) return
+        placeCadastre()
+        map.clearMap()
+        map.updateMap(true)
+    }
+
+    /** His highlighted parcels, each ring closed and drawn in its own colour, on top of everything. */
+    fun drawMarks(marks: List<Parcels.Mark>) {
+        markPaths.forEach { map.layers().remove(it) }
+        markPaths.clear()
+        marks.forEach { mark ->
+            mark.rings.forEach { ring ->
+                if (ring.size >= 3) {
+                    val path = PathLayer(map, mark.colour.toInt(), 5f)
+                    path.setPoints((ring + ring.first()).map { GeoPoint(it.first, it.second) })
+                    map.layers().add(path)
+                    markPaths.add(path)
+                }
+            }
+        }
+        map.updateMap(false)
+    }
+
+    /** A found parcel: the map goes there, close enough to read its number. */
+    fun goTo(lat: Double, lon: Double, zoom: Int) {
+        val position = MapPosition(lat, lon, (1 shl zoom).toDouble())
+        position.bearing = map.mapPosition.bearing
+        map.animator().animateTo(500, position)
     }
 
     // --- what is drawn over the map ---------------------------------------------------------

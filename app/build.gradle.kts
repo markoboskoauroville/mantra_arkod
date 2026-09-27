@@ -163,4 +163,7 @@ dependencies {
     // with the key from the picker, over plain HTTP, like any other tile service.
 
     testImplementation("junit:junit:4.13.2")
+    // The real org.json for Test 1: android.jar carries only stubs that throw, and Parcels.kt
+    // reads the cadastre's answers with it (27.9.2026).
+    testImplementation("org.json:json:20240303")
 }

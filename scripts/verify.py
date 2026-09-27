@@ -13,11 +13,11 @@ TESTS = ROOT / "app/src/test/java/com/mantra/trail/CoreTest.kt"
 # Lowered once, on 15.9.2026, and only because a FEATURE left: the bubble level and its twelve
 # cases went with it when he asked for the compass alone. A floor drops when the thing it counted
 # is gone, never because tests were dropped (never-back-to-zero.md).
-TEST_FLOOR = 130
+TEST_FLOOR = 185
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt"]
 
 failures, checks = [], []
 
@@ -953,6 +953,26 @@ check("VTM reads the map file he already has",
 check("the engine is built once, where the view is",
       "VtmCanvas(context, store)" in screens and "useVtm" not in screens,
       "no switch, because there is nothing to switch to")
+
+# the cadastre (27.9.2026): its tiles pass through the recolouring, a tap reaches both engines,
+# the card carries the tick and the trail's own swatches, and the highlights keep their shape.
+parcels_src = (MAIN / "Parcels.kt").read_text()
+check("the cadastre's tiles are resolved and recoloured in the tile fetcher",
+      "Parcels.resolve(source.getTileUrl(tile))" in (MAIN / "TileHttp.kt").read_text()
+      and "ParcelNet.tile(url, ParcelsShown.ink)" in (MAIN / "TileHttp.kt").read_text(),
+      "TileHttp.kt examined")
+check("a tap on either engine reaches the cadastre",
+      "ParcelsShown.tap(at.latitude, at.longitude)" in canvas_src
+      and "ParcelsShown.tap(at.latitude, at.longitude)" in (MAIN / "GoogleCanvas.kt").read_text(),
+      "VtmCanvas.kt and GoogleCanvas.kt examined")
+check("the parcel card has the highlight tick and the trail colours",
+      "ParcelCardView(" in screens_src and "TRACK_COLOURS.forEach" in screens_src.split("private fun ParcelCardView")[1],
+      "Screens.kt examined")
+check("a highlight keeps its shape, so it draws with no signal",
+      "val rings" in parcels_src.split("data class Mark")[1].split(")")[0] + parcels_src.split("data class Mark")[1][:400],
+      "Parcels.Mark examined")
+check("the cadastre is on by default", 'prefs.getBoolean(KEY_CADASTRE, true)' in (MAIN / "Store.kt").read_text(),
+      "Store.kt examined")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

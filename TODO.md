@@ -10,6 +10,15 @@ canvas — twenty-four places in the screen, against three that know the Google 
 Google map they do nothing and say "the map view is not up yet", which is the line he is seeing in
 both screenshots. Every one of those keys needs to ask whichever canvas is up.
 
+## The cadastre (v82), after his test
+
+- Test 4 is his: a tap on his own land in Kukljica, the owners on the card, a highlight in each
+  colour, search for several numbers, the K switch off and on, the offline and the Google map.
+- The cadastre's lines are not kept for offline use; only the highlighted parcels are. A tile
+  cache for them is possible (the state's WMS permits it) if he wants the lines on a mountain.
+- The portal page (TTT_PORTAL, *Your position*) does not have the tap or the highlight yet: the
+  owners service refuses a browser, so it needs a relay route on the machine first.
+
 ## Then, in order
 
 1. **His position on the Google map.** Google's blue dot needs the location permission handed to

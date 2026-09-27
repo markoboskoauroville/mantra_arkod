@@ -86,3 +86,28 @@ was reporting is real, and the file pickers and the permission request all go th
 call. A modern `androidx.fragment` was named as a dependency so resolution raises the version.
 **A blocking lint is narrowed in the session it cries wolf, never carried, and never silenced when
 it is telling the truth.**
+
+## 27.9.2026 — v82, the cadastre from the portal, with the owners
+
+Marko asked for the parcel layer of the portal's *Your position* page (he called it "ARKOD"; the
+page draws the state cadastre, `cp:CP.CadastralParcel` from api.uredjenazemlja.hr), with a tap that
+shows the owners and a way to type or pick parcels and highlight them, in the trail colours.
+
+**Three services, all public, all measured before a line was written.** The WMS draws; its
+GetFeatureInfo refuses JSON, so a tap asks the **WFS** for the parcels in a box twenty metres across
+and picks the one whose polygon holds the point (ray casting, in `Parcels.kt`, tested). The record
+with the possessors comes from **OSS** by parcel id; OSS answers an app and refuses a browser (403
+when an Origin header is present), which is why the phone can do this and the portal page cannot
+without a relay on the machine. Search is one WFS request with `nationalCadastralReference IN
+(...)`, the municipality taken from `cp:CadastralZoning` under the middle of the map.
+
+**VTM asks tiles as base/z/x/y and a WMS wants a box**, so the cadastre's tiles are asked at
+`WMS/z/x/y` and `Parcels.resolve` turns them into the real GetMap on the way out of `TileHttp`.
+512 px at 180 dpi, so the numbers are the size the portal shows them on a phone's density.
+
+**The state's lines are black**, invisible on a photograph or the night theme. Every tile is
+recoloured on the phone into dark or sand ink at 62 %, chosen by the map underneath; the Google
+engine uses the same function through a `TileProvider`.
+
+**A highlight keeps the shape**, not only the number, so his land is drawn on a hillside with no
+signal. Names in the tests are invented; no real person's record is in this repository.

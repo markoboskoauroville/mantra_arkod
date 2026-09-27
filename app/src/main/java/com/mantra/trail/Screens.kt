@@ -193,6 +193,65 @@ fun TrailApp(
     val unfinishedMaps = remember(UiTick.n, showMaps, settings) { OamDownload.unfinished(appContext) }
     val scope = rememberCoroutineScope()
 
+    // THE CADASTRE (27.9.2026). The parcels are on the map unless he turned them off; a tap on one
+    // opens its record with the owners; the ones he highlighted are kept with their colour.
+    var cadastreOn by remember { mutableStateOf(store.cadastreOn) }
+    var marks by remember { mutableStateOf(store.parcelMarks) }
+    var parcelColour by remember { mutableLongStateOf(store.parcelColour) }
+    var card by remember { mutableStateOf<ParcelCard?>(null) }
+    var parcelPanel by remember { mutableStateOf(false) }
+
+    fun setMarks(next: List<Parcels.Mark>) {
+        marks = next
+        store.parcelMarks = next
+        ParcelsShown.marks = next
+        Canvases.refreshParcels()
+    }
+
+    suspend fun openCard(parcel: Parcels.Parcel) {
+        card = ParcelCard(parcel)
+        val answer = runCatching { ParcelNet.record(parcel.id) }
+        if (card?.parcel?.id != parcel.id) return
+        card = ParcelCard(
+            parcel,
+            record = answer.getOrNull(),
+            problem = answer.exceptionOrNull()?.let { "the owners could not be read: ${it.message ?: it.javaClass.simpleName}" },
+        )
+    }
+
+    suspend fun tapped(lat: Double, lon: Double) {
+        if (!ParcelsShown.on) return
+        if (Canvases.currentZoom() < Parcels.TAP_ZOOM) {
+            Trail.say("Zoom in to pick a parcel")
+            return
+        }
+        val answer = runCatching { ParcelNet.at(lat, lon) }
+        val parcel = answer.getOrNull()
+            // With no signal, a parcel he highlighted is still his: its shape is on the phone.
+            ?: marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }
+                ?.let { Parcels.Parcel(it.id, it.number, it.reference, null, it.rings) }
+        when {
+            parcel != null -> {
+                Trail.say(null)
+                openCard(parcel)
+            }
+            answer.isFailure -> Trail.say("The cadastre did not answer: ${answer.exceptionOrNull()?.message}")
+            else -> Trail.say("No parcel there")
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        ParcelsShown.on = store.cadastreOn
+        ParcelsShown.marks = store.parcelMarks
+        ParcelsShown.onTap = { lat, lon -> scope.launch { tapped(lat, lon) } }
+    }
+
+    // The ink follows the ground: dark on the pale maps, sand on the photographs and the night theme.
+    LaunchedEffect(ready, layer.id, settings, UiTick.n) {
+        ParcelsShown.ink = Parcels.inkFor(layer.id, store.themeName, layer.googleView?.mapType)
+        Canvases.refreshParcels()
+    }
+
     // The map the app opened on, drawn as soon as the view is real and not a moment before.
     LaunchedEffect(ready, layer.id) {
         if (ready > 0) {
@@ -262,6 +321,20 @@ fun TrailApp(
                     onTap = { Canvases.setMapRotation(0f) },
                 )
             }
+            // THE CADASTRE'S KEY, opposite the compass: K for katastar. Lit while the parcels are
+            // drawn; it opens the panel with the switch, the search and his highlighted parcels.
+            Box(Modifier.fillMaxSize().safeDrawingPadding().padding(top = 52.dp, start = 10.dp)) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(Paint.Veil)
+                        .border(1.5.dp, if (cadastreOn) Paint.Amber else Paint.Dim, CircleShape)
+                        .clickable { parcelPanel = true },
+                    contentAlignment = Alignment.Center,
+                ) { Label("K", if (cadastreOn) Paint.Amber else Paint.Dim, size = 16) }
+            }
         }
 
         // THE TAP IN THE MIDDLE. A small target, so panning the map anywhere else is untouched,
@@ -306,6 +379,24 @@ fun TrailApp(
                 if (net != null) StatusLine(net)
                 if (note != null) NoteLine(note)
                 if (recording) TrackLine(stats, recording = !paused)
+                card?.let { shown ->
+                    val mark = marks.firstOrNull { it.reference == shown.parcel.reference }
+                    ParcelCardView(
+                        card = shown,
+                        markedColour = mark?.colour,
+                        onClose = { card = null },
+                        onHighlight = { colour ->
+                            if (colour == null) {
+                                setMarks(Parcels.without(marks, shown.parcel.reference))
+                            } else {
+                                parcelColour = colour
+                                store.parcelColour = colour
+                                setMarks(Parcels.withMark(marks, Parcels.markOf(shown.parcel, colour)))
+                            }
+                        },
+                        defaultColour = parcelColour,
+                    )
+                }
                 // THE ORDER IS THE THUMB'S, NOT THE LIST'S. Baba, 15.9.2026: the record circle sits
                 // in the middle, straight above the phone's own home button, with the centre key
                 // beside it; the three that are pressed rarely spread out from there.
@@ -398,6 +489,43 @@ fun TrailApp(
         // takes itself away after three seconds, so a walk can be ended with one press and no
         // second thought — but the countdown STOPS the moment he touches the field, because a
         // box that closes while somebody is typing in it is worse than no box at all.
+        if (parcelPanel) {
+            ParcelsPanel(
+                on = cadastreOn,
+                marks = marks,
+                colour = parcelColour,
+                onSwitch = { on ->
+                    cadastreOn = on
+                    store.cadastreOn = on
+                    ParcelsShown.on = on
+                    if (!on) card = null
+                    Canvases.refreshParcels()
+                },
+                onColour = { c ->
+                    parcelColour = c
+                    store.parcelColour = c
+                },
+                onFound = { found ->
+                    setMarks(found.fold(marks) { acc, p -> Parcels.withMark(acc, Parcels.markOf(p, parcelColour)) })
+                    found.firstOrNull()?.let { first ->
+                        val (lat, lon) = first.middle
+                        Canvases.goTo(lat, lon, 18)
+                        parcelPanel = false
+                        scope.launch { openCard(first) }
+                    }
+                },
+                onGo = { mark ->
+                    val p = Parcels.Parcel(mark.id, mark.number, mark.reference, null, mark.rings)
+                    val (lat, lon) = p.middle
+                    Canvases.goTo(lat, lon, 18)
+                    parcelPanel = false
+                    if (mark.id != 0L) scope.launch { openCard(p) }
+                },
+                onRemove = { mark -> setMarks(Parcels.without(marks, mark.reference)) },
+                onClose = { parcelPanel = false },
+            )
+        }
+
         justFinished?.let { file ->
             // EITHER ANSWER SAVES THE WALK. Cancel means "do not rename it", not "throw it
             // away": the track goes into the folder under the date it already has.
@@ -2414,4 +2542,258 @@ private fun Label(
             shadow = Shadow(color = Paint.Ground, offset = Offset(0f, 1.5f), blurRadius = 5f),
         ),
     )
+}
+
+// --- the cadastre (27.9.2026) ---------------------------------------------------------------------
+
+/** A parcel he tapped, and its record once the state has answered. */
+data class ParcelCard(
+    val parcel: Parcels.Parcel,
+    val record: Parcels.Record? = null,
+    val problem: String? = null,
+)
+
+/**
+ * THE PARCEL'S CARD. Its number and municipality, its area and address, what the land is used
+ * for, and every possessor on every possession sheet with the share and the address, as the state
+ * publishes them. At the bottom, his words (27.9.2026): *"a simple tick mark highlight, and next to
+ * that highlight multiple colors"*, the same five as the trails.
+ */
+@Composable
+private fun ParcelCardView(
+    card: ParcelCard,
+    markedColour: Long?,
+    defaultColour: Long,
+    onClose: () -> Unit,
+    onHighlight: (Long?) -> Unit,
+) {
+    val record = card.record
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Paint.Card)
+            .padding(GAP),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Label(card.parcel.number, Paint.Amber, size = 20, align = TextAlign.Start)
+            Spacer(Modifier.width(GAP))
+            Label(
+                text = record?.let { "k.o. ${it.municipality} · ${it.municipalityNumber}" }
+                    ?: "k.o. ${card.parcel.municipality}",
+                colour = Paint.Dim,
+                size = 12,
+                align = TextAlign.Start,
+                modifier = Modifier.weight(1f),
+            )
+            Label("✕", Paint.Sand, size = 18, modifier = Modifier.clickable(onClick = onClose).padding(6.dp))
+        }
+        Column(
+            Modifier.fillMaxWidth().heightIn(max = 260.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            val area = record?.areaM2?.toIntOrNull() ?: card.parcel.areaM2
+            Label(
+                text = Parcels.areaLabel(area) + (record?.address?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                colour = Paint.Sand,
+                size = 13,
+                align = TextAlign.Start,
+            )
+            when {
+                record != null -> {
+                    record.uses.forEach { use ->
+                        Label("${use.name}  ${use.areaM2} m²  ·  sheet ${use.sheet}", Paint.Dim, size = 11, align = TextAlign.Start)
+                    }
+                    record.sheets.forEach { sheet ->
+                        Spacer(Modifier.height(4.dp))
+                        Label("POSSESSION SHEET ${sheet.number}", Paint.Amber, size = 11, align = TextAlign.Start)
+                        sheet.owners.forEach { owner ->
+                            Row(Modifier.fillMaxWidth()) {
+                                Label(owner.name, Paint.Sand, size = 14, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                                Label(owner.share, Paint.AmberBright, size = 14)
+                            }
+                            if (owner.address.isNotBlank()) Label(owner.address, Paint.Dim, size = 11, align = TextAlign.Start)
+                        }
+                    }
+                    if (record.sheets.isEmpty()) Label("no possessors listed", Paint.Dim, size = 12, align = TextAlign.Start)
+                }
+                card.problem != null -> Label(card.problem, Paint.Red, size = 12, align = TextAlign.Start)
+                else -> Label("asking the cadastre for the owners…", Paint.Dim, size = 12, align = TextAlign.Start)
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Tick(checked = markedColour != null, onChange = { on -> onHighlight(if (on) defaultColour else null) })
+            Label("highlight", Paint.Sand, size = 12)
+            TRACK_COLOURS.forEach { option ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(30.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(option))
+                        .clickable { onHighlight(option) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (option == markedColour) Label("✓", Paint.Ground, size = 13)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * THE CADASTRE'S PANEL: the switch, the search, and the parcels he highlighted. Search is by
+ * number inside the cadastral municipality under the middle of the map, which is how a parcel is
+ * named ("2450, k.o. Kukljica"); several numbers at once are one request.
+ */
+@Composable
+private fun ParcelsPanel(
+    on: Boolean,
+    marks: List<Parcels.Mark>,
+    colour: Long,
+    onSwitch: (Boolean) -> Unit,
+    onColour: (Long) -> Unit,
+    onFound: (List<Parcels.Parcel>) -> Unit,
+    onGo: (Parcels.Mark) -> Unit,
+    onRemove: (Parcels.Mark) -> Unit,
+    onClose: () -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    var line by remember { mutableStateOf<String?>(null) }
+    var here by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        val (lat, lon) = Canvases.centre() ?: return@LaunchedEffect
+        here = runCatching { ParcelNet.municipality(lat, lon) }.getOrNull()
+        if (here == null) line = "the municipality under the map could not be read"
+    }
+
+    fun find() {
+        val numbers = Parcels.numbers(text)
+        val ko = here
+        when {
+            numbers.isEmpty() -> line = "type a parcel number, like 2450 or 2449/3"
+            ko == null -> line = "move the map over the municipality first"
+            else -> {
+                busy = true
+                line = "asking the cadastre…"
+                scope.launch {
+                    val answer = runCatching { ParcelNet.find(ko.first, numbers) }
+                    busy = false
+                    val found = answer.getOrNull()
+                    line = when {
+                        found == null -> "the cadastre did not answer: ${answer.exceptionOrNull()?.message}"
+                        found.isEmpty() -> "none of those is in k.o. ${ko.second}"
+                        found.size < numbers.size ->
+                            "found ${found.size} of ${numbers.size}; not in k.o. ${ko.second}: " +
+                                numbers.filter { n -> found.none { it.number == n } }.joinToString(", ")
+                        else -> null
+                    }
+                    if (!found.isNullOrEmpty()) onFound(found)
+                }
+            }
+        }
+    }
+
+    Box(
+        Modifier.fillMaxSize().background(Paint.Veil).safeDrawingPadding().padding(GAP),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Paint.Ground)
+                .padding(GAP)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(GAP),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Label("CADASTRE", Paint.Amber, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                Label("✕", Paint.Sand, size = 20, modifier = Modifier.clickable(onClick = onClose).padding(6.dp))
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Tick(checked = on, onChange = onSwitch)
+                Label("parcels and their numbers on the map", Paint.Sand, size = 13, align = TextAlign.Start)
+            }
+            Label(
+                text = here?.let { "find in k.o. ${it.second} (${it.first}), under the map" }
+                    ?: "reading the municipality under the map…",
+                colour = Paint.Dim,
+                size = 11,
+                align = TextAlign.Start,
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP)) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Paint.Sand, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
+                    cursorBrush = SolidColor(Paint.AmberBright),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                )
+                Box(
+                    Modifier
+                        .width(80.dp)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (busy) Paint.Veil else Paint.Amber)
+                        .clickable { if (!busy) find() },
+                    contentAlignment = Alignment.Center,
+                ) { Label("FIND", if (busy) Paint.Dim else Paint.Ground, size = 14) }
+            }
+            Label("2450, 2449/3 — several at once", Paint.Dim, size = 11, align = TextAlign.Start)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Label("colour", Paint.Dim, size = 11)
+                TRACK_COLOURS.forEach { option ->
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(option))
+                            .clickable { onColour(option) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (option == colour) Label("✓", Paint.Ground, size = 12)
+                    }
+                }
+            }
+            line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
+
+            Label("HIGHLIGHTED  ${marks.size}", Paint.Amber, size = 12, align = TextAlign.Start)
+            if (marks.isEmpty()) {
+                Label("None yet. Tap a parcel on the map and tick highlight, or find one here.", Paint.Dim, size = 12, align = TextAlign.Start)
+            }
+            marks.forEach { mark ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Paint.Card)
+                        .clickable { onGo(mark) }
+                        .padding(horizontal = GAP, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GAP),
+                ) {
+                    Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(mark.colour)))
+                    Label(mark.number, Paint.Sand, size = 15, align = TextAlign.Start)
+                    Label("k.o. ${mark.reference.substringBefore('-')}", Paint.Dim, size = 11, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                    Label("✕", Paint.Red, size = 16, modifier = Modifier.clickable { onRemove(mark) }.padding(4.dp))
+                }
+            }
+        }
+    }
 }

@@ -224,7 +224,27 @@ class Store(context: Context) {
         get() = prefs.getInt(KEY_LAST_ZOOM, 13)
         set(v) = prefs.edit().putInt(KEY_LAST_ZOOM, v.coerceIn(2, 20)).apply()
 
+    /**
+     * THE CADASTRE (27.9.2026): on unless he turns it off, "always available in my map"; and the
+     * parcels he highlighted, each with its colour and its shape, so they draw with no signal.
+     */
+    var cadastreOn: Boolean
+        get() = prefs.getBoolean(KEY_CADASTRE, true)
+        set(v) = prefs.edit().putBoolean(KEY_CADASTRE, v).apply()
+
+    var parcelMarks: List<Parcels.Mark>
+        get() = Parcels.decode(prefs.getString(KEY_PARCEL_MARKS, "") ?: "")
+        set(v) = prefs.edit().putString(KEY_PARCEL_MARKS, Parcels.encode(v)).apply()
+
+    /** The colour the next highlight takes: the last one he chose. */
+    var parcelColour: Long
+        get() = prefs.getLong(KEY_PARCEL_COLOUR, 0xFFE8A64BL)
+        set(v) = prefs.edit().putLong(KEY_PARCEL_COLOUR, v).apply()
+
     companion object {
+        private const val KEY_CADASTRE = "cadastreOn"
+        private const val KEY_PARCEL_MARKS = "parcelMarks"
+        private const val KEY_PARCEL_COLOUR = "parcelColour"
         private const val KEY_LAYER = "layer"
         private const val KEY_KEYS = "keys"
         private const val KEY_TRACK_COLOUR = "trackColour"

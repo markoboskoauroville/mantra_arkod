@@ -130,6 +130,19 @@ object Canvases {
         if (googleIsUp) google?.showPosition(fix != null) else vtm?.drawPosition(fix)
     }
 
+    /** The cadastre switched, re-inked or re-marked: both engines told, whichever is up (27.9.2026). */
+    fun refreshParcels() {
+        vtm?.refreshCadastre()
+        vtm?.drawMarks(ParcelsShown.marks)
+        google?.refreshCadastre()
+        google?.drawMarks(ParcelsShown.marks)
+    }
+
+    /** A found parcel: the map goes there. */
+    fun goTo(lat: Double, lon: Double, zoom: Int) {
+        if (googleIsUp) google?.goTo(lat, lon, zoom) else vtm?.goTo(lat, lon, zoom)
+    }
+
     fun emptyHere(): String? = if (googleIsUp) null else vtm?.emptyHere()
 
     fun diagnose(): String = when {

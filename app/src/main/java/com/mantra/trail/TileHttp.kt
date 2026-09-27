@@ -29,7 +29,13 @@ class TileHttp(private val source: UrlTileSource) : HttpEngine {
 
     override fun sendRequest(tile: Tile?) {
         if (tile == null) throw java.io.IOException("no tile asked for")
-        val url = source.getTileUrl(tile)
+        val url = Parcels.resolve(source.getTileUrl(tile))
+        // THE CADASTRE (27.9.2026): the state's WMS, asked by box, recoloured into our ink on the
+        // way in, so its black lines read over a dark map as well as a pale one.
+        if (Parcels.isCadastre(url)) {
+            stream = java.io.ByteArrayInputStream(ParcelNet.tile(url, ParcelsShown.ink))
+            return
+        }
         // IMAGERY HE HAS ALREADY KEPT (17.9.2026): a layer whose address begins with file:// is
         // read off the phone, by the same engine and the same code path as everything else. A
         // tile that was never fetched is simply missing, which VTM draws as nothing.
