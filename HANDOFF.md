@@ -1,6 +1,6 @@
 # Mantra Trail — the finished state
 
-    version      1
+    version      86 (cadastre: v82–v86)
     repository   markoboskoauroville/MANTRA_TRAIL (public)
     artefact     1-mantra-trail-v1.apk, release tag v1
     built by     GitHub Actions only (android-app.md §1a). Never on a desk.

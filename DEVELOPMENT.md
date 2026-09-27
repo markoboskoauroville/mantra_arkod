@@ -130,3 +130,10 @@ the parcel's outline needs the WFS, so a highlight is kept at once and its outli
 behind it, with a minute's patience, and asked again when the app opens and when K is pressed.
 The card now also names the land-registry unit (z.k. uložak, main book, court office), where the
 legal owners are written; the land book itself is not open without a separate lookup.
+
+## 27.9.2026 — v86, the outline's patience
+
+The WFS answered a query by reference in 29 s, twice running, and a filtered WMS picture was no
+faster (a minute and still going). Neither the WFS's FEATUREID nor RESOURCEID forms are accepted.
+So an outline is asked with ninety seconds of patience and three quiet tries, and only a third
+failure is said aloud. Proved on the emulator: all three outlines arrived and were drawn.
