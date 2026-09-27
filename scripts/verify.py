@@ -120,7 +120,8 @@ check("a layer that cannot draw says why instead of going grey",
       "Trail.say(Layers.missingKey(layer))" in screens or "Layers.missingKey(layer)" in screens,
       "the reason names the key and where to put it")
 check("the way out of the settings face is at the right-hand end of its top row",
-      "clickable(onClick = onClose)" in screens and screens.index("onClose") > 0,
+      # 27.9.2026: the ✕ is the close icon now, last in the top row of every face
+      screens.count("IconAction(R.drawable.ic_close, null, onClick = onClose") >= 5,
       "the ✕ in the corner it occupies on every face here")
 
 # 8 the test floor ratchets
@@ -412,7 +413,7 @@ check("the tracks menu is the chosen folder, filtered to GPX",
       'endsWith(".gpx", ignoreCase = true)' in folder_src and "fun list" in folder_src,
       "not a private copy nobody can find")
 check("the folder's name is on the menu",
-      'SettingRow("folder", folder, onChooseFolder)' in screens,
+      'Opens("Folder", R.drawable.ic_folder, under = folder, onClick = onChooseFolder)' in screens,
       "a list of files nobody can find is a list")
 check("renaming keeps the extension and shows it separately",
       "Tracks.safeFileName(newName)" in folder_src and 'Label(".${track.extension}"' in screens,
@@ -421,7 +422,7 @@ check("there is no export left anywhere",
       "CreateDocument" not in activity and "onExport" not in screens,
       "the walk is already where he will look for it")
 check("deleting a track asks twice",
-      "sure? delete" in screens, "one thumb on a hillside is not a decision")
+      'if (confirming?.uri == track.uri) "sure?" else "delete"' in screens, "one thumb on a hillside is not a decision")
 check("the settings row names the folder rather than saying chosen",
       "store.exportFolderName" in screens, "Documents/Tracks, not the word chosen")
 check("the saved message says where it went",
@@ -475,7 +476,7 @@ check("the entry box has a frame and the cursor is already in it",
       "on a dark panel an unfocused dark field is a label, not a box")
 # 17.9.2026: cancel became discard, because that is what the key now does.
 check("the name box has two answers and they are named OK and discard",
-      '"discard"' in screens and '"OK"' in screens,
+      'Action("Discard", R.drawable.ic_trash, onClick = onCancel' in screens and 'Action("OK", R.drawable.ic_check' in screens,
       "no third thing to read on a hillside")
 # The reason it was not empty: the file name was being built from a date stamp AND a name that
 # was already a date, so nothing matched the pattern and the box opened full of numbers.
@@ -847,7 +848,7 @@ check("a Google view is drawn by Google's canvas",
 # it because that licence asks for it.
 check("imagery can be kept for offline use",
       (MAIN / "Imagery.kt").exists() and (MAIN / "ImageryStore.kt").exists()
-      and "keep what is on the screen" in screens,
+      and 'Action("Keep the screen", R.drawable.ic_satellite, onClick = onFetchImagery' in screens,
       "the area is what is on the screen, at the depth he chose")
 check("nothing of Google's is stored",
       "tiles.maps.eox.at" in (MAIN / "Imagery.kt").read_text()
@@ -861,7 +862,7 @@ check("a tile already kept is never fetched twice",
       "if (file.exists() && file.length() > 0)" in (MAIN / "ImageryStore.kt").read_text(),
       "so an overlapping area costs only what is new, and a stopped download carries on")
 check("discard discards",
-      "onDiscardRecording(file)" in screens and 'Label("discard", Paint.Red' in screens
+      "onDiscardRecording(file)" in screens and 'Action("Discard", R.drawable.ic_trash, onClick = onCancel, quiet = true, danger = true' in screens
       and "fun discardRecording" in (MAIN / "MainActivity.kt").read_text(),
       "a key that does the opposite of its word teaches him to trust none of them")
 check("the centre key centres whichever map is on the screen",

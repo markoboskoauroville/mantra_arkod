@@ -1502,27 +1502,10 @@ private fun NameBox(current: String, onCancel: () -> Unit, onOk: (String) -> Uni
                     .padding(horizontal = 12.dp, vertical = 14.dp)
                     .focusRequester(focus),
             )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP)) {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Veil)
-                        .clickable(onClick = onCancel),
-                    contentAlignment = Alignment.Center,
-                ) { Label("discard", Paint.Red, size = 14) }
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (text.isBlank()) Paint.Veil else Paint.Amber)
-                        .clickable { if (text.isNotBlank()) onOk(text.trim()) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Label("OK", if (text.isBlank()) Paint.Dim else Paint.Ground, size = 14)
-                }
+            // discard in red and quiet, OK the one solid button; his two words kept (27.9.2026, the visual language).
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP), verticalAlignment = Alignment.CenterVertically) {
+                Action("Discard", R.drawable.ic_trash, onClick = onCancel, quiet = true, danger = true, modifier = Modifier.weight(1f))
+                Action("OK", R.drawable.ic_check, onClick = { if (text.isNotBlank()) onOk(text.trim()) }, enabled = text.isNotBlank(), modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1564,232 +1547,98 @@ private fun MapsFace(
             Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(GAP),
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
-            Row(
-                Modifier.fillMaxWidth().height(46.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Label("maps", Paint.Dim, size = 13)
-                Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Paint.Veil).clickable(onClick = onClose),
-                    contentAlignment = Alignment.Center,
-                ) { Label("✕", Paint.Sand, size = 18) }
+            // THE VISUAL LANGUAGE (27.9.2026): the maps on the phone are picks with a check and a
+            // trash; the imagery depth a choice; fetching is an action with its size at the edge.
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_mountain, Paint.Sand)
+                Spacer(Modifier.width(12.dp))
+                Label("Maps", Paint.Sand, size = 17, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
             }
 
             // WHAT IS HAPPENING, at the top, because a gigabyte is worth knowing about.
-            // WHAT IS HAPPENING. Dark like everything else, with an amber outline round it —
-            // his instruction, 17.9.2026: this is a dark application, so nothing is filled in a
-            // light colour and black is never written on amber.
             if (busy != null) {
                 Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Paint.Card)
-                        .border(1.5.dp, Paint.Amber, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Label(busy ?: "", Paint.Amber, size = 12, align = TextAlign.Start)
-                }
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Paint.Card).padding(horizontal = 14.dp, vertical = 12.dp),
+                ) { Label(busy ?: "", Paint.Amber, size = 13, align = TextAlign.Start) }
             }
 
-            Label("on this phone", Paint.Dim, size = 12, align = TextAlign.Start)
-            if (installed.isEmpty()) {
-                Label("None yet. Fetch one below.", Paint.Dim, size = 12, align = TextAlign.Start)
-            }
-            installed.forEach { file ->
-                val inUse = file.name == chosen || (chosen.isBlank() && file == installed.first())
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Paint.Card)
-                        .then(
-                            if (inUse) {
-                                Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(12.dp))
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        Modifier.weight(1f).fillMaxWidth().clickable { onUse(file) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Label(
-                                text = file.name.removePrefix("oam-").removeSuffix(".map"),
-                                colour = Paint.Sand,
-                                size = 14,
-                                align = TextAlign.Start,
-                            )
-                            Label(
-                                text = "${file.length() / 1_000_000} MB" +
-                                    if (inUse) " · drawing" else "",
-                                colour = if (inUse) Paint.Amber else Paint.Dim,
-                                size = 11,
-                                align = TextAlign.Start,
+            Label("ON THIS PHONE", Paint.Dim, size = 11, align = TextAlign.Start)
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Paint.Card)) {
+                if (installed.isEmpty()) {
+                    Box(Modifier.padding(16.dp)) { Label("none yet", Paint.Dim, size = 13, align = TextAlign.Start) }
+                }
+                installed.forEachIndexed { i, file ->
+                    val inUse = file.name == chosen || (chosen.isBlank() && file == installed.first())
+                    if (i > 0) Hairline()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) {
+                            Pick(
+                                title = file.name.removePrefix("oam-").removeSuffix(".map"),
+                                icon = R.drawable.ic_mountain,
+                                chosen = inUse,
+                                under = "${file.length() / 1_000_000} MB",
+                                onClick = { onUse(file) },
                             )
                         }
+                        IconAction(R.drawable.ic_trash, null, onClick = { onRemove(file) }, tint = Paint.Red)
                     }
-                    Box(
-                        Modifier.width(72.dp).fillMaxWidth().clickable { onRemove(file) },
-                        contentAlignment = Alignment.Center,
-                    ) { Label("delete", Paint.Red, size = 12) }
                 }
             }
             Label("kept in $folder", Paint.Dim, size = 10, align = TextAlign.Start)
 
-            // SMALLER MAPS, FIRST (17.9.2026). He asked whether Croatia could be cut out of the
-            // Balkan file: it cannot, by this app or any other, so the answer offered instead is
-            // a map that is only Croatia — a quarter of the size, and made for walking too.
-
-            // SATELLITE HE KEEPS (17.9.2026). Google forbid storing theirs — their policy lists
-            // offline use among the things their tiles may not be used for — so this is Sentinel-2
-            // cloudless from EOX, CC BY 4.0, which may be kept. Ten metres to the pixel: forest
-            // from clearing, ridge from valley, not cars.
-            //
-            // The area is what is on the screen. Drawing a rectangle with a finger on a map that
-            // pans under it is a fiddle; moving the map until it shows what he wants is not.
-            Label("satellite for offline use", Paint.Dim, size = 12, align = TextAlign.Start)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(14, 15, 16).forEach { depth ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(42.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .then(
-                                if (depth == imageryDepth) {
-                                    Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clickable { onImageryDepth(depth) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Label(
-                            text = when (depth) {
-                                14 -> "coarse"
-                                15 -> "closer"
-                                else -> "closest"
-                            },
-                            colour = if (depth == imageryDepth) Paint.Amber else Paint.Sand,
-                            size = 12,
-                        )
-                    }
-                }
-            }
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Paint.Card)
-                    .clickable(onClick = onFetchImagery)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Label("keep what is on the screen", Paint.Sand, size = 13, align = TextAlign.Start)
-                    Label(imageryCost, Paint.Dim, size = 11, align = TextAlign.Start)
-                }
-                Label("fetch", Paint.Amber, size = 12)
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Label("kept: $imageryHeld", Paint.Dim, size = 11, align = TextAlign.Start)
-                if (imageryHeld != "none yet") {
-                    Box(Modifier.clickable(onClick = onForgetImagery)) {
-                        Label("delete all", Paint.Red, size = 11)
-                    }
-                }
+            // SATELLITE HE KEEPS (17.9.2026): Sentinel-2 cloudless from EOX, CC BY 4.0, which may
+            // be kept, unlike Google's. The area is what is on the screen.
+            Label("SATELLITE", Paint.Dim, size = 11, align = TextAlign.Start)
+            val depths = listOf(14, 15, 16)
+            Choice(
+                parts = listOf(Part("coarse"), Part("closer"), Part("closest")),
+                chosen = depths.indexOf(imageryDepth).coerceAtLeast(0),
+                onChoose = { i -> onImageryDepth(depths[i]) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Action("Keep the screen", R.drawable.ic_satellite, onClick = onFetchImagery, trailing = imageryCost, modifier = Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Label("kept: $imageryHeld", Paint.Dim, size = 12, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                if (imageryHeld != "none yet") Action("all", R.drawable.ic_trash, onClick = onForgetImagery, quiet = true, danger = true)
             }
             Label(Imagery.ATTRIBUTION, Paint.Dim, size = 10, align = TextAlign.Start)
 
-            Label("a smaller map, from elsewhere", Paint.Dim, size = 12, align = TextAlign.Start)
+            Label("A SMALLER MAP", Paint.Dim, size = 11, align = TextAlign.Start)
             OamIndex.ELSEWHERE.forEach { entry ->
                 val here = installed.any { it.name == entry.mapName }
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Card)
-                        .clickable { if (!here) onFetch(entry) }
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Label(
-                        text = "Croatia, for walking — from your own GitHub",
-                        colour = if (here) Paint.Dim else Paint.Sand,
-                        size = 12,
-                        align = TextAlign.Start,
-                    )
-                    Label(
-                        text = if (here) "on the phone" else entry.sizeLabel,
-                        colour = if (here) Paint.Green else Paint.Amber,
-                        size = 11,
-                    )
-                }
+                Action(
+                    verb = "Croatia, for walking",
+                    icon = if (here) R.drawable.ic_check else R.drawable.ic_save,
+                    onClick = { if (!here) onFetch(entry) },
+                    quiet = true,
+                    enabled = !here,
+                    trailing = if (here) "on the phone" else entry.sizeLabel,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
-            Label("fetch a region", Paint.Dim, size = 12, align = TextAlign.Start)
+            Label("REGIONS", Paint.Dim, size = 11, align = TextAlign.Start)
             OamIndex.CONTINENTS.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    row.forEach { (id, label) ->
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Paint.Card)
-                                .then(
-                                    if (id == listingOf) {
-                                        Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(10.dp))
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                                .clickable { onBrowse(id) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Label(label, if (id == listingOf) Paint.Amber else Paint.Sand, size = 12)
-                        }
-                    }
-                    repeat(2 - row.size) { Spacer(Modifier.weight(1f)) }
-                }
+                Choice(
+                    parts = row.map { (_, label) -> Part(label) } + if (row.size < 2) listOf(Part("")) else emptyList(),
+                    chosen = row.indexOfFirst { it.first == listingOf },
+                    onChoose = { i -> row.getOrNull(i)?.let { onBrowse(it.first) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             listing.forEach { entry ->
                 val here = installed.any { it.name == entry.mapName }
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Card)
-                        .clickable { if (!here) onFetch(entry) }
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Label(entry.label, if (here) Paint.Dim else Paint.Sand, size = 12, align = TextAlign.Start)
-                    Label(
-                        text = if (here) "on the phone" else entry.sizeLabel,
-                        colour = if (here) Paint.Green else Paint.Amber,
-                        size = 11,
-                    )
-                }
+                Action(
+                    verb = entry.label,
+                    icon = if (here) R.drawable.ic_check else R.drawable.ic_save,
+                    onClick = { if (!here) onFetch(entry) },
+                    quiet = true,
+                    enabled = !here,
+                    trailing = if (here) "on the phone" else entry.sizeLabel,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -1814,22 +1663,25 @@ private fun PlacesFace(
     onClose: () -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
-    var found by remember { mutableStateOf<List<Places.Place>>(emptyList()) }
+    var found by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
     var note by remember { mutableStateOf<String?>(null) }
     var looking by remember { mutableStateOf(false) }
+    val session = remember { java.util.UUID.randomUUID().toString() }
     val focus = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { focus.requestFocus() }
 
+    // THE SAME SEARCH AS GOOGLE'S FIELD (27.9.2026): many answers, nearest first, not one.
     fun go() {
         if (text.isBlank() || looking) return
         looking = true
-        note = "Looking…"
+        note = null
         scope.launch {
-            val (places, problem) = Places.search(text, fix, store)
-            found = places
-            note = problem ?: "${places.size} found"
+            val from = fix ?: Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
+            val (hits, problem) = PlaceSearch.find(text.trim(), from, store, session)
+            found = hits
+            note = problem
             looking = false
         }
     }
@@ -1839,83 +1691,41 @@ private fun PlacesFace(
             Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(GAP),
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_pin, Paint.Sand)
+                Spacer(Modifier.width(12.dp))
+                Label("Find a place", Paint.Sand, size = 17, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
+            }
             Row(
-                Modifier.fillMaxWidth().height(46.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(Paint.Card).padding(horizontal = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Label("find a place", Paint.Dim, size = 13)
-                Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Paint.Card).clickable(onClick = onClose),
-                    contentAlignment = Alignment.Center,
-                ) { Label("✕", Paint.Sand, size = 18) }
-            }
-
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                textStyle = androidx.compose.ui.text.TextStyle(
-                    color = Paint.Sand,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily.Monospace,
-                ),
-                cursorBrush = SolidColor(Paint.AmberBright),
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    imeAction = androidx.compose.ui.text.input.ImeAction.Search,
-                ),
-                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go() }),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Card)
-                    .border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 14.dp)
-                    .focusRequester(focus),
-            )
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Card)
-                    .border(1.5.dp, if (text.isBlank()) Paint.Dim else Paint.Amber, RoundedCornerShape(8.dp))
-                    .clickable { go() },
-                contentAlignment = Alignment.Center,
-            ) {
-                Label(
-                    text = if (looking) "looking…" else "search",
-                    colour = if (text.isBlank()) Paint.Dim else Paint.Amber,
-                    size = 14,
+                Glyph(R.drawable.ic_search, Paint.Dim, size = 22.dp)
+                Spacer(Modifier.width(12.dp))
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Paint.Sand, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
+                    cursorBrush = SolidColor(Paint.AmberBright),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go() }),
+                    modifier = Modifier.weight(1f).focusRequester(focus),
                 )
             }
-
-            if (note != null) Label(note ?: "", Paint.Dim, size = 11, align = TextAlign.Start)
-
-            found.forEach { place ->
-                val away = fix?.let { Geo.distance(it.lat, it.lon, place.lat, place.lon) }
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Paint.Card)
-                        .clickable { onAdd(place) }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Label(place.name, Paint.Sand, size = 14, align = TextAlign.Start)
-                        if (place.where.isNotBlank()) {
-                            Label(place.where, Paint.Dim, size = 11, align = TextAlign.Start)
+            Action(if (looking) "Searching" else "Search", R.drawable.ic_search, onClick = { go() }, enabled = text.isNotBlank() && !looking, modifier = Modifier.fillMaxWidth())
+            if (note != null) Label(note ?: "", Paint.Amber, size = 12, align = TextAlign.Start)
+            if (found.isNotEmpty()) {
+                ResultsList(found, light = false) { hit ->
+                    scope.launch {
+                        val there = PlaceSearch.locate(hit, store, session)
+                        if (there?.lat != null && there.lon != null) {
+                            onAdd(Places.Place(hit.title, hit.under, there.lat, there.lon))
+                        } else {
+                            note = "Google did not say where that is"
                         }
                     }
-                    Label(
-                        text = away?.let { Geo.formatDistance(it) } ?: "",
-                        colour = Paint.Amber,
-                        size = 11,
-                    )
                 }
             }
         }
@@ -1950,110 +1760,79 @@ private fun TracksFace(
             Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(GAP),
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
-            Row(
-                Modifier.fillMaxWidth().height(46.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Label("tracks (gpx)", Paint.Dim, size = 13)
-                Label("${tracks.size}", Paint.Dim, size = 11)
-                Box(
-                    Modifier.size(46.dp).clip(CircleShape).background(Paint.Veil).clickable(onClick = onClose),
-                    contentAlignment = Alignment.Center,
-                ) { Label("✕", Paint.Sand, size = 18) }
+            // THE VISUAL LANGUAGE (27.9.2026): a title with its icon; the folder a row that opens
+            // the picker; the line colour a choice; hide a quiet action; each track's show,
+            // rename and delete an icon each, delete asking once in red.
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_track, Paint.Sand)
+                Spacer(Modifier.width(12.dp))
+                Label("Tracks", Paint.Sand, size = 17, align = TextAlign.Start)
+                Spacer(Modifier.width(10.dp))
+                Label("${tracks.size}", Paint.Dim, size = 13, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
             }
 
-            // WHERE THEY ARE. This menu is the folder he chose, showing only GPX, so the folder's
-            // own name is the first thing on it: a list of files nobody can find is a list.
-            SettingRow("folder", folder, onChooseFolder)
-
-            if (note != null) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Veil)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                ) {
-                    Label(note ?: "", Paint.Amber, size = 12, align = TextAlign.Start)
-                }
+            // WHERE THEY ARE: the folder he chose, and a tap to choose another.
+            Box(Modifier.clip(RoundedCornerShape(16.dp)).background(Paint.Card)) {
+                Opens("Folder", R.drawable.ic_folder, under = folder, onClick = onChooseFolder)
             }
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP)) {
-                Label("line", Paint.Dim, size = 11)
+            if (note != null) Label(note ?: "", Paint.Amber, size = 12, align = TextAlign.Start)
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_route, Paint.Dim, size = 20.dp)
                 TRACK_COLOURS.forEach { option ->
                     Box(
                         Modifier
                             .weight(1f)
-                            .height(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(Color(option))
                             .clickable { onColour(option) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (option == colour) Label("✓", Paint.Ground, size = 12)
+                        if (option == colour) Glyph(R.drawable.ic_check, Paint.Ground, size = 18.dp)
                     }
                 }
             }
-            Label(
-                text = "hide the shown track",
-                colour = Paint.Dim,
-                size = 11,
-                modifier = Modifier.clickable { onHide() },
-            )
+            Action("Hide the shown track", R.drawable.ic_eye_off, onClick = onHide, quiet = true, modifier = Modifier.fillMaxWidth())
 
             if (tracks.isEmpty()) {
-                Label(
-                    text = "No GPX in that folder yet. The red circle starts a walk.",
-                    colour = Paint.Dim,
-                    size = 12,
-                    align = TextAlign.Start,
-                )
+                Label("No GPX in that folder yet. The red circle starts a walk.", Paint.Dim, size = 13, align = TextAlign.Start)
             }
 
             tracks.forEach { track ->
-                Column(
+                Row(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Veil)
-                        .padding(GAP),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Paint.Card)
+                        .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // The name he gave it, and the extension after it in the quieter ink: he
-                    // renames a name, but what is on the disk is a file (15.9.2026).
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Label(track.name, Paint.Sand, size = 13, align = TextAlign.Start)
-                        Label(".${track.extension}", Paint.Dim, size = 11)
+                    // The name he gave it, the extension after it in the quieter ink (15.9.2026).
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Label(track.name, Paint.Sand, size = 15, align = TextAlign.Start)
+                            Label(".${track.extension}", Paint.Dim, size = 12)
+                        }
+                        Label(Tracks.formatSize(track.bytes), Paint.Dim, size = 12, align = TextAlign.Start)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Label(Tracks.formatSize(track.bytes), Paint.Dim, size = 11)
-                        Label(
-                            text = "show",
-                            colour = Paint.Green,
-                            size = 12,
-                            modifier = Modifier.clickable { onShow(track) },
-                        )
-                        Label(
-                            text = "rename",
-                            colour = Paint.Amber,
-                            size = 12,
-                            modifier = Modifier.clickable { renaming = track },
-                        )
-                        Label(
-                            text = if (confirming?.uri == track.uri) "sure? delete" else "delete",
-                            colour = Paint.Red,
-                            size = 12,
-                            modifier = Modifier.clickable {
-                                if (confirming?.uri == track.uri) {
-                                    onDelete(track)
-                                    confirming = null
-                                } else {
-                                    confirming = track
-                                }
-                            },
-                        )
-                    }
+                    IconAction(R.drawable.ic_eye, "show", onClick = { onShow(track) })
+                    IconAction(R.drawable.ic_edit, "rename", onClick = { renaming = track })
+                    IconAction(
+                        R.drawable.ic_trash,
+                        if (confirming?.uri == track.uri) "sure?" else "delete",
+                        onClick = {
+                            if (confirming?.uri == track.uri) {
+                                onDelete(track)
+                                confirming = null
+                            } else {
+                                confirming = track
+                            }
+                        },
+                        tint = Paint.Red,
+                    )
                 }
             }
         }

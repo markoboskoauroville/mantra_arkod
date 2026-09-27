@@ -239,3 +239,18 @@ Twelve old checks that pinned the old wording were rewritten to hold the same ru
 form, each dated; none was deleted.
 
 Not yet in the language: the tracks face, the maps (download) face, the places face, the name box.
+
+## 27.9.2026 — v92/v93, the rest of the app in the same language
+
+v92, from the first screenshots of v91: the key row's line icons vanished into street names on the
+thin bar, so the bar under them is firm (ground at 86 %); a trailing word ("1.1 GB", Route's "3")
+floated in the middle of its action, so the verb takes the room and the trailing word sits at the
+edge, and Route lost its "3" (the ways bar already says it); "Offline maps" was said twice, the
+row is "Download".
+
+v93: the tracks face (folder as a row that opens, colour a choice, show / rename / delete as eye,
+pencil and trash, delete asking once), the maps face (picks with a check and a trash, imagery depth
+a choice, "Keep the screen" the solid action with its cost at the edge, downloads as actions with
+their size), the places face (the same many-answer search as Google's field, the same list), and
+the name box (discard quiet and red, OK solid; his two words kept). Three icons added: edit, eye,
+eye_off (33). Seven more old checks carried over to the new form, none deleted.
