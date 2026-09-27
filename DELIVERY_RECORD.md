@@ -62,3 +62,15 @@ Proved, with screenshots, in Zagreb (Ribnjak) over openhiking-croatia.map:
   municipality, area, address, land use, possessor, land registry unit and the seven corners.
 NOT tested: the Google engine; a parcel larger than 300 m across (the 900 m and 2700 m pictures);
 the TXT into a chosen tracks folder; his thumb.
+
+## v89 — the tap selects, CPY, the sheet holds its touches (27.9.2026), emulator in PORTRAIT
+
+Proved in portrait (1080×2400, his phone's way up), Zagreb, Ribnjak:
+- tap 5925 then 5927: the cyan selection moved, 5925's outline gone (v88, landscape; v89 portrait
+  again with 5927 → 5924);
+- a tap on the selection opened the sheet with CPY and TXT; a press on the sheet's plain text did
+  nothing (before v89 it went through to the map and selected the parcel beneath);
+- CPY: "parcel 5927 copied", Android's clipboard preview showing "PARCEL 5927 cadastral reference…";
+- red swatch kept 5927 red after the sheet closed and the selection moved on;
+- settings: "Search bar on Google's map · shown · press to hide".
+NOT tested: the Google search field itself (no Google key on the emulator); his thumb.

@@ -1,6 +1,6 @@
 # Mantra Trail — the finished state
 
-    version      87 (cadastre: v82–v87)
+    version      89 (cadastre: v82–v89)
     repository   markoboskoauroville/MANTRA_TRAIL (public)
     artefact     1-mantra-trail-v1.apk, release tag v1
     built by     GitHub Actions only (android-app.md §1a). Never on a desk.
@@ -83,10 +83,14 @@ Test 1 may be run on a desk with kotlinc and a JUnit jar, because the five files
 Every parcel in Croatia with its number, drawn half-transparent over whichever map is up (both
 engines), on by default. **K** in the key row (where T was; the compass is chosen in settings) opens the panel: the switch, search by number in
 the cadastral municipality under the middle of the map (several numbers at once), a colour, and the
-list of highlighted parcels. **The first tap on a parcel** (zoom 15 and in) highlights it, outlined
-in under a second from the state's own picture (`Outline.kt`); **a tap on a highlighted parcel** opens its card: number,
+list of highlighted parcels. **A tap on a parcel** (zoom 15 and in) SELECTS it: one parcel at a time, outlined in cyan in under a
+second from the state's own picture (`Outline.kt`), forgotten at the next tap; **a tap on the
+selection** opens its card: number,
 municipality, area, address, land use, and every possessor on every possession sheet with share
 and address, from the state's public OSS. At the bottom of the card, the **highlight tick** and the
-**five trail colours**, and **TXT** at the top right writes the whole sheet and the outline to a text
+**five trail colours**, which are the only way a parcel stays highlighted; **CPY** copies the sheet to the clipboard and **TXT** at the top right writes the whole sheet and the outline to a text
 file (the tracks folder, else Downloads). A highlight keeps the parcel's shape on the phone, so it draws, and its card
 opens, with no signal; the owners and the lines themselves need the network.
+
+**Google's map** has a round search field at the top (Places, his key), shown unless "Search bar on
+Google's map" in settings hides it. The sheet and the K panel swallow every touch on them.
