@@ -998,6 +998,10 @@ check("Google's map has the round search field, and the settings hide it",
       and "Search bar on Google's map" in (MAIN / "Settings.kt").read_text(),
       "Screens.kt and Settings.kt examined")
 
+check("the sheet and the K panel hold their touches, nothing reaches the map beneath",
+      screens_src.count(".swallowTouches()") >= 2 and "private fun Modifier.swallowTouches()" in screens_src,
+      "Screens.kt examined")
+
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:
     print("failed: " + ", ".join(failures))

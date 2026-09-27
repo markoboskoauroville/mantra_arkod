@@ -2669,6 +2669,9 @@ private fun ParcelCardView(
             .padding(horizontal = 6.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(Paint.Card)
+            // THE SHEET HOLDS ITS OWN TOUCHES (27.9.2026). A press on its words went through to the
+            // map underneath and selected whatever parcel lay there, which closed the sheet.
+            .swallowTouches()
             .padding(GAP),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -2826,7 +2829,10 @@ private fun ParcelsPanel(
     }
 
     Box(
-        Modifier.fillMaxSize().background(Paint.Veil).safeDrawingPadding().padding(GAP),
+        // The veil round the panel closes it, and nothing under it is touched.
+        Modifier.fillMaxSize().background(Paint.Veil)
+            .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }, onClick = onClose)
+            .safeDrawingPadding().padding(GAP),
         contentAlignment = Alignment.TopCenter,
     ) {
         Column(
@@ -2834,6 +2840,7 @@ private fun ParcelsPanel(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
                 .background(Paint.Ground)
+                .swallowTouches()
                 .padding(GAP)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(GAP),
@@ -3045,6 +3052,17 @@ private fun GoogleSearchBar(store: Store, near: Fix?) {
                     }
                 }
             }
+        }
+    }
+}
+
+
+/** Every touch on this is its own: nothing reaches the map beneath. */
+private fun Modifier.swallowTouches(): Modifier = this.pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Final)
+                .changes.forEach { it.consume() }
         }
     }
 }

@@ -173,3 +173,12 @@ google maps ... can be hidden or shown in the settings"* — a white pill under 
 Google views, the keyboard's search key asks Places (his key, near him, one request per press),
 results drop down, a tap takes the map there; "Search bar on Google's map" in settings, shown by
 default. The compass row and it share a group, "On the map".
+
+## 27.9.2026 — v89, the sheet holds its touches
+
+Testing v88 on the emulator: the sheet moved down a line as the note above it cleared, the press
+meant for CPY landed on the sheet's own background, and went THROUGH to the map, selecting parcel
+5763/1 beneath and closing the sheet. Nothing on the sheet or the K panel caught a touch except its
+buttons. Both now swallow every touch on them, and the veil round the K panel closes it.
+From here on every test is in PORTRAIT (his word: his phone is always portrait; only the camera is
+landscape).
