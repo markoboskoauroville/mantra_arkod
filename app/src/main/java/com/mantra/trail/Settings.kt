@@ -154,229 +154,136 @@ fun SettingsFace(
             // is TWO controls on one line: the name opens that map's own options, and the arrow
             // drops down its views. Choosing a view closes the settings and shows the map, which
             // is the only reason anybody opened the dropdown.
+            // THE VISUAL LANGUAGE (27.9.2026): each row is one kind of control and looks it: a
+            // chevron row opens something, a switch is a state, a check marks the chosen one, a
+            // bar is a choice. One word where a sentence stood (Look.kt says why).
             Group("Tracks") {
-                Line(
-                    title = "Tracks",
-                    opens = true,
-                    under = "$trackCount in the folder · rename, show, delete, the folder itself",
-                    onPress = onTracks,
-                )
+                Opens("Tracks", R.drawable.ic_track, under = "$trackCount", onClick = onTracks)
             }
 
-            // THE COMPASS OVER THE MAP (27.9.2026). It was T on the map's own key row; that key is
-            // the cadastre's now, and the compass's three states are chosen here: dark ink for a
-            // light map, light ink for a dark one, or none.
             Group("On the map") {
-                Line(
-                    title = "Compass on the map",
-                    under = when (compassMode) {
-                        0 -> "dark · for light maps · press to change"
-                        1 -> "night · for dark maps · press to change"
-                        else -> "off · press to change"
-                    },
-                    onPress = onCompass,
-                )
-                Rule()
-                // THE SEARCH BAR ON GOOGLE'S MAP (27.9.2026): *"this search entry button can be
-                // hidden or shown in the settings."*
-                Line(
-                    title = "Search bar on Google's map",
-                    under = if (searchBar) "shown · press to hide" else "hidden · press to show",
-                    onPress = onSearchBar,
-                )
+                Toggle("Compass", R.drawable.ic_compass, on = compassMode != 2, onChange = { onCompass() })
+                Hairline()
+                Toggle("Google search bar", R.drawable.ic_search, on = searchBar, onChange = { onSearchBar() })
             }
 
-            // TWO MAPS, AND EACH HAS VIEWS YOU CHOOSE ONE OF (17.9.2026).
-            //
-            // The ticks are gone. A tick said "this view is allowed in the switcher", which is a
-            // question nobody asked: he wants to pick a view and see it. So each view is a radio —
-            // one at a time, the chosen one marked — and choosing closes the settings and draws it.
-            // The key on the map screen turns between the two MAPS, not through eight views.
-            Group("Maps") {
-                Line(
-                    // PLURAL, BECAUSE THERE ARE SEVERAL (17.9.2026): the dropdown lists every map
-                    // on the phone, finished or half-fetched, and one of them draws at a time.
-                    title = "Offline maps",
-                    opens = true,
-                    under = offlineUnder,
-                    onPress = onMaps,
-                    trailing = {
-                        Caret(open = state.offlineOpen) { state.setOfflineopen(!state.offlineOpen) }
-                    },
-                )
-                if (state.offlineOpen) {
-                    installedMaps.forEach { file ->
-                        Rule()
-                        Line(
-                            title = file.name.removePrefix("oam-").removeSuffix(".map"),
-                            under = "${file.length() / 1_000_000} MB",
-                            inset = true,
-                            chosen = file.name == drawingMapName,
-                            onPress = { onUseMap(file) },
-                        )
-                    }
-                    unfinishedMaps.forEach { file ->
-                        Rule()
-                        Line(
-                            title = file.name.removeSuffix(".part").removeSuffix(".zip")
-                                .removePrefix("oam-").removeSuffix(".map"),
-                            under = "${file.length() / 1_000_000} MB so far · not finished, open this row to carry on",
-                            inset = true,
-                            onPress = onMaps,
-                        )
-                    }
-                    if (installedMaps.isEmpty() && unfinishedMaps.isEmpty()) {
-                        Rule()
-                        Line(
-                            title = "no map on the phone yet",
-                            under = "open this row to fetch one",
-                            inset = true,
-                            onPress = onMaps,
-                        )
-                    }
-
-                    // THE TWO HE NAMED, whether or not they are here yet: Balkan and the Croatia
-                    // one from his own GitHub. A dropdown that only lists what is already on the
-                    // phone cannot be used to switch to the other one.
-                    Oam.OFFERED.forEach { offer ->
-                        val here = installedMaps.any { it.name == offer.mapName }
-                        if (!here) {
-                            Rule()
-                            Line(
-                                title = offer.label,
-                                under = "not on the phone · ${offer.sizeLabel} to fetch",
-                                inset = true,
-                                onPress = { onFetchOffer(offer) },
-                            )
-                        }
-                    }
-
-                    // THE KEPT SATELLITE (17.9.2026). It downloads and it draws, and until now
-                    // there was no row anywhere that chose it — a map on the phone he could not
-                    // ask for. It sits with the other offline maps, because that is what it is.
-                    if (hasImagery) {
-                        Rule()
-                        Line(
-                            title = "Satellite, kept on the phone",
-                            under = imageryHeld,
-                            inset = true,
-                            chosen = current.id == Layers.IMAGERY.id,
-                            onPress = { onPick(Layers.IMAGERY) },
-                        )
-                    }
-
-                    Rule()
-                    Line(title = "how they are drawn", inset = true)
-                    Layers.OFFLINE_VIEWS.forEach { view ->
-                        Rule()
-                        Line(
-                            title = view.label,
-                            under = view.about,
-                            inset = true,
-                            chosen = view.theme == state.theme,
-                            onPress = { onOfflineView(view) },
+            Group("Offline maps") {
+                Opens("Offline maps", R.drawable.ic_mountain, under = offlineUnder, onClick = onMaps)
+                installedMaps.forEach { file ->
+                    Hairline()
+                    Pick(
+                        title = file.name.removePrefix("oam-").removeSuffix(".map"),
+                        icon = R.drawable.ic_mountain,
+                        chosen = current.kind == LayerKind.VECTOR_FILE && file.name == drawingMapName,
+                        under = "${file.length() / 1_000_000} MB",
+                        onClick = { onUseMap(file) },
+                    )
+                }
+                if (hasImagery) {
+                    Hairline()
+                    Pick(
+                        title = "Satellite",
+                        icon = R.drawable.ic_satellite,
+                        chosen = current.id == Layers.IMAGERY.id,
+                        under = imageryHeld,
+                        onClick = { onPick(Layers.IMAGERY) },
+                    )
+                }
+                unfinishedMaps.forEach { file ->
+                    Hairline()
+                    Action(
+                        verb = file.name.removeSuffix(".part").removeSuffix(".zip").removePrefix("oam-").removeSuffix(".map"),
+                        icon = R.drawable.ic_save,
+                        onClick = onMaps,
+                        quiet = true,
+                        trailing = "${file.length() / 1_000_000} MB · unfinished",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Oam.OFFERED.forEach { offer ->
+                    if (installedMaps.none { it.name == offer.mapName }) {
+                        Hairline()
+                        Action(
+                            verb = offer.label,
+                            icon = R.drawable.ic_save,
+                            onClick = { onFetchOffer(offer) },
+                            quiet = true,
+                            trailing = offer.sizeLabel,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }
-
-                Rule()
-                Line(
-                    title = "Google maps",
-
-                    onPress = { state.setGoogleopen(!state.googleOpen) },
-                    trailing = {
-                        Caret(open = state.googleOpen) { state.setGoogleopen(!state.googleOpen) }
-                    },
-                )
-                if (state.googleOpen) {
-                    Layers.GOOGLE_ALL.forEach { layer ->
-                        Rule()
-                        Line(
-                            title = layer.name,
-                            inset = true,
-                            chosen = layer.id == chosenGoogleId,
-                            onPress = { onPick(layer) },
-                        )
-                    }
+                Hairline(inset = 16.dp)
+                Box(Modifier.padding(12.dp)) {
+                    Choice(
+                        parts = Layers.OFFLINE_VIEWS.map { Part(it.label) },
+                        chosen = Layers.OFFLINE_VIEWS.indexOfFirst { it.theme == state.theme }.coerceAtLeast(0),
+                        onChoose = { i ->
+                            val view = Layers.OFFLINE_VIEWS[i]
+                            state.theme = view.theme
+                            onOfflineView(view)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
-            // THE KEYS, AT THE BOTTOM AND ON THEIR OWN (17.9.2026). They belong to no single
-            // map: one ring serves whatever asks. Under the Google row they were two lines he had
-            // to pass every time he wanted a view.
+            Group("Google maps") {
+                Box(Modifier.padding(12.dp)) {
+                    Choice(
+                        parts = listOf(Part("Map"), Part("Satellite"), Part("Terrain"), Part("Hybrid")),
+                        chosen = Layers.GOOGLE_ALL.indexOfFirst { it.id == chosenGoogleId }.coerceAtLeast(0),
+                        onChoose = { i -> onPick(Layers.GOOGLE_ALL[i]) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            // THE KEYRING: every key he added, what it last answered, a test and a delete for each.
             Group("API keys") {
-                // THE KEYRING (17.9.2026, as in his own KEY_RING_TESTER): every key he has
-                // added, what it last answered, a square that tests it and writes the result
-                // beside it, and a cross that takes it off. The app walks them in order when
-                // it needs one, so a key that stops working is not a dead map.
-                Line(
-                    title = "Google Maps API keys",
-                    under = if (keyring.isEmpty()) {
-                        "none yet · add a file with a key in it"
-                    } else {
-                        "${keyring.size} on the ring · tried in order"
-                    },
-                    onPress = { state.setKeysopen(!state.keysOpen) },
-                    trailing = { Caret(open = state.keysOpen) { state.setKeysopen(!state.keysOpen) } },
+                Opens(
+                    title = "Google keys",
+                    icon = R.drawable.ic_key,
+                    under = if (keyring.isEmpty()) "none" else "${keyring.size}",
+                    onClick = { state.setKeysopen(!state.keysOpen) },
+                    open = state.keysOpen,
                 )
                 if (state.keysOpen) {
                     keyring.forEach { key ->
-                    Rule()
-                    Line(
-                        title = key.label,
-                        under = if (key.said.isNotBlank() && key.verdict != Keyring.Verdict.GOOD) {
-                            "${key.masked} · ${key.said}"
-                        } else {
-                            Keyring.describe(key)
-                        },
-                        inset = true,
-                        // TWO BUTTONS THE SAME SIZE, side by side and not overlapping
-                        // (17.9.2026): a cross squeezed against a bordered box read as
-                        // one broken control.
-                        trailing = {
-                            Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        Hairline()
+                        Row(
+                            Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                            Box(
-                                Modifier
-                                    .size(width = 58.dp, height = 36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .border(1.2.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                    .clickable { onTestKey(key) },
-                                contentAlignment = Alignment.Center,
-                            ) { Words("test", Paint.Amber, 12) }
-                            Box(
-                                Modifier
-                                    .size(width = 58.dp, height = 36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .border(1.2.dp, Paint.Red, RoundedCornerShape(8.dp))
-                                    .clickable { onRemoveKey(key) },
-                                contentAlignment = Alignment.Center,
-                            ) { Words("delete", Paint.Red, 12) }
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Words(key.label, Paint.Sand, 15, TextAlign.Start)
+                                Words(
+                                    if (key.said.isNotBlank() && key.verdict != Keyring.Verdict.GOOD) "${key.masked} · ${key.said}"
+                                    else Keyring.describe(key),
+                                    Paint.Dim, 12, TextAlign.Start,
+                                )
                             }
-                        },
-                    )
+                            IconAction(R.drawable.ic_play, "test", onClick = { onTestKey(key) })
+                            IconAction(R.drawable.ic_trash, "delete", onClick = { onRemoveKey(key) }, tint = Paint.Red)
+                        }
                     }
-                    Rule()
-                    Line(
-                    title = "add keys from a file",
-                    under = "every Google key in it goes on the ring and is tested",
-                    inset = true,
-                    opens = true,
-                    onPress = onImportKeys,
-                    )
+                    Hairline()
+                    Action("Add from a file", R.drawable.ic_folder, onClick = onImportKeys, quiet = true, modifier = Modifier.fillMaxWidth())
                 }
             }
 
             Group("About") {
-                Line(
-                    // The version is the title's own state; the app's name above it was a row
-                    // spent saying what the launcher already says.
-                    title = "credits",
-                    under = "v$version · © OpenStreetMap contributors · OpenAndroMaps · " +
-                        "OpenHiking · BRouter (MIT) · Google",
-                )
+                Row(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Glyph(R.drawable.ic_info, Paint.Dim)
+                    Column {
+                        Words("v$version", Paint.Sand, 15, TextAlign.Start)
+                        Words("© OpenStreetMap contributors · OpenAndroMaps · OpenHiking · BRouter (MIT) · Google", Paint.Dim, 12, TextAlign.Start)
+                    }
+                }
             }
         }
     }

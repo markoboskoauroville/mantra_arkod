@@ -379,7 +379,9 @@ object Parcels {
             sheet.owners.forEach { add(SheetRow("POSSESSION SHEET ${sheet.number}", it.name, it.share, it.address)) }
         }
         record.landBooks.forEach {
-            add(SheetRow("LAND REGISTRY", "z.k. uložak ${it.unit} · k.o. ${it.book}", it.kind.lowercase(), it.office))
+            // The kind of unit under the number, not beside it: "etažno vlasništvo s neodređenim
+            // omjerima" beside it squeezed "z.k. uložak 36131" to "z.k. uloža…" (27.9.2026).
+            add(SheetRow("LAND REGISTRY", "z.k. uložak ${it.unit} · k.o. ${it.book}", "", "${it.kind.lowercase()} · ${it.office}"))
         }
     }
 

@@ -474,7 +474,7 @@ fun TrailApp(
                     Modifier.fillMaxWidth().background(Paint.Bar).padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Key(glyph = "−", lit = false, onClick = { Canvases.zoomOut() })
+                    Key(glyph = "−", lit = false, onClick = { Canvases.zoomOut() }, icon = R.drawable.ic_minus)
                     // K, THE CADASTRE, WHERE T WAS (27.9.2026, his order): the compass's
                     // three states went into the settings, and this key opens the parcels panel,
                     // lit while the parcels are drawn.
@@ -482,6 +482,7 @@ fun TrailApp(
                         glyph = "K",
                         lit = cadastreOn,
                         onClick = { parcelPanel = true },
+                        icon = R.drawable.ic_parcels,
                     )
                     // ONE TAP CENTRES, TWO IN A ROW LOCK (15.9.2026). A second tap inside a
                     // second is somebody saying "and keep it there"; a second tap later is just
@@ -524,8 +525,15 @@ fun TrailApp(
                             store.layerId = picked.id
                             scope.launch { showLayer(store, picked) }
                         },
+                        // Which map is up, as a picture: the mountain for the file on the phone,
+                        // the satellite for kept imagery, the globe for Google's.
+                        icon = when {
+                            layer.family == MapLayer.Family.GOOGLE -> R.drawable.ic_globe
+                            layer.id == Layers.IMAGERY.id -> R.drawable.ic_satellite
+                            else -> R.drawable.ic_mountain
+                        },
                     )
-                    Key("⚙", lit = false, onClick = { settings = true })
+                    Key("⚙", lit = false, onClick = { settings = true }, icon = R.drawable.ic_settings)
                     // ONE KEY FOR POINTS (16.9.2026). Pressing it drops the next one where the
                     // crosshair is — A, then B, then C — and it shows which letter is next. A
                     // long press opens the manager, where they are removed and the ways found.
@@ -545,7 +553,7 @@ fun TrailApp(
                         },
                         onLongPress = { routeMenu = true },
                     )
-                    Key(glyph = "+", lit = false, onClick = { Canvases.zoomIn() })
+                    Key(glyph = "+", lit = false, onClick = { Canvases.zoomIn() }, icon = R.drawable.ic_plus)
                 }
             }
         }
@@ -720,7 +728,10 @@ fun TrailApp(
         }
 
         if (compass != COMPASS_OFF) {
-            CompassOverlay(sensors = sensors, night = compass == COMPASS_NIGHT)
+            CompassOverlay(
+                sensors = sensors,
+                night = Parcels.inkFor(layer.id, store.themeName, layer.googleView?.mapType) == Parcels.INK_LIGHT,
+            )
         }
 
         if (showMaps) {
@@ -802,8 +813,10 @@ fun TrailApp(
                 store = store,
                 current = layer,
                 compassMode = compass,
+                // ON OR OFF (27.9.2026, his word): "when it's unselected, there is no compass". Its
+                // ink is no longer his to choose: it follows the map, light over the dark ones.
                 onCompass = {
-                    compass = (compass + 1) % 3
+                    compass = if (compass == COMPASS_OFF) COMPASS_DARK else COMPASS_OFF
                     store.compassMode = compass
                 },
                 searchBar = searchBar,
@@ -1365,12 +1378,15 @@ private fun RowScope.Key(
     glyph: String,
     lit: Boolean,
     onClick: () -> Unit,
+    // THE ICON (27.9.2026): the key row speaks in symbols; the glyph stays as its name.
+    @androidx.annotation.DrawableRes icon: Int? = null,
 ) {
     Box(
         Modifier.weight(1f).height(KEY).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Label(glyph, if (lit) Paint.AmberBright else Paint.Sand, size = 17)
+        if (icon != null) Glyph(icon, if (lit) Paint.AmberBright else Paint.Sand, size = 26.dp)
+        else Label(glyph, if (lit) Paint.AmberBright else Paint.Sand, size = 17)
     }
 }
 
@@ -2122,7 +2138,11 @@ private fun RowScope.PointKey(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Label(letter, if (placed) Paint.AmberBright else Paint.Sand, size = 17)
+        // A pin with the next point's letter at its foot.
+        Box(contentAlignment = Alignment.Center) {
+            Glyph(R.drawable.ic_pin, if (placed) Paint.AmberBright else Paint.Sand, size = 26.dp)
+            Label(letter, if (placed) Paint.AmberBright else Paint.Sand, size = 10, modifier = Modifier.padding(top = 36.dp))
+        }
     }
 }
 
@@ -2165,264 +2185,136 @@ private fun RouteMenu(
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(Paint.Ground)
+                .swallowTouches()
                 .verticalScroll(rememberScrollState())
                 .padding(GAP),
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Label("route", Paint.Dim, size = 12, align = TextAlign.Start)
+            // THE VISUAL LANGUAGE (27.9.2026, his screenshot of this menu: "BRouter and Google are
+            // options. Route is a button, action button. In this user interface everything is the
+            // same"). Now: the points; the second things as quiet actions, icon and verb; every
+            // choice a bar with the chosen part raised; the router one flip; ROUTE the one solid
+            // amber button. Close is the cross at the top, the far corner from save.
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_route, Paint.Sand)
+                Spacer(Modifier.width(10.dp))
                 Label(
-                    text = if (enough) "${points.size} of ${Route.MAX_POINTS} points · ${Geo.formatDistance(straight)} straight" else "place at least two",
+                    text = if (enough) "${Geo.formatDistance(straight)} straight" else "place at least two",
                     colour = if (enough) Paint.Sand else Paint.Dim,
-                    size = 11,
+                    size = 14,
+                    align = TextAlign.Start,
+                    modifier = Modifier.weight(1f),
+                )
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
+            }
+
+            points.forEachIndexed { index, at ->
+                Row(
+                    Modifier.fillMaxWidth().height(44.dp).clip(RoundedCornerShape(10.dp)).background(Paint.Card).padding(start = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Label(Route.letterFor(index), Paint.Sand, size = 17)
+                    Spacer(Modifier.width(14.dp))
+                    Label("${Geo.formatLat(at.first)}  ${Geo.formatLon(at.second)}", Paint.Dim, size = 12, modifier = Modifier.weight(1f), align = TextAlign.Start)
+                    IconAction(R.drawable.ic_trash, null, onClick = { onRemove(index) }, tint = Paint.Red)
+                }
+            }
+
+            Column {
+                Action("Add ${Route.letterFor(points.size)} here", R.drawable.ic_plus, onClick = onAdd, quiet = true, modifier = Modifier.fillMaxWidth())
+                Action("Find a place", R.drawable.ic_search, onClick = onFind, quiet = true, modifier = Modifier.fillMaxWidth())
+                if (enough) Action("Save as track", R.drawable.ic_save, onClick = onSave, quiet = true, modifier = Modifier.fillMaxWidth())
+            }
+
+            // WHICH ROUTER ANSWERS: one control, the one or the other (his words).
+            val routers = listOf(false to "BRouter", true to "Google")
+            Choice(
+                parts = routers.map { (google, name) -> Part(name, if (google) R.drawable.ic_globe else R.drawable.ic_mountain) },
+                chosen = if (useGoogle) 1 else 0,
+                onChoose = { i ->
+                    useGoogle = routers[i].first
+                    store.useGoogleRouting = useGoogle
+                },
+                flip = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            if (!useGoogle) {
+                Choice(
+                    parts = Routing.PROFILES.map { name ->
+                        when (name) {
+                            "trekking" -> Part("Trek", R.drawable.ic_walk)
+                            "hiking-mountain" -> Part("Mountain", R.drawable.ic_mountain)
+                            else -> Part("Shortest", R.drawable.ic_route)
+                        }
+                    },
+                    chosen = Routing.PROFILES.indexOf(profile).coerceAtLeast(0),
+                    onChoose = { i ->
+                        profile = Routing.PROFILES[i]
+                        store.routeProfile = profile
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Labelled("ways") {
+                Choice(
+                    parts = (1..5).map { Part("$it") },
+                    chosen = options - 1,
+                    onChoose = { i ->
+                        options = i + 1
+                        store.routeOptions = options
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            val speeds = listOf(3f, 4f, 5f, 6f)
+            Labelled("km/h") {
+                Choice(
+                    parts = speeds.map { Part("${it.toInt()}") },
+                    chosen = speeds.indexOf(speed).coerceAtLeast(0),
+                    onChoose = { i ->
+                        speed = speeds[i]
+                        store.walkSpeedKmh = speed
+                    },
+                    modifier = Modifier.weight(1f),
                 )
             }
 
-            // ONE ROW PER POINT, in the order they will be walked, each with its own way out.
-            points.forEachIndexed { index, at ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(42.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Veil)
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Label(Route.letterFor(index), Paint.Amber, size = 15)
-                    Label(
-                        text = "${Geo.formatLat(at.first)}  ${Geo.formatLon(at.second)}",
-                        colour = Paint.Sand,
-                        size = 11,
-                    )
-                    Label(
-                        text = "remove",
-                        colour = Paint.Red,
-                        size = 11,
-                        modifier = Modifier.clickable { onRemove(index) },
-                    )
-                }
-            }
+            Action(
+                verb = "Route",
+                icon = R.drawable.ic_route,
+                onClick = { onRoute(profile, options) },
+                enabled = enough,
+                trailing = if (enough) "$options" else null,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
-            if (enough) {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Card)
-                        .border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                        .clickable(onClick = onSave)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Label("save these points as a track", Paint.Amber, size = 12, align = TextAlign.Start)
-                }
-            }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Card)
-                    .clickable(onClick = onFind)
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Label("find a place by name", Paint.Amber, size = 12, align = TextAlign.Start)
-            }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Veil)
-                    .clickable(onClick = onAdd)
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Label(
-                        text = "+  add ${Route.letterFor(points.size)} where the crosshair is",
-                        colour = Paint.Amber,
-                        size = 12,
-                        align = TextAlign.Start,
-                    )
-                }
-            }
-
-            // WHICH ROUTER ANSWERS (17.9.2026). BRouter is in the app and needs no signal; Google
-            // knows what is open and costs a billed request each time it is asked. The two are
-            // here side by side so he can compare them on ground he knows.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(false to "BRouter", true to "Google").forEach { (google, label) ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(42.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .then(
-                                if (google == useGoogle) {
-                                    Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clickable {
-                                useGoogle = google
-                                store.useGoogleRouting = google
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Label(label, if (google == useGoogle) Paint.Amber else Paint.Sand, size = 11)
-                    }
-                }
-            }
-
-            if (!useGoogle) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Routing.PROFILES.forEach { name ->
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .height(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .then(
-                                if (name == profile) {
-                                    Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clickable {
-                                profile = name
-                                store.routeProfile = name
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Label(
-                            text = when (name) {
-                                "trekking" -> "trekking"
-                                "hiking-mountain" -> "mountain"
-                                else -> "shortest"
-                            },
-                            colour = if (name == profile) Paint.Amber else Paint.Sand,
-                            size = 11,
-                        )
-                    }
-                }
-            }
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Label("options", Paint.Dim, size = 11)
-                (1..5).forEach { n ->
-                    Box(
-                        Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .then(
-                                if (n == options) {
-                                    Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clickable {
-                                options = n
-                                store.routeOptions = n
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) { Label("$n", if (n == options) Paint.Amber else Paint.Sand, size = 12) }
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Label("speed", Paint.Dim, size = 11)
-                listOf(3f, 4f, 5f, 6f).forEach { option ->
-                    Box(
-                        Modifier
-                            .height(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .then(
-                                if (option == speed) {
-                                    Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .clickable {
-                                speed = option
-                                store.walkSpeedKmh = option
-                            }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Label(
-                            text = "${option.toInt()} km/h",
-                            colour = if (option == speed) Paint.Amber else Paint.Sand,
-                            size = 11,
-                        )
-                    }
-                }
-            }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Card)
-                    .then(
-                        if (enough) Modifier.border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp)) else Modifier
-                    )
-                    .clickable { if (enough) onRoute(profile, options) }
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Label(
-                        text = "route",
-                        colour = if (enough) Paint.Amber else Paint.Dim,
-                        size = 13,
-                        align = TextAlign.Start,
-                    )
-                    Label(
-                        text = if (enough) "$options to look for" else "place at least two",
-                        colour = if (enough) Paint.Amber else Paint.Dim,
-                        size = 11,
-                    )
-                }
-            }
-
+            // NO TURN-BY-TURN HERE (17.9.2026, his fifth telling): the way is drawn on the map.
             found.forEachIndexed { index, option ->
-                if (option.profile != null) {
-                    // THE GROUND UNDER THE ROUTE (17.9.2026). Distance says how far; this says what
-                    // it costs. Drawn from the heights themselves, so the shape is the hill.
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Label(option.profile.line(), Paint.Amber, size = 11, align = TextAlign.Start)
-                        Canvas(Modifier.fillMaxWidth().height(56.dp)) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Paint.Card).padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(14.dp).clip(CircleShape).background(Color(option.colour)))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Label(
+                                "${Geo.formatDistance(option.metres.toDouble())}   ↑ ${option.climbM} m",
+                                Paint.Sand, size = 15, align = TextAlign.Start,
+                            )
+                            Label(
+                                Geo.formatDuration((option.metres / (speed * 1000.0 / 3600.0)).toLong() * 1000L),
+                                Paint.Dim, size = 12, align = TextAlign.Start,
+                            )
+                        }
+                        if (option.profile == null) IconAction(R.drawable.ic_chart, "ground", onClick = { onHeights(index) })
+                        IconAction(R.drawable.ic_save, "save", onClick = { onSaveOption(option) })
+                    }
+                    if (option.profile != null) {
+                        // THE GROUND UNDER THE ROUTE: the shape is the hill.
+                        Label(option.profile.line(), Paint.Dim, size = 11, align = TextAlign.Start)
+                        Canvas(Modifier.fillMaxWidth().height(56.dp).padding(end = 10.dp)) {
                             val heights = option.profile.metres
                             if (heights.size < 2) return@Canvas
                             val low = heights.min()
@@ -2439,68 +2331,7 @@ private fun RouteMenu(
                         }
                     }
                 }
-                // NO TURN-BY-TURN HERE (17.9.2026, his fifth telling). This is a walking app: he
-                // wants the way drawn on the map, not a list of streets to read. Google's
-                // instructions are still fetched with the route — they come in the same answer —
-                // and they are simply not shown.
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(42.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Paint.Veil)
-                        .clickable { onSaveOption(option) }
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(Color(option.colour)))
-                        Label(
-                            text = "  ${Geo.formatDistance(option.metres.toDouble())}  ↑${option.climbM}m",
-                            colour = Paint.Sand,
-                            size = 12,
-                            align = TextAlign.Start,
-                        )
-                    }
-                    Label(
-                        text = Geo.formatDuration(
-                            (option.metres / (speed * 1000.0 / 3600.0)).toLong() * 1000L
-                        ) + "  save",
-                        colour = Paint.Amber,
-                        size = 11,
-                    )
-                }
-                if (option.profile == null) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(38.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Paint.Card)
-                            .clickable { onHeights(index) }
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Label("what the ground does along it", Paint.Amber, size = 11, align = TextAlign.Start)
-                    }
-                }
             }
-
-            // CLOSE STANDS ALONE (17.9.2026). Save and close sat side by side at the bottom and he
-            // hit save when he meant close, keeping points he did not want. Two keys of the same
-            // size in the same corner, one destructive: that is a trap, not a layout. Save has
-            // gone to the top of the menu, beside the points it saves; the bottom is only the way
-            // out.
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Paint.Veil)
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center,
-            ) { Label("close", Paint.Sand, size = 14) }
         }
     }
 }
@@ -2709,11 +2540,9 @@ private fun ParcelCardView(
                     align = TextAlign.Start,
                 )
             }
-            SheetKey("CPY", onCopy)
-            Spacer(Modifier.width(8.dp))
-            SheetKey("TXT", onText)
-            Spacer(Modifier.width(8.dp))
-            Label("✕", Paint.Sand, size = 22, modifier = Modifier.clickable(onClick = onClose).padding(8.dp))
+            IconAction(R.drawable.ic_copy, "CPY", onClick = onCopy)
+            IconAction(R.drawable.ic_text, "TXT", onClick = onText)
+            IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
         }
         val area = record?.areaM2?.toIntOrNull() ?: card.parcel.areaM2
         Label(
@@ -2728,12 +2557,14 @@ private fun ParcelCardView(
                 .fillMaxWidth()
                 .height(46.dp)
                 .clip(RoundedCornerShape(23.dp))
-                .border(1.5.dp, Paint.Amber, RoundedCornerShape(23.dp))
+                .background(Paint.Card)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Glyph(R.drawable.ic_filter, Paint.Dim, size = 20.dp)
+            Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f)) {
-                if (filter.isEmpty()) Label("filter: an owner, an address, anything", Paint.Dim, size = 14, align = TextAlign.Start)
+                if (filter.isEmpty()) Label("owner, address, anything", Paint.Dim, size = 14, align = TextAlign.Start)
                 BasicTextField(
                     value = filter,
                     onValueChange = { filter = it },
@@ -2745,7 +2576,7 @@ private fun ParcelCardView(
             }
             if (filter.isNotEmpty()) {
                 Label("${shown.size} of ${rows.size}", Paint.Dim, size = 12)
-                Label("✕", Paint.Sand, size = 16, modifier = Modifier.clickable { filter = "" }.padding(start = 10.dp))
+                IconAction(R.drawable.ic_close, null, onClick = { filter = "" }, tint = Paint.Dim)
             }
         }
         Column(
@@ -2779,8 +2610,10 @@ private fun ParcelCardView(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Tick(checked = markedColour != null, onChange = { on -> onHighlight(if (on) defaultColour else null) })
-            Label("highlight", Paint.Sand, size = 12)
+            // HIGHLIGHT: a switch, and the colour it is in.
+            Box(Modifier.clickable { onHighlight(if (markedColour == null) defaultColour else null) }.padding(end = 4.dp)) {
+                SwitchMark(markedColour != null)
+            }
             TRACK_COLOURS.forEach { option ->
                 Box(
                     Modifier
@@ -2796,17 +2629,6 @@ private fun ParcelCardView(
             }
         }
     }
-}
-
-@Composable
-private fun SheetKey(word: String, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) { Label(word, Paint.Amber, size = 14) }
 }
 
 /**
@@ -2836,7 +2658,7 @@ private fun ResultsList(hits: List<Finding.Hit>, light: Boolean, onPick: (Findin
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.width(52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("⌖", color = dim, fontSize = 20.sp)
+                    Glyph(R.drawable.ic_pin, dim, size = 22.dp)
                     Text(Finding.distanceLabel(hit.distanceM), color = dim, fontSize = 11.sp, maxLines = 1)
                 }
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
@@ -2946,33 +2768,44 @@ private fun ParcelsPanel(
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Label("CADASTRE", Paint.Amber, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f))
-                Label("✕", Paint.Sand, size = 20, modifier = Modifier.clickable(onClick = onClose).padding(6.dp))
+                Glyph(R.drawable.ic_parcels, Paint.Sand)
+                Spacer(Modifier.width(10.dp))
+                Label("Cadastre", Paint.Sand, size = 16, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Tick(checked = on, onChange = onSwitch)
-                Label("parcels and their numbers on the map", Paint.Sand, size = 13, align = TextAlign.Start)
+            Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Paint.Card)) {
+                Toggle("Parcels", null, on = on, onChange = onSwitch)
             }
             Label(
-                text = here?.let { "searching in k.o. ${it.second} (${it.first}), under the map" }
-                    ?: "reading the municipality under the map…",
+                text = here?.let { "k.o. ${it.second} · ${it.first}" } ?: "…",
                 colour = Paint.Dim,
                 size = 11,
                 align = TextAlign.Start,
             )
             // THE DROPDOWN: what the field means.
             Box {
+                // A SELECT: its value and the arrow that says it drops down.
                 Row(
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Paint.Card)
+                        .border(1.dp, Look.Outline, RoundedCornerShape(12.dp))
                         .clickable { menu = true }
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Label("search by  ", Paint.Dim, size = 13)
-                    Label(by.label, Paint.Amber, size = 15)
-                    Label("  ▾", Paint.Amber, size = 15)
+                    Glyph(
+                        when (by) {
+                            SearchBy.NUMBER -> R.drawable.ic_parcels
+                            SearchBy.SHEET -> R.drawable.ic_text
+                            SearchBy.STREET -> R.drawable.ic_pin
+                        },
+                        Paint.Sand, size = 20.dp,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Label(by.label, Paint.Sand, size = 15)
+                    Spacer(Modifier.width(10.dp))
+                    Glyph(R.drawable.ic_chevron_down, Paint.Dim, size = 20.dp)
                 }
                 androidx.compose.material3.DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     SearchBy.entries.forEach { choice ->
@@ -3003,15 +2836,7 @@ private fun ParcelsPanel(
                         .border(1.5.dp, Paint.Amber, RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 12.dp),
                 )
-                Box(
-                    Modifier
-                        .width(80.dp)
-                        .height(46.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (busy) Paint.Veil else Paint.Amber)
-                        .clickable { if (!busy) find() },
-                    contentAlignment = Alignment.Center,
-                ) { Label("FIND", if (busy) Paint.Dim else Paint.Ground, size = 14) }
+                Action("Find", R.drawable.ic_search, onClick = { find() }, enabled = !busy)
             }
             Label(by.hint, Paint.Dim, size = 11, align = TextAlign.Start)
             line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
@@ -3022,7 +2847,6 @@ private fun ParcelsPanel(
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Label("colour", Paint.Dim, size = 11)
                 TRACK_COLOURS.forEach { option ->
                     Box(
                         Modifier
@@ -3042,13 +2866,12 @@ private fun ParcelsPanel(
                 Label("HIGHLIGHTED  ${marks.size}", Paint.Amber, size = 12, align = TextAlign.Start, modifier = Modifier.weight(1f))
                 if (marks.isNotEmpty()) {
                     var sure by remember { mutableStateOf(false) }
-                    Label(
-                        text = if (sure) "press again to remove all" else "remove all",
-                        colour = Paint.Red,
-                        size = 12,
-                        modifier = Modifier
-                            .clickable { if (sure) { onClearAll(); sure = false } else sure = true }
-                            .padding(6.dp),
+                    Action(
+                        verb = if (sure) "again: all" else "all",
+                        icon = R.drawable.ic_trash,
+                        onClick = { if (sure) { onClearAll(); sure = false } else sure = true },
+                        quiet = true,
+                        danger = true,
                     )
                 }
             }
@@ -3075,7 +2898,7 @@ private fun ParcelsPanel(
                         align = TextAlign.Start,
                         modifier = Modifier.weight(1f),
                     )
-                    Label("✕", Paint.Red, size = 16, modifier = Modifier.clickable { onRemove(mark) }.padding(4.dp))
+                    IconAction(R.drawable.ic_trash, null, onClick = { onRemove(mark) }, tint = Paint.Red)
                 }
             }
         }
@@ -3131,6 +2954,8 @@ private fun GoogleSearchBar(store: Store, near: Fix?, onPlace: (Finding.Hit) -> 
                 .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Glyph(R.drawable.ic_search, Color(0xFF5F6368), size = 22.dp)
+            Spacer(Modifier.width(12.dp))
             Box(Modifier.weight(1f)) {
                 if (text.isEmpty()) Text("Search here", color = Color(0xFF70757A), fontSize = 16.sp)
                 BasicTextField(
@@ -3149,19 +2974,16 @@ private fun GoogleSearchBar(store: Store, near: Fix?, onPlace: (Finding.Hit) -> 
                 )
             }
             if (text.isNotEmpty()) {
-                Text(
-                    "✕",
-                    color = Color(0xFF70757A),
-                    fontSize = 18.sp,
-                    modifier = Modifier
-                        .clickable {
-                            text = ""
-                            hits = emptyList()
-                            line = null
-                            ParcelsShown.pin = null
-                            Canvases.refreshParcels()
-                        }
-                        .padding(start = 10.dp),
+                IconAction(
+                    R.drawable.ic_close, null,
+                    onClick = {
+                        text = ""
+                        hits = emptyList()
+                        line = null
+                        ParcelsShown.pin = null
+                        Canvases.refreshParcels()
+                    },
+                    tint = Color(0xFF5F6368),
                 )
             }
         }

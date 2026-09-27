@@ -234,7 +234,7 @@ check("no button pre-fetches anybody's tiles",
       'glyph = "CH"' not in screens and not (MAIN / "Caching.kt").exists(),
       "the key and the arithmetic behind it are both gone")
 check("the credits are gathered in settings, not printed over the map",
-      "creditOnMap: Boolean get() = false" in layers and 'title = "credits"' in settings_src,
+      "creditOnMap: Boolean get() = false" in layers and "© OpenStreetMap contributors" in settings_src,
       "one block at the bottom of the settings face")
 
 # WHAT THE PHONE SHOWED ON 15.9.2026, TURNED INTO CHECKS.
@@ -438,9 +438,11 @@ check("the track list is loaded rather than read during composition",
 check("speed is on the top line",
       "Geo.formatSpeed(fix?.speedMs)" in screens and "fun formatSpeed" in (MAIN / "Geo.kt").read_text(),
       "kilometres an hour, a tenth at walking pace")
-check("T turns the compass through dark, night and off",
-      "compass = (compass + 1) % 3" in screens and "store.compassMode" in screens,
-      "dark ink for a pale map, light ink for a dark one, and off for neither")
+# 27.9.2026, his rule: the compass is on or off, one switch; its ink follows the map by itself.
+check("the compass is on or off, and its ink follows the map",
+      "compass = if (compass == COMPASS_OFF) COMPASS_DARK else COMPASS_OFF" in screens
+      and "night = Parcels.inkFor(" in screens and "store.compassMode" in screens,
+      "dark ink over a pale map, light over a dark one, chosen for him")
 check("the compass is an overlay with no window of its own",
       "private fun CompassOverlay" in screens and "BubbleVial" not in screens,
       "edge to edge, half transparent, the map showing through")
@@ -506,37 +508,39 @@ check("two taps in a row are what lock it",
 # Reordered 17.9.2026 to his logic: tracks first, then one entry per map, each with a way into
 # its own options and a dropdown of its views.
 check("tracks come first and each map is one entry",
-      settings_src.index('Group("Tracks")') < settings_src.index('Group("Maps")')
-      and 'title = "Offline maps"' in settings_src and 'title = "Google maps"' in settings_src,
+      # rewritten 27.9.2026 for the visual language: the two maps are two titled groups now
+      settings_src.index('Group("Tracks")') < settings_src.index('Group("Offline maps")') < settings_src.index('Group("Google maps")'),
       "two entries, both called map; the offline one plural because there are several")
 check("every offline map on the phone is a button in that dropdown",
-      "installedMaps.forEach { file ->" in settings_src and "chosen = file.name == drawingMapName" in settings_src,
+      "installedMaps.forEach { file ->" in settings_src and "file.name == drawingMapName" in settings_src and "Pick(" in settings_src,
       "one drawing at a time, chosen by pressing its row")
 check("the two he named are in the dropdown whether or not they are here",
       "OFFERED" in (MAIN / "Oam.kt").read_text() and "onFetchOffer" in settings_src,
       "Balkan and the Croatia one from his own GitHub, so switching is one press or two")
 check("a half-fetched map is shown rather than hidden",
-      "fun unfinished(" in (MAIN / "OamDownload.kt").read_text() and "not finished, open this row to carry on" in settings_src,
+      "fun unfinished(" in (MAIN / "OamDownload.kt").read_text() and "unfinishedMaps.forEach" in settings_src and "unfinished\"" in settings_src,
       "he asked where his Balkan map was; half on the phone is an answer")
-check("an arrow that opens a list is not the same control as the row",
-      "private fun Caret(" in settings_src and "state.setOfflineopen(!state.offlineOpen)" in settings_src,
-      "the row opens that map's options; the arrow drops its views")
+# 27.9.2026: the arrow is the chevron of an Opens row, turned down while its list is open.
+check("a row that opens a list shows whether it is open",
+      "open = state.keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
+      "the chevron points right when closed and down when open")
 check("choosing a view closes the settings and shows the map",
       "settings = false\n                    scope.launch { showLayer(store, Layers.OFFLINE) }" in screens,
       "which is the only reason anybody opened the dropdown")
 # The keys group folded into the Google map's own options on 17.9.2026: a key belongs to the map
 # that needs it, not to a drawer of its own at the bottom of the screen.
 check("the settings are grouped into cards with titles",
-      'Group("Tracks")' in settings_src and 'Group("Maps")' in settings_src
-      and 'Group("About")' in settings_src and 'Group("API keys")' in settings_src,
-      "Tracks, Maps, API keys, About")
+      all(f'Group("{g}")' in settings_src for g in ["Tracks", "On the map", "Offline maps", "Google maps", "API keys", "About"]),
+      "Tracks, On the map, Offline maps, Google maps, API keys, About")
 check("the settings read the store once, not while drawing",
       "private class SettingsState" in settings_src and "remember(store) { SettingsState(store) }" in settings_src,
       "a tap moves the holder, the holder redraws the screen, the store is written behind it")
-check("a row says what it is and what it is set to",
-      "Words(title, Paint.Sand, 15, TextAlign.Start)" in settings_src
-      and "if (under != null) Words(under" in settings_src,
-      "the title first, its state underneath, as Android does it")
+# 27.9.2026, his rule: one word, and the control shows the state. "Compass on the map, off, press
+# to change" became "Compass" and a switch.
+check("a setting is one word and its control shows the state",
+      'Toggle("Compass"' in settings_src and 'Toggle("Google search bar"' in settings_src
+      and "press to change" not in settings_src and "press to show" not in settings_src,
+      "the switch is the state; no sentence")
 
 
 
@@ -566,7 +570,7 @@ check("a route can hold more than two points",
       "fun setRoutePoints" in canvas_src and "Route.MAX_POINTS" in screens,
       "A, B, C and on, walked in the order they were placed")
 check("the menu can add a point where the crosshair is",
-      "add ${Route.letterFor(points.size)} where the crosshair is" in screens,
+      'Action("Add ${Route.letterFor(points.size)} here", R.drawable.ic_plus' in screens,
       "the plus he asked for")
 check("the engine is given every point as a waypoint",
       "points.forEachIndexed { index, at -> waypoints.add(" in (MAIN / "Routing.kt").read_text(),
@@ -585,13 +589,13 @@ check("the compass is on the screen, not inside the centre target",
 # between the two maps, and each map's views are a radio in its own dropdown.
 # Refined again 17.9.2026: no tick and no radio either. The whole row is the button and the
 # chosen one wears an amber outline.
-check("a view is chosen by pressing the row itself",
-      "chosen: Boolean = false" in settings_src and "border(1.5.dp, Paint.Amber" in settings_src
-      and "private fun Dot(" not in settings_src and "Box2" not in settings_src,
-      "no little circle beside it")
-check("the chevron appears only where a tap opens a screen",
-      "opens: Boolean = false" in settings_src and "} else if (opens) {" in settings_src,
-      "what is the map doing wore one and opened nothing")
+# 27.9.2026: a view is one part of a choice bar; the chosen part is raised, never amber (amber is "do").
+check("a view is chosen from one choice bar",
+      "Choice(" in settings_src and "Layers.OFFLINE_VIEWS.map { Part(it.label) }" in settings_src,
+      "the four views side by side, the chosen one raised")
+check("the chevron appears only where a tap opens something",
+      "fun Opens(" in (MAIN / "Look.kt").read_text() and "ic_chevron" not in settings_src.replace("Opens(", ""),
+      "only Opens rows draw it")
 check("the map key turns between the two maps and nothing else",
       "if (current.family == MapLayer.Family.OFFLINE)" in screens
       and "return Layers.OFFLINE" in screens,
@@ -802,8 +806,10 @@ check("the heights are sampled by ground, not by index",
 check("the turns are fetched and not shown",
       "fun turnsOf(" in (MAIN / "GoogleRoutes.kt").read_text() and "option.turns.take" not in screens,
       "the way is on the map, which is where he is looking")
+# 27.9.2026: close is the cross at the top of the route menu, save a quiet action among the others.
 check("save is not beside close",
-      screens.index("save these points as a track") < screens.index('Label("close"'),
+      "IconAction(R.drawable.ic_close, null, onClick = onClose" in screens
+      and screens.index("IconAction(R.drawable.ic_close, null, onClick = onClose") < screens.index('Action("Save as track"'),
       "they were the same size in the same corner and one of them threw work away")
 # 17.9.2026: Google's map arrives some frames after its view, and every method began by returning
 # when it was not there yet — so a centring, a point or a route asked for in those frames was
@@ -830,8 +836,7 @@ check("where he was looking goes with him",
       and "Canvases.rememberCamera(store)" in screens,
       "the arriving engine starts where the leaving one stopped")
 check("the kept satellite can be chosen",
-      'title = "Satellite, kept on the phone"' in settings_src
-      and "onPick(Layers.IMAGERY)" in settings_src,
+      'title = "Satellite"' in settings_src and "onPick(Layers.IMAGERY)" in settings_src,
       "in the offline maps dropdown, where it belongs")
 check("a Google view is drawn by Google's canvas",
       "if (layer.family == MapLayer.Family.GOOGLE) {\n        val google = GoogleHolder.canvas" in screens,
@@ -899,8 +904,8 @@ check("what is left to do is written down",
       (ROOT / "TODO.md").exists(), "he asked to be told after every build")
 check("both routers are offered and the choice is his",
       "useGoogleRouting" in (MAIN / "Store.kt").read_text()
-      and 'false to "BRouter"' in screens and 'true to "Google"' in screens,
-      "two words on one row; he knows which is online")
+      and 'false to "BRouter"' in screens and 'true to "Google"' in screens and "flip = true" in screens,
+      "one control, the one or the other; he knows which is online")
 check("Google is never asked for a route on its own",
       "GoogleRoutes.between(points, store, wanted)" in (MAIN / "MainActivity.kt").read_text()
       and "store.useGoogleRouting" in (MAIN / "MainActivity.kt").read_text(),
@@ -914,16 +919,16 @@ check("the keys are a ring, not one key",
 # 17.9.2026: the keys left the Google row for a group of their own at the bottom — one ring serves
 # whatever asks — and a dropdown he opens stays open until he closes it.
 check("the keys are a group of their own at the bottom",
-      settings_src.index('Group("Maps")') < settings_src.index('Group("API keys")'),
+      settings_src.index('Group("Google maps")') < settings_src.index('Group("API keys")'),
       "under the Google row they were two lines he passed on the way to a view")
 check("a dropdown he opened stays open",
       "store.opened(" in settings_src and "fun setOpened(" in (MAIN / "Store.kt").read_text(),
       "between sessions, as he asked")
 check("the version rides on the credits and the app's name is not a row",
-      '"credits"' in settings_src and '"Mantra Trail"' not in settings_src,
+      '"v$version"' in settings_src and '"Mantra Trail"' not in settings_src,
       "the launcher already says what the app is called")
 check("each key can be tested from its own row",
-      'Words("test", Paint.Amber' in settings_src and "onTestKey" in settings_src,
+      'IconAction(R.drawable.ic_play, "test"' in settings_src and "onTestKey" in settings_src,
       "and what Google said sits under that key, not somewhere else")
 check("a key is shown masked and kept whole",
       "val masked: String" in ring_src and "value.take(8)" in ring_src,
@@ -979,23 +984,23 @@ check("the cadastre is on by default", 'prefs.getBoolean(KEY_CADASTRE, true)' in
 
 check("K sits in the key row where T was, and the compass is chosen in the settings",
       'glyph = "K"' in screens_src and 'glyph = "T"' not in screens_src
-      and "Compass on the map" in (MAIN / "Settings.kt").read_text(),
+      and 'Toggle("Compass"' in (MAIN / "Settings.kt").read_text(),
       "Screens.kt and Settings.kt examined")
 check("a first tap highlights, a tap on a highlighted parcel opens its sheet",
       "ParcelNet.outline(lat, lon)" in screens_src and "tap it again for its sheet" in screens_src,
       "Screens.kt examined")
-check("the sheet has TXT", 'SheetKey("TXT"' in screens_src and "Folder.saveText(" in screens_src,
+check("the sheet has TXT", 'IconAction(R.drawable.ic_text, "TXT"' in screens_src and "Folder.saveText(" in screens_src,
       "Screens.kt examined")
 
 check("a tap selects one parcel and forgets the last; only the sheet keeps a highlight",
       "fun select(parcel: Parcels.Parcel?)" in screens_src and "ParcelsShown.selection" in screens_src
       and "Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)" not in screens_src,
       "Screens.kt examined")
-check("the sheet has CPY beside TXT", 'SheetKey("CPY"' in screens_src and "clipboard.setText(" in screens_src,
+check("the sheet has CPY beside TXT", 'IconAction(R.drawable.ic_copy, "CPY"' in screens_src and "clipboard.setText(" in screens_src,
       "Screens.kt examined")
 check("Google's map has the round search field, and the settings hide it",
       "private fun GoogleSearchBar" in screens_src and "searchBar && layer.family == MapLayer.Family.GOOGLE" in screens_src
-      and "Search bar on Google's map" in (MAIN / "Settings.kt").read_text(),
+      and 'Toggle("Google search bar"' in (MAIN / "Settings.kt").read_text(),
       "Screens.kt and Settings.kt examined")
 
 check("the sheet and the K panel hold their touches, nothing reaches the map beneath",
@@ -1003,7 +1008,7 @@ check("the sheet and the K panel hold their touches, nothing reaches the map ben
       "Screens.kt examined")
 
 check("the sheet is the whole screen, with a filter",
-      "Parcels.filterRows(rows, filter)" in screens_src and "filter: an owner, an address, anything" in screens_src,
+      "Parcels.filterRows(rows, filter)" in screens_src and "R.drawable.ic_filter" in screens_src,
       "Screens.kt examined")
 check("the K search has its dropdown: number, owner's sheet, street",
       "enum class SearchBy" in screens_src and "DropdownMenu(" in screens_src and "ParcelNet.ossSearch(" in screens_src,
@@ -1012,6 +1017,35 @@ check("Google's field lists as Google Maps does: autocomplete, merged, nearest f
       "places:autocomplete" in (MAIN / "PlaceSearch.kt").read_text() and "Finding.merge(" in (MAIN / "PlaceSearch.kt").read_text()
       and "ParcelsShown.pin" in screens_src,
       "PlaceSearch.kt and Screens.kt examined")
+
+# THE VISUAL LANGUAGE (27.9.2026): the icons are drawn from design/icons/*.svg by
+# design/make_icons.py, and every control is one of Look.kt's kinds.
+used_icons = set()
+for f in MAIN.glob("*.kt"):
+    # android.R.drawable.* is the system's own, not ours
+    used_icons |= set(re.findall(r"(?<!android\.)R\.drawable\.ic_([a-z_]+)", f.read_text()))
+drawables = ROOT / "app/src/main/res/drawable"
+missing = sorted(i for i in used_icons if not (drawables / f"ic_{i}.xml").exists())
+check("every icon the code draws exists as a drawable", not missing,
+      f"{len(used_icons)} icons used, missing: {missing or 'none'}")
+unsourced = sorted(i for i in used_icons if not (ROOT / "design/icons" / f"{i}.svg").exists())
+check("every icon has its SVG source beside it", not unsourced,
+      f"{len(used_icons)} examined, without an SVG: {unsourced or 'none'}")
+drift = []
+for svg in (ROOT / "design/icons").glob("*.svg"):
+    d = re.search(r'd="([^"]*)"', svg.read_text()).group(1)
+    xml = drawables / f"ic_{svg.stem}.xml"
+    if not xml.exists() or f'android:pathData="{d}"' not in xml.read_text():
+        drift.append(svg.stem)
+check("each drawable is its SVG, not an edited copy", not drift,
+      f"{len(list((ROOT / 'design/icons').glob('*.svg')))} SVGs compared, drifted: {drift or 'none'}")
+look = (MAIN / "Look.kt").read_text()
+check("the four kinds of control are defined once",
+      all(f"fun {k}(" in look for k in ["Action", "Toggle", "Choice", "Opens", "Pick", "IconAction"]),
+      "Look.kt examined")
+check("no control explains itself in a sentence",
+      not re.search(r"press (to|again to) (change|show|hide)", screens_src + settings_src),
+      "Screens.kt and Settings.kt searched for 'press to change/show/hide'")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

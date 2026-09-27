@@ -207,3 +207,35 @@ when the open WFS hands over its outline (~30 s; a bounded CQL filter was tried 
 
 **The filter** folds case and diacritics ("cabri" finds Čabrijan) and keeps a heading's group when
 the heading matches. The cyan search pin is Google's shape, anchored at its tip, on both engines.
+
+## 27.9.2026 — v91, a visual language: what is an action, what is a choice, what is a state
+
+His words, with the route menu and the settings: *"everything is the same and user is confused
+where to click. What is option? ... Compass on the map, off, press to change ... only one word
+needs to be there ... make visual distinction and design cues ... BRouter and Google can be one
+button which is one or the other ... more with symbols. There are no symbols in this map. Please
+create SVG icons."*
+
+**Look.kt** defines six kinds, and every control on the reworked screens is one of them:
+ACTION solid amber with icon and verb (the only solid amber: amber means "do"); ACTION quiet,
+amber icon and word; TOGGLE, a switch and one noun (the switch is the state); CHOICE, one bar with
+the chosen part raised and bright, never amber; FLIP, a choice of two where a tap anywhere swaps
+it; OPENS, an icon, a title and a chevron; PICK, a list's row with a check on the chosen one.
+
+**Icons**: 30, one line style (24, stroke 1.8, round ends), written once in design/make_icons.py
+as SVG path data and made twice, design/icons/*.svg and res/drawable/ic_*.xml. Three redrawn after
+a contact sheet was looked at (the gear read as a sun, the satellite as a tangle, the track as a
+bell curve). verify.py fails the build if the code draws an icon with no drawable or no SVG, or if
+a drawable drifts from its SVG.
+
+Reworked: the key row (icons: minus, parcels, locate, record, the map as mountain / satellite /
+globe, gear, pin with the next letter, plus); settings (Tracks opens; Compass and Google search bar
+are switches; offline maps are picks with a check and their style one bar; Google's four views one
+bar; keys with test and delete icons); the route menu (points with trash, three quiet actions, the
+router one flip, profile / ways / speed bars, ROUTE the one solid button, close the cross at the
+top); the K panel; the parcel sheet (copy, text, close as icons; a filter with its funnel; a
+switch for highlight); Google's field. The compass is on or off now and its ink follows the map.
+Twelve old checks that pinned the old wording were rewritten to hold the same rule in the new
+form, each dated; none was deleted.
+
+Not yet in the language: the tracks face, the maps (download) face, the places face, the name box.
