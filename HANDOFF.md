@@ -1,6 +1,6 @@
 # Mantra Trail — the finished state
 
-    version      89 (cadastre: v82–v89)
+    version      93 (cadastre v82–v90, visual language v91–v93)
     repository   markoboskoauroville/MANTRA_TRAIL (public)
     artefact     1-mantra-trail-v1.apk, release tag v1
     built by     GitHub Actions only (android-app.md §1a). Never on a desk.
@@ -94,3 +94,11 @@ opens, with no signal; the owners and the lines themselves need the network.
 
 **Google's map** has a round search field at the top (Places, his key), shown unless "Search bar on
 Google's map" in settings hides it. The sheet and the K panel swallow every touch on them.
+
+## THE LANGUAGE IT SPEAKS (v91–v93, 27.9.2026)
+
+Mantra Trail is where the **TRAIL** language of the Mantra Design Language was born. The rules live in
+MANTRA_MANIFEST `modules/language-trail.md`; the ground in `modules/mantra-design-language.md`; a
+starter kit for new apps in `kits/trail-compose/`. `Look.kt` here is the language's code; the icons
+are `design/make_icons.py` → `design/icons/*.svg` + `res/drawable/ic_*.xml`. **Anything learned here
+about how the app should look goes into the manifest module's *Discoveries* the same day.**
