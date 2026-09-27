@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
  *   FLIP          a choice of two, one bar; a tap anywhere turns it to the other.
  *   OPENS         a row with its icon and a chevron: it goes somewhere.
  *
- * Icons are drawn from design/icons/*.svg (design/make_icons.py), one line style.
+ * Icons are drawn from design/icons/<name>.svg (design/make_icons.py), one line style.
  */
 object Look {
     /** The raised face of a chosen part: one step up from the card, neutral, never amber. */

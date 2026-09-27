@@ -1047,6 +1047,17 @@ check("no control explains itself in a sentence",
       not re.search(r"press (to|again to) (change|show|hide)", screens_src + settings_src),
       "Screens.kt and Settings.kt searched for 'press to change/show/hide'")
 
+# 27.9.2026: "design/icons/*.svg" in a KDoc opened a NESTED comment (Kotlin nests them), the file
+# never closed, and v91's first build failed on forty unresolved names that were all this one.
+nested = []
+for f in MAIN.glob("*.kt"):
+    for n, line in enumerate(f.read_text().split("\n"), 1):
+        st = line.strip()
+        if (st.startswith("*") or st.startswith("//")) and "/*" in st.lstrip("/*"):
+            nested.append(f"{f.name}:{n}")
+check("no comment opens another comment by accident", not nested,
+      f"{len(list(MAIN.glob('*.kt')))} files scanned, found: {nested or 'none'}")
+
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:
     print("failed: " + ", ".join(failures))
