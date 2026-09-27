@@ -245,25 +245,41 @@ fun TrailApp(
         )
     }
 
+    /**
+     * ONE TAP HIGHLIGHTS, THE NEXT OPENS THE SHEET (27.9.2026). His rule: *"if parcel is
+     * highlighted, second tap is opening the sheet for that parcel."* A highlighted parcel is
+     * recognised on the phone by its outline, so its sheet opens even with no signal; any other
+     * parcel is asked of the state, outlined from the state's own picture, and marked in the
+     * colour last chosen.
+     */
     suspend fun tapped(lat: Double, lon: Double) {
         if (!ParcelsShown.on) return
+        marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }?.let { m ->
+            Trail.say(null)
+            openCard(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
+            return
+        }
         if (Canvases.currentZoom() < Parcels.TAP_ZOOM) {
             Trail.say("Zoom in to pick a parcel")
             return
         }
         val answer = runCatching { ParcelNet.at(lat, lon) }
         val parcel = answer.getOrNull()
-            // With no signal, a parcel he highlighted is still his: its shape is on the phone.
-            ?: marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }
-                ?.let { Parcels.Parcel(it.id, it.number, it.reference, null, it.rings) }
-        when {
-            parcel != null -> {
-                Trail.say(null)
-                openCard(parcel)
-            }
-            answer.isFailure -> Trail.say("The cadastre did not answer: ${answer.exceptionOrNull()?.message}")
-            else -> Trail.say("No parcel there")
+        if (parcel == null) {
+            Trail.say(if (answer.isFailure) "The cadastre did not answer: ${answer.exceptionOrNull()?.message}" else "No parcel there")
+            return
         }
+        // Marked already but its outline still coming: that is highlighted too.
+        marks.firstOrNull { it.reference == parcel.reference }?.let { m ->
+            openCard(parcel.copy(rings = m.rings))
+            return
+        }
+        card = null
+        val rings = runCatching { ParcelNet.outline(lat, lon) }.getOrNull()
+        val marked = Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)
+        setMarks(Parcels.withMark(marks, marked))
+        Trail.say("${parcel.number} highlighted · tap it again for its sheet")
+        if (rings == null) fillShapes()
     }
 
     LaunchedEffect(Unit) {
@@ -350,20 +366,6 @@ fun TrailApp(
                     onTap = { Canvases.setMapRotation(0f) },
                 )
             }
-            // THE CADASTRE'S KEY, opposite the compass: K for katastar. Lit while the parcels are
-            // drawn; it opens the panel with the switch, the search and his highlighted parcels.
-            Box(Modifier.fillMaxSize().safeDrawingPadding().padding(top = 52.dp, start = 10.dp)) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(Paint.Veil)
-                        .border(1.5.dp, if (cadastreOn) Paint.Amber else Paint.Dim, CircleShape)
-                        .clickable { parcelPanel = true },
-                    contentAlignment = Alignment.Center,
-                ) { Label("K", if (cadastreOn) Paint.Amber else Paint.Dim, size = 16) }
-            }
         }
 
         // THE TAP IN THE MIDDLE. A small target, so panning the map anywhere else is untouched,
@@ -414,6 +416,18 @@ fun TrailApp(
                         card = shown,
                         markedColour = mark?.colour,
                         onClose = { card = null },
+                        onText = {
+                            val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
+                                .format(java.util.Date())
+                            val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
+                            val text = Parcels.toText(parcel, shown.record, stamp)
+                            scope.launch {
+                                val (_, said) = withContext(Dispatchers.IO) {
+                                    Folder.saveText(appContext, store, Parcels.textFileName(parcel), text)
+                                }
+                                Trail.say(said)
+                            }
+                        },
                         onHighlight = { colour ->
                             if (colour == null) {
                                 setMarks(Parcels.without(marks, shown.parcel.reference))
@@ -441,15 +455,13 @@ fun TrailApp(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Key(glyph = "−", lit = false, onClick = { Canvases.zoomOut() })
-                    // T CYCLES THE COMPASS: dark, night, off. Dark ink for a light map, light ink
-                    // for a dark one, and off for neither — three presses to come round.
+                    // K, THE CADASTRE, WHERE T WAS (27.9.2026, his order): the compass's
+                    // three states went into the settings, and this key opens the parcels panel,
+                    // lit while the parcels are drawn.
                     Key(
-                        glyph = "T",
-                        lit = compass != COMPASS_OFF,
-                        onClick = {
-                            compass = (compass + 1) % 3
-                            store.compassMode = compass
-                        },
+                        glyph = "K",
+                        lit = cadastreOn,
+                        onClick = { parcelPanel = true },
                     )
                     // ONE TAP CENTRES, TWO IN A ROW LOCK (15.9.2026). A second tap inside a
                     // second is somebody saying "and keep it there"; a second tap later is just
@@ -738,6 +750,11 @@ fun TrailApp(
             SettingsFace(
                 store = store,
                 current = layer,
+                compassMode = compass,
+                onCompass = {
+                    compass = (compass + 1) % 3
+                    store.compassMode = compass
+                },
                 version = version,
                 installedMaps = installedMaps,
                 unfinishedMaps = unfinishedMaps,
@@ -2606,6 +2623,7 @@ private fun ParcelCardView(
     markedColour: Long?,
     defaultColour: Long,
     onClose: () -> Unit,
+    onText: () -> Unit,
     onHighlight: (Long?) -> Unit,
 ) {
     val record = card.record
@@ -2629,6 +2647,15 @@ private fun ParcelCardView(
                 align = TextAlign.Start,
                 modifier = Modifier.weight(1f),
             )
+            // TXT, at the top right beside the way out (27.9.2026): the whole sheet to a text file.
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
+                    .clickable(onClick = onText)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) { Label("TXT", Paint.Amber, size = 13) }
+            Spacer(Modifier.width(GAP))
             Label("✕", Paint.Sand, size = 18, modifier = Modifier.clickable(onClick = onClose).padding(6.dp))
         }
         Column(

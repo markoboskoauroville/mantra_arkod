@@ -319,6 +319,52 @@ object Parcels {
         )
     }
 
+    /**
+     * THE SHEET AS A TEXT FILE (27.9.2026): *"TXT ... export to the local file system TXT file
+     * with parcel number and all the data inside."* Plain lines a person can read and a program can
+     * split, everything the card shows and the outline's corners.
+     */
+    fun toText(parcel: Parcel, record: Record?, madeAt: String): String = buildString {
+        appendLine("PARCEL ${parcel.number}")
+        appendLine("cadastral reference: ${parcel.reference}")
+        if (record != null) {
+            appendLine("cadastral municipality: ${record.municipality} (${record.municipalityNumber})")
+            appendLine("area: ${areaLabel(record.areaM2.toIntOrNull() ?: parcel.areaM2)}")
+            if (record.address.isNotBlank()) appendLine("address: ${record.address}")
+            appendLine()
+            appendLine("LAND USE")
+            record.uses.forEach { appendLine("  ${it.name}, ${it.areaM2} m², possession sheet ${it.sheet}") }
+            record.sheets.forEach { sheet ->
+                appendLine()
+                appendLine("POSSESSION SHEET ${sheet.number}")
+                sheet.owners.forEach { o ->
+                    appendLine("  ${o.name}  ${o.share}")
+                    if (o.address.isNotBlank()) appendLine("    ${o.address}")
+                }
+            }
+            record.landBooks.forEach { b ->
+                appendLine()
+                appendLine("LAND REGISTRY")
+                appendLine("  z.k. uložak ${b.unit}, k.o. ${b.book}, ${b.kind}")
+                appendLine("  ${b.office}")
+            }
+        } else {
+            appendLine("area: ${areaLabel(parcel.areaM2)}")
+            appendLine("(the record could not be read when this was saved)")
+        }
+        val ring = parcel.rings.firstOrNull().orEmpty()
+        if (ring.isNotEmpty()) {
+            appendLine()
+            appendLine("OUTLINE (latitude, longitude)")
+            ring.forEach { appendLine("  %.6f, %.6f".format(java.util.Locale.ROOT, it.first, it.second)) }
+        }
+        appendLine()
+        appendLine("source: State Geodetic Administration, oss.uredjenazemlja.hr; saved $madeAt by Mantra Trail")
+    }
+
+    /** "parcel 334723-2449_3.txt": the reference, with the stroke a file name cannot hold. */
+    fun textFileName(parcel: Parcel): String = "parcel ${parcel.reference.replace('/', '_')}.txt"
+
     /** "12401" as "12 401 m²", the way a surveyor writes it. */
     fun areaLabel(m2: Int?): String {
         m2 ?: return "area unknown"

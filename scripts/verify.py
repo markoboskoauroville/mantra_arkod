@@ -13,11 +13,11 @@ TESTS = ROOT / "app/src/test/java/com/mantra/trail/CoreTest.kt"
 # Lowered once, on 15.9.2026, and only because a FEATURE left: the bubble level and its twelve
 # cases went with it when he asked for the compass alone. A floor drops when the thing it counted
 # is gone, never because tests were dropped (never-back-to-zero.md).
-TEST_FLOOR = 192
+TEST_FLOOR = 201
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt"]
 
 failures, checks = [], []
 
@@ -452,9 +452,12 @@ check("the bubble level is gone from the app, not merely from the screen",
       not (MAIN / "Level.kt").exists() and "Level." not in (MAIN / "Sensors.kt").read_text()
       and "calibration" not in (MAIN / "Store.kt").read_text(),
       "the file, the sensor, the calibration and the tests all left together")
-check("the compass is one key away",
-      "private fun CompassOverlay" in screens and 'glyph = "T"' in screens,
-      "over the map, not in the settings")
+# Reversed at his word, 27.9.2026: "T compass we need to remove. And instead of T, K is coming.
+# T is going into the settings." The compass is still drawn over the map; it is chosen in settings.
+check("the compass is drawn over the map and chosen in the settings",
+      "private fun CompassOverlay" in screens and 'glyph = "T"' not in screens
+      and "onCompass" in (MAIN / "Settings.kt").read_text(),
+      "over the map, its switch in the settings")
 
 
 # WHAT HE ASKED FOR ON 15.9.2026, AFTER THE MAP SERVER LANDED.
@@ -973,6 +976,16 @@ check("a highlight keeps its shape, so it draws with no signal",
       "Parcels.Mark examined")
 check("the cadastre is on by default", 'prefs.getBoolean(KEY_CADASTRE, true)' in (MAIN / "Store.kt").read_text(),
       "Store.kt examined")
+
+check("K sits in the key row where T was, and the compass is chosen in the settings",
+      'glyph = "K"' in screens_src and 'glyph = "T"' not in screens_src
+      and "Compass on the map" in (MAIN / "Settings.kt").read_text(),
+      "Screens.kt and Settings.kt examined")
+check("a first tap highlights, a tap on a highlighted parcel opens its sheet",
+      "ParcelNet.outline(lat, lon)" in screens_src and "tap it again for its sheet" in screens_src,
+      "Screens.kt examined")
+check("the sheet has TXT", 'Label("TXT"' in screens_src and "Folder.saveText(" in screens_src,
+      "Screens.kt examined")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

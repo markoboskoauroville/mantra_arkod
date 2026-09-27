@@ -66,6 +66,43 @@ object ParcelNet {
     }
 
     /**
+     * THE OUTLINE AT ONCE (27.9.2026): the picture round the finger, a thousand pixels across,
+     * read by [Outline]. Three hundred metres of ground first, which holds a house plot or a field
+     * at a third of a metre a pixel; if the parcel runs off the picture, three times as far, and
+     * once more. Null when even that does not hold it, and the slow WFS is left to it.
+     */
+    suspend fun outline(lat: Double, lon: Double): List<List<Pair<Double, Double>>>? = withContext(Dispatchers.IO) {
+        for (side in listOf(300.0, 900.0, 2700.0)) {
+            val box = Outline.box(lat, lon, side)
+            val px = 1024
+            val url = "${Parcels.WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=cp:CP.CadastralParcel&STYLES=" +
+                "&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH=$px&HEIGHT=$px" +
+                "&BBOX=${box[0]},${box[1]},${box[2]},${box[3]}"
+            val bytes = (URL(url).openConnection() as HttpURLConnection).run {
+                connectTimeout = 15_000
+                readTimeout = 20_000
+                setRequestProperty("User-Agent", "MantraTrail/1")
+                try {
+                    if (responseCode != HttpURLConnection.HTTP_OK) return@withContext null
+                    inputStream.use { it.readBytes() }
+                } finally {
+                    disconnect()
+                }
+            }
+            val picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return@withContext null
+            val w = picture.width
+            val h = picture.height
+            val pixels = IntArray(w * h)
+            picture.getPixels(pixels, 0, w, 0, 0, w, h)
+            picture.recycle()
+            // A wall is anything the state drew: its lines and its numbers, anti-aliased edges included.
+            val wall = BooleanArray(w * h) { ((pixels[it] ushr 24) and 0xFF) >= 60 }
+            Outline.parcelAt(wall, w, h, box, lat, lon)?.let { return@withContext listOf(it) }
+        }
+        null
+    }
+
+    /**
      * ONE TILE OF THE STATE'S PICTURE, IN OUR INK: fetched, every pixel recoloured, written back as
      * a PNG. Both engines use it, so the lines look the same on the file and on Google's map.
      */

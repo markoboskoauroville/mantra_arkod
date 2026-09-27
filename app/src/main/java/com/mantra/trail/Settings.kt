@@ -120,6 +120,8 @@ fun SettingsFace(
     folderName: String,
     hasGoogleKey: Boolean,
     onClose: () -> Unit,
+    compassMode: Int = 0,
+    onCompass: () -> Unit = {},
 ) {
     val state = remember(store) { SettingsState(store) }
 
@@ -156,6 +158,21 @@ fun SettingsFace(
                     opens = true,
                     under = "$trackCount in the folder · rename, show, delete, the folder itself",
                     onPress = onTracks,
+                )
+            }
+
+            // THE COMPASS OVER THE MAP (27.9.2026). It was T on the map's own key row; that key is
+            // the cadastre's now, and the compass's three states are chosen here: dark ink for a
+            // light map, light ink for a dark one, or none.
+            Group("Compass") {
+                Line(
+                    title = "Compass on the map",
+                    under = when (compassMode) {
+                        0 -> "dark · for light maps · press to change"
+                        1 -> "night · for dark maps · press to change"
+                        else -> "off · press to change"
+                    },
+                    onPress = onCompass,
                 )
             }
 

@@ -137,3 +137,23 @@ The WFS answered a query by reference in 29 s, twice running, and a filtered WMS
 faster (a minute and still going). Neither the WFS's FEATUREID nor RESOURCEID forms are accepted.
 So an outline is asked with ninety seconds of patience and three quiet tries, and only a third
 failure is said aloud. Proved on the emulator: all three outlines arrived and were drawn.
+
+## 27.9.2026 — v87, one tap highlights, the next opens the sheet; K in the key row; TXT
+
+His words, after v86 on his phone in Zagreb: *"When I click on any parcel, I want it to be
+highlighted automatically ... if parcel is highlighted, second tap is opening the sheet ... K layer
+should go in the action bars down there ... instead of T, K is coming. T is going into the
+settings ... add to the sheet at the top right corner something called TXT ... export to the local
+file system TXT file with parcel number and all the data inside."*
+
+**The outline had to be instant**, and the WFS was measured again at 14 and 30 s. So `Outline.kt`
+reads it off the WMS picture: 1024 px round the finger over 300 m of ground (900 and 2700 m if the
+parcel runs off it), a four-connected paint fill from the tap stopped by every pixel the state drew,
+grown one pixel onto the middle of the line, walked round by Moore tracing, thinned by
+Douglas–Peucker. Tried in Python on the live picture first: 2451 filled to 1256 m² against the
+official 1412 before the grow, the rest being the line's own width; a tap in the sea escaped and
+was refused. The WFS is kept only for parcels found by search, which have no point to fill from.
+
+TXT writes the whole sheet and the outline's corners, into the tracks folder if one is chosen,
+otherwise the phone's Downloads. The compass's three states moved to settings; the old check that
+held it on the key row was rewritten, not deleted.

@@ -103,6 +103,45 @@ object Folder {
         }
     }
 
+    /**
+     * A TEXT FILE, WHEREVER HE CAN FIND IT (27.9.2026): into the folder he chose for his tracks,
+     * or, with none chosen, into the phone's Downloads. Returns where it went, or why not.
+     */
+    fun saveText(context: Context, store: Store, name: String, text: String): Pair<Boolean, String> {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        tree(context, store)?.let { tree ->
+            return try {
+                tree.findFile(name)?.delete()
+                val target = tree.createFile("text/plain", name)
+                    ?: return false to "the folder would not accept the file"
+                context.contentResolver.openOutputStream(target.uri)?.use { it.write(bytes) }
+                    ?: return false to "the file could not be written"
+                true to "saved $name in ${label(context, store)}"
+            } catch (e: Exception) {
+                false to "saving failed: ${e.javaClass.simpleName}"
+            }
+        }
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = context.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return false to "Downloads would not take the file"
+                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                true to "saved $name in Downloads"
+            } else {
+                val dir = context.getExternalFilesDir(null) ?: context.filesDir
+                java.io.File(dir, name).writeBytes(bytes)
+                true to "saved $name in ${dir.absolutePath}"
+            }
+        } catch (e: Exception) {
+            false to "saving failed: ${e.javaClass.simpleName}"
+        }
+    }
+
     /** The folder as somebody would say it: the last part of its path, or its own name. */
     fun label(context: Context, store: Store): String {
         val uri = store.exportTreeUri ?: return "no folder chosen yet"

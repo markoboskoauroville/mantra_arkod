@@ -1541,4 +1541,103 @@ class CoreTest {
         assertEquals("501 m²", Parcels.areaLabel(501))
         assertEquals("area unknown", Parcels.areaLabel(null))
     }
+
+    // --- Outline: the parcel read off the state's picture (27.9.2026) ---------------------------
+
+    /** A 60×40 picture with a one-pixel frame at x 10..50, y 5..35, and a "number" inside. */
+    private fun framedPicture(): Triple<BooleanArray, Int, Int> {
+        val w = 60
+        val h = 40
+        val wall = BooleanArray(w * h)
+        for (x in 10..50) { wall[5 * w + x] = true; wall[35 * w + x] = true }
+        for (y in 5..35) { wall[y * w + 10] = true; wall[y * w + 50] = true }
+        for (x in 28..32) for (y in 18..22) wall[y * w + x] = true   // the printed number
+        return Triple(wall, w, h)
+    }
+
+    @Test fun theFillStaysInsideTheLinesAndGoesRoundTheNumber() {
+        val (wall, w, h) = framedPicture()
+        val inside = Outline.fill(wall, w, h, 15, 10)!!
+        assertEquals(39 * 29 - 25, inside.count { it })     // the frame's inside, less the number
+        assertFalse(inside[20 * w + 30])                       // the number is a hole
+        assertFalse(inside[2 * w + 2])                         // outside the frame
+    }
+
+    @Test fun aFillThatReachesTheEdgeIsNotAParcel() {
+        val (wall, w, h) = framedPicture()
+        assertNull(Outline.fill(wall, w, h, 2, 2))
+        wall[5 * w + 30] = false                               // a gap in the line
+        assertNull(Outline.fill(wall, w, h, 15, 10))
+    }
+
+    @Test fun aTapOnTheLineStartsFromTheNearestOpenPixel() {
+        val (wall, w, h) = framedPicture()
+        val start = Outline.nearestOpen(wall, w, h, 30, 20)!!
+        assertFalse(wall[start.second * w + start.first])
+    }
+
+    @Test fun theOutlineIsTheFourCornersOfTheFrame() {
+        val (wall, w, h) = framedPicture()
+        val inside = Outline.fill(wall, w, h, 15, 10)!!
+        val edge = Outline.trace(Outline.grow(inside, w, h, 1), w, h)
+        val corners = Outline.simplify(edge.map { it.first.toDouble() to it.second.toDouble() }, 1.2)
+        assertEquals(4, corners.size)
+        // grown by one onto the middle of the line: the corners sit on the frame itself
+        assertTrue(corners.all { (x, y) -> (x == 10.0 || x == 50.0) && (y == 5.0 || y == 35.0) })
+    }
+
+    @Test fun aSlantedSideIsKeptAsOneStraightEdge() {
+        val w = 50
+        val h = 50
+        val wall = BooleanArray(w * h)
+        // a right triangle: the two legs and a diagonal of single pixels, touching only corner to corner
+        for (i in 5..45) { wall[45 * w + i] = true; wall[i * w + 5] = true; wall[i * w + i] = true }
+        val inside = Outline.fill(wall, w, h, 10, 40)!!
+        val edge = Outline.trace(Outline.grow(inside, w, h, 1), w, h)
+        val corners = Outline.simplify(edge.map { it.first.toDouble() to it.second.toDouble() }, 1.5)
+        assertEquals(3, corners.size)
+    }
+
+    @Test fun theTracedCornersBecomeLatitudeAndLongitudeInsideTheBox() {
+        val (wall, w, h) = framedPicture()
+        val box = Outline.box(44.0368, 15.2279, 60.0)
+        // the frame's inside holds the middle of the picture? no: the tap goes where the frame is
+        val lat = Outline.latOf(box[3] - 10.5 * (box[3] - box[1]) / h)
+        val lon = Outline.lonOf(box[0] + 15.5 * (box[2] - box[0]) / w)
+        val ring = Outline.parcelAt(wall, w, h, box, lat, lon)!!
+        assertEquals(4, ring.size)
+        assertTrue(ring.all { it.first in 44.0364..44.0372 && it.second in 15.2274..15.2284 })
+        // and a tap in the parcel is inside the ring that came back
+        assertTrue(Parcels.contains(ring, lat, lon))
+    }
+
+    @Test fun mercatorThereAndBackIsTheSamePlace() {
+        assertEquals(44.0368, Outline.latOf(Outline.mercY(44.0368)), 1e-9)
+        assertEquals(15.2279, Outline.lonOf(Outline.mercX(15.2279)), 1e-9)
+    }
+
+    @Test fun theTextFileCarriesTheWholeSheetAndTheOutline() {
+        val parcel = Parcels.parseParcels(twoParcels)[0]
+        val record = Parcels.parseRecord("""
+            {"parcelNumber":"2450","cadMunicipalityName":"KUKLJICA","cadMunicipalityRegNum":"334723","address":"DRAGE","area":"12401",
+             "parcelParts":[{"name":"ŠUMA","area":"6200","possessionSheetNumber":"657"}],
+             "possessionSheets":[{"possessionSheetNumber":"657","possessors":[{"name":"Ana Primjer","ownership":"1/1","address":"Kukljica 1"}]}],
+             "lrUnitsFromParcelLinks":[{"lrUnitNumber":"1817","mainBookName":"KUKLJICA","institutionName":"Zemljišnoknjižni odjel Zadar","lrUnitTypeName":"VLASNIČKI"}]}
+        """.trimIndent())
+        val text = Parcels.toText(parcel, record, "27.9.2026 10:00")
+        assertTrue(text.startsWith("PARCEL 2450"))
+        assertTrue(text.contains("KUKLJICA (334723)"))
+        assertTrue(text.contains("12 401 m²"))
+        assertTrue(text.contains("ŠUMA, 6200 m², possession sheet 657"))
+        assertTrue(text.contains("Ana Primjer  1/1"))
+        assertTrue(text.contains("z.k. uložak 1817"))
+        assertTrue(text.contains("OUTLINE"))
+        assertTrue(text.contains("44.000000, 15.000000"))
+        assertEquals("parcel 334723-154_1.txt", Parcels.textFileName(Parcels.parseParcels(twoParcels)[1]))
+    }
+
+    @Test fun aTextFileWithoutTheRecordSaysSo() {
+        val text = Parcels.toText(Parcels.parseParcels(twoParcels)[1], null, "now")
+        assertTrue(text.contains("could not be read"))
+    }
 }
