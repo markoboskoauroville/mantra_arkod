@@ -19,6 +19,15 @@ both screenshots. Every one of those keys needs to ask whichever canvas is up.
 - The portal page (TTT_PORTAL, *Your position*) does not have the tap or the highlight yet: the
   owners service refuses a browser, so it needs a relay route on the machine first.
 
+## Found while testing the cadastre on the emulator (27.9.2026), not fixed
+
+- **The maps face says "kept in Android/data/com.mantra.trail/files/maps"**, but the maps are in
+  the app's INTERNAL folder (`filesDir/maps`). A map copied to the folder the label names is never
+  seen. Either the label or the folder is wrong.
+- **The file picker for a .map is unreachable**: `onChooseMapFile` is passed into the settings
+  and no row calls it, so the README's "choose it with the file picker" cannot be done.
+- **The download's speed reads "6.363001"** with no unit and six decimals.
+
 ## Then, in order
 
 1. **His position on the Google map.** Google's blue dot needs the location permission handed to
