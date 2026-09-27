@@ -1710,8 +1710,14 @@ class CoreTest {
     }
 
     @Test fun theSearchBodyIsWhatTheCadastresOwnPagePosts() {
-        assertEquals("""{"cadMunicipalityId":1354,"parcelNumber":"2451"}""", Parcels.searchBody("1354", number = "2451"))
-        assertEquals("""{"cadMunicipalityId":1354,"possessionSheetNumber":"657"}""", Parcels.searchBody("1354", sheet = "657"))
+        // Compared field by field: org.json keeps no key order, and the server does not need one.
+        val one = org.json.JSONObject(Parcels.searchBody("1354", number = "2451"))
+        assertEquals(1354L, one.getLong("cadMunicipalityId"))
+        assertEquals("2451", one.getString("parcelNumber"))
+        assertFalse(one.has("possessionSheetNumber"))
+        val two = org.json.JSONObject(Parcels.searchBody("1354", sheet = "657"))
+        assertEquals("657", two.getString("possessionSheetNumber"))
+        assertFalse(two.has("parcelNumber"))
     }
 
     @Test fun theZoningLayerGivesTheMunicipalitysInternalId() {
