@@ -66,6 +66,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
     private var cadastreLayer: BitmapTileLayer? = null
     private var cadastreInk: Long = 0L
     private val markPaths = ArrayList<PathLayer>()
+    private var pinLayer: ItemizedLayer? = null
 
     /**
      * THE FINGER ON A PARCEL (27.9.2026). Android's own detector, beside the map rather than
@@ -308,6 +309,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             cadastreInk = ParcelsShown.ink
         }
         drawMarks(ParcelsShown.drawn())
+        drawPin(ParcelsShown.pin)
     }
 
     /** The switch in the parcels panel, and a change of ink: the layer is made again or taken off. */
@@ -331,6 +333,23 @@ class VtmCanvas(private val context: Context, private val store: Store) {
                     markPaths.add(path)
                 }
             }
+        }
+        map.updateMap(false)
+    }
+
+    /** The search result's pin, or none. */
+    fun drawPin(at: Pair<Double, Double>?) {
+        pinLayer?.let { map.layers().remove(it) }
+        pinLayer = null
+        if (at != null) {
+            val symbol = MarkerSymbol(
+                AndroidGraphics.drawableToBitmap(BitmapDrawable(context.resources, Marks.searchPin(context))),
+                MarkerSymbol.HotspotPlace.BOTTOM_CENTER,
+            )
+            val item = MarkerItem("found", "", GeoPoint(at.first, at.second)).apply { marker = symbol }
+            val layer = ItemizedLayer(map, mutableListOf<org.oscim.layers.marker.MarkerInterface>(item), symbol, null)
+            map.layers().add(layer)
+            pinLayer = layer
         }
         map.updateMap(false)
     }

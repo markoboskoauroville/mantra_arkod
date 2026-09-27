@@ -61,6 +61,7 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
     private var cadastre: TileOverlay? = null
     private var cadastreInk: Long = 0L
     private val markShapes = ArrayList<Polygon>()
+    private var pinMarker: Marker? = null
 
     /**
      * THE CADASTRE ON GOOGLE'S MAP (27.9.2026): the same WMS tiles in the same ink as on the file,
@@ -114,6 +115,7 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
             ready.setOnMapClickListener { at -> ParcelsShown.tap(at.latitude, at.longitude) }
             refreshCadastre()
             drawMarks(ParcelsShown.drawn())
+            drawPin(ParcelsShown.pin)
             onReady?.invoke()
 
             ready.setOnCameraIdleListener {
@@ -161,6 +163,21 @@ class GoogleCanvas(private val context: Context, private val store: Store) {
                     )
                 )
             }
+        }
+    }
+
+    /** The search result's pin, in the same cyan shape as on the offline map. */
+    fun drawPin(at: Pair<Double, Double>?) {
+        val ready = map ?: return
+        pinMarker?.remove()
+        pinMarker = at?.let {
+            ready.addMarker(
+                MarkerOptions()
+                    .position(LatLng(it.first, it.second))
+                    .icon(BitmapDescriptorFactory.fromBitmap(Marks.searchPin(context)))
+                    .anchor(0.5f, 1f)
+                    .zIndex(3f)
+            )
         }
     }
 

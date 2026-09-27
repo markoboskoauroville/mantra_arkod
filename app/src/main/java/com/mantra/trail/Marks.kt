@@ -114,6 +114,33 @@ object Marks {
         return bitmap
     }
 
+    /**
+     * WHERE A SEARCH LANDED (27.9.2026): Google's own shape, a round head on a point, in cyan, the
+     * colour of the parcel selection, so a result reads as "this, here" and never as a route point.
+     * The tip is the bottom centre of the picture; the canvases anchor it there.
+     */
+    fun searchPin(context: Context): Bitmap {
+        val scale = context.resources.displayMetrics.density
+        val w = (30 * scale).toInt()
+        val h = (42 * scale).toInt()
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val r = w / 2f - 1.5f * scale
+        val cx = w / 2f
+        val cy = r + 1.5f * scale
+        val body = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 34, 211, 238) }
+        val path = android.graphics.Path().apply {
+            addCircle(cx, cy, r, android.graphics.Path.Direction.CW)
+            moveTo(cx - r * 0.62f, cy + r * 0.78f)
+            lineTo(cx, h.toFloat() - 1f)
+            lineTo(cx + r * 0.62f, cy + r * 0.78f)
+            close()
+        }
+        canvas.drawPath(path, body)
+        canvas.drawCircle(cx, cy, r * 0.38f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(255, 11, 13, 16) })
+        return bitmap
+    }
+
     /** The one red, used by every mark that is his rather than the map's. */
     private val RED = Color.argb(255, 229, 57, 53)
 }

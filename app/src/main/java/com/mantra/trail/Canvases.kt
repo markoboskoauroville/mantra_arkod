@@ -136,6 +136,8 @@ object Canvases {
         vtm?.drawMarks(ParcelsShown.drawn())
         google?.refreshCadastre()
         google?.drawMarks(ParcelsShown.drawn())
+        vtm?.drawPin(ParcelsShown.pin)
+        google?.drawPin(ParcelsShown.pin)
     }
 
     /** A found parcel: the map goes there. */

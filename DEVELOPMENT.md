@@ -182,3 +182,28 @@ meant for CPY landed on the sheet's own background, and went THROUGH to the map,
 buttons. Both now swallow every touch on them, and the veil round the K panel closes it.
 From here on every test is in PORTRAIT (his word: his phone is always portrait; only the camera is
 landscape).
+
+## 27.9.2026 — v90, the sheet is the screen; one search list, as Google Maps has it
+
+Asked (with a sheet of fifty co-owners of 3700/11 in Drenova, and Google Maps listing ten "Stjepana
+Radića 13" against the app's one): the sheet over the whole screen with a filter; a cadastral
+search with a dropdown for number, owner and street whose result is a point on the map; and the
+search results "as Google or even better".
+
+**Why one result.** Text Search answers an address with its best match; Google Maps lists
+AUTOCOMPLETE predictions. Measured with his key: autocomplete, five towns with distances; Text
+Search, one. `PlaceSearch.find` asks autocomplete for the words and again without the house letter
+("13c" → "13"), plus Text Search on a pressed search, and `Finding.merge` makes one list, nearest
+first. Place Details gives the tapped prediction its coordinates, in one session token.
+
+**Owner.** Read out of OSS's own public page (its JavaScript, 27.9.2026): its public search takes a
+parcel number or a POSSESSION SHEET number and nothing else; no search by a person's name is
+published. So "owner's sheet": the number on any parcel's sheet lists everything that holder has
+(sheet 657 in Kukljica: 37 parcels). **Street**: the state's street register (/rpj) has names and
+house numbers but no coordinates, so a street is found by Google, biased to the municipality.
+**Not used**: the OSS web page's embedded access token for its own faster WFS; it is that page's,
+not an open service. A parcel found by number or sheet opens its sheet at once and moves the map
+when the open WFS hands over its outline (~30 s; a bounded CQL filter was tried and returns nothing).
+
+**The filter** folds case and diacritics ("cabri" finds Čabrijan) and keeps a heading's group when
+the heading matches. The cyan search pin is Google's shape, anchored at its tip, on both engines.

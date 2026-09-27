@@ -13,11 +13,11 @@ TESTS = ROOT / "app/src/test/java/com/mantra/trail/CoreTest.kt"
 # Lowered once, on 15.9.2026, and only because a FEATURE left: the bubble level and its twelve
 # cases went with it when he asked for the compass alone. A floor drops when the thing it counted
 # is gone, never because tests were dropped (never-back-to-zero.md).
-TEST_FLOOR = 202
+TEST_FLOOR = 210
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt"]
 
 failures, checks = [], []
 
@@ -984,14 +984,14 @@ check("K sits in the key row where T was, and the compass is chosen in the setti
 check("a first tap highlights, a tap on a highlighted parcel opens its sheet",
       "ParcelNet.outline(lat, lon)" in screens_src and "tap it again for its sheet" in screens_src,
       "Screens.kt examined")
-check("the sheet has TXT", 'Label("TXT"' in screens_src and "Folder.saveText(" in screens_src,
+check("the sheet has TXT", 'SheetKey("TXT"' in screens_src and "Folder.saveText(" in screens_src,
       "Screens.kt examined")
 
 check("a tap selects one parcel and forgets the last; only the sheet keeps a highlight",
       "fun select(parcel: Parcels.Parcel?)" in screens_src and "ParcelsShown.selection" in screens_src
       and "Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)" not in screens_src,
       "Screens.kt examined")
-check("the sheet has CPY beside TXT", 'Label("CPY"' in screens_src and "clipboard.setText(" in screens_src,
+check("the sheet has CPY beside TXT", 'SheetKey("CPY"' in screens_src and "clipboard.setText(" in screens_src,
       "Screens.kt examined")
 check("Google's map has the round search field, and the settings hide it",
       "private fun GoogleSearchBar" in screens_src and "searchBar && layer.family == MapLayer.Family.GOOGLE" in screens_src
@@ -1001,6 +1001,17 @@ check("Google's map has the round search field, and the settings hide it",
 check("the sheet and the K panel hold their touches, nothing reaches the map beneath",
       screens_src.count(".swallowTouches()") >= 2 and "private fun Modifier.swallowTouches()" in screens_src,
       "Screens.kt examined")
+
+check("the sheet is the whole screen, with a filter",
+      "Parcels.filterRows(rows, filter)" in screens_src and "filter: an owner, an address, anything" in screens_src,
+      "Screens.kt examined")
+check("the K search has its dropdown: number, owner's sheet, street",
+      "enum class SearchBy" in screens_src and "DropdownMenu(" in screens_src and "ParcelNet.ossSearch(" in screens_src,
+      "Screens.kt examined")
+check("Google's field lists as Google Maps does: autocomplete, merged, nearest first, pinned",
+      "places:autocomplete" in (MAIN / "PlaceSearch.kt").read_text() and "Finding.merge(" in (MAIN / "PlaceSearch.kt").read_text()
+      and "ParcelsShown.pin" in screens_src,
+      "PlaceSearch.kt and Screens.kt examined")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

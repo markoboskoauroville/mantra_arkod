@@ -1645,4 +1645,79 @@ class CoreTest {
         val five = listOf(0xFF34D399L, 0xFFE8A64BL, 0xFFEF4444L, 0xFF60A5FAL, 0xFFF2DDB4L)
         assertFalse(Parcels.SELECTION in five)
     }
+
+    // --- Finding: one list for every search (27.9.2026) ----------------------------------------
+
+    @Test fun resultsAreMergedOnceEachNearestFirst() {
+        val a = listOf(
+            Finding.Hit("1", "Trg Stjepana Radića 13C", "Bjelovar", 68503),
+            Finding.Hit("2", "Ulica Stjepana Radića 13c", "Mokrice", 20057),
+        )
+        val b = listOf(
+            Finding.Hit("2", "Ulica Stjepana Radića 13c", "Mokrice", 20057),   // the same place again
+            Finding.Hit("3", "Ulica Stjepana Radića 13", "Mičevec", 10000),
+            Finding.Hit("4", "Ul. Stjepana Radića 13", "Vrbovec", null),
+        )
+        val m = Finding.merge(a, b)
+        assertEquals(listOf("3", "2", "1", "4"), m.map { it.id })
+    }
+
+    @Test fun theHouseLetterIsDroppedForTheSecondQuestionOnly() {
+        assertEquals("stjepana radića 13", Finding.withoutHouseLetter("stjepana radića 13c"))
+        assertEquals("Ribnjak 6", Finding.withoutHouseLetter("Ribnjak 6A"))
+        assertNull(Finding.withoutHouseLetter("stjepana radića 13"))
+        assertNull(Finding.withoutHouseLetter("Kukljica"))
+    }
+
+    @Test fun distancesReadAsGoogleWritesThem() {
+        assertEquals("850 m", Finding.distanceLabel(850))
+        assertEquals("1.5 km", Finding.distanceLabel(1500))
+        assertEquals("68 km", Finding.distanceLabel(68503))
+        assertEquals("", Finding.distanceLabel(null))
+    }
+
+    @Test fun theFilterNeedsNoDiacritics() {
+        assertTrue(Finding.matches("ČABRIJAN NIKOLA, SIN VLADIMIRA", "cabri"))
+        assertTrue(Finding.matches("Đurđević", "durd"))
+        assertTrue(Finding.matches("RIJEKA, KUČIČKI PUT 1/E", "kucicki 1/e"))
+        assertFalse(Finding.matches("SAMSA ŠTEFICA", "knez"))
+    }
+
+    @Test fun theSheetFilterKeepsOnlyTheMatchingOwners() {
+        val record = Parcels.parseRecord("""
+            {"parcelNumber":"3700/11","parcelParts":[{"name":"DVORIŠTE","area":"500","possessionSheetNumber":"12"}],
+             "possessionSheets":[{"possessionSheetNumber":"12","possessors":[
+               {"name":"Ana Primjer","ownership":"1/50","address":"Kučički put 1"},
+               {"name":"Ivo Uzorak","ownership":"1/50","address":"Goranska 1a"}]}]}
+        """.trimIndent())
+        val rows = Parcels.sheetRows(record)
+        assertEquals(3, rows.size)
+        assertEquals(listOf("Ana Primjer"), Parcels.filterRows(rows, "kucicki").map { it.main })
+        assertEquals(2, Parcels.filterRows(rows, "possession").size)      // a heading lets its group through
+        assertEquals(3, Parcels.filterRows(rows, "").size)
+    }
+
+    @Test fun theCadastresOwnSearchIsReadIntoHits() {
+        // The shape OSS returned for 2451 in Kukljica, 27.9.2026; the holder's name invented.
+        val json = """[{"parcelId":6438471,"parcelNumber":"2451","cadMunicipalityRegNum":"334723","cadMunicipalityName":"KUKLJICA",
+            "address":"DRAGE","area":"1412","possessionSheet":{"possessors":[{"name":"ANA PRIMJER"}]}}]"""
+        val hit = Parcels.parseSearch(json).single()
+        assertEquals("6438471", hit.id)
+        assertEquals("334723-2451", hit.ref)
+        assertEquals(Finding.Source.PARCEL, hit.source)
+        assertTrue(hit.title.startsWith("2451"))
+        assertTrue(hit.under.contains("ANA PRIMJER"))
+    }
+
+    @Test fun theSearchBodyIsWhatTheCadastresOwnPagePosts() {
+        assertEquals("""{"cadMunicipalityId":1354,"parcelNumber":"2451"}""", Parcels.searchBody("1354", number = "2451"))
+        assertEquals("""{"cadMunicipalityId":1354,"possessionSheetNumber":"657"}""", Parcels.searchBody("1354", sheet = "657"))
+    }
+
+    @Test fun theZoningLayerGivesTheMunicipalitysInternalId() {
+        val text = "Results for FeatureType 'http://cp_wms:CP.CadastralZoning':\n" +
+            "--------------------------------------------\nID = 1354\nLABEL = 334723-KUKLJICA\n" +
+            "--------------------------------------------\n"
+        assertEquals("1354", Parcels.zoningIdFromInfo(text))
+    }
 }

@@ -264,6 +264,38 @@ fun TrailApp(
         Canvases.refreshParcels()
     }
 
+    /** A place found by a search: the map goes there and the cyan pin marks it. */
+    fun showPlace(hit: Finding.Hit) {
+        val lat = hit.lat ?: return
+        val lon = hit.lon ?: return
+        ParcelsShown.pin = lat to lon
+        Canvases.refreshParcels()
+        Canvases.goTo(lat, lon, 18)
+    }
+
+    /**
+     * A parcel found by a search: its sheet at once, and the map to it when the state's slow map
+     * service hands over its outline (half a minute, measured): selected in cyan, pinned.
+     */
+    suspend fun showFoundParcel(hit: Finding.Hit) {
+        val ref = hit.ref ?: return
+        val parcel = Parcels.Parcel(hit.id.toLongOrNull() ?: 0L, ref.substringAfter('-'), ref, null, emptyList())
+        scope.launch { openCard(parcel) }
+        Trail.say("finding ${parcel.number} on the map (the state's map service takes about half a minute)…")
+        val shape = runCatching { ParcelNet.shapes(listOf(ref)) }.getOrNull()?.firstOrNull { it.reference == ref }
+        if (shape == null || shape.rings.isEmpty()) {
+            Trail.say("${parcel.number}: the state's map service did not answer; its sheet is open")
+            return
+        }
+        val found = parcel.copy(rings = shape.rings)
+        select(found)
+        val (lat, lon) = found.middle
+        ParcelsShown.pin = lat to lon
+        Canvases.refreshParcels()
+        Canvases.goTo(lat, lon, 18)
+        Trail.say("${parcel.number} is on the map")
+    }
+
     suspend fun tapped(lat: Double, lon: Double) {
         if (!ParcelsShown.on) return
         val current = selected
@@ -418,7 +450,7 @@ fun TrailApp(
                 // THE ROUND SEARCH FIELD, as Google Maps has it (27.9.2026), on Google's map only
                 // and only while the settings show it.
                 if (searchBar && layer.family == MapLayer.Family.GOOGLE) {
-                    GoogleSearchBar(store = store, near = fix)
+                    GoogleSearchBar(store = store, near = fix, onPlace = { showPlace(it) })
                 }
             }
 
@@ -432,47 +464,6 @@ fun TrailApp(
                 if (net != null) StatusLine(net)
                 if (note != null) NoteLine(note)
                 if (recording) TrackLine(stats, recording = !paused)
-                card?.let { shown ->
-                    val mark = marks.firstOrNull { it.reference == shown.parcel.reference }
-                    ParcelCardView(
-                        card = shown,
-                        markedColour = mark?.colour,
-                        onClose = { card = null },
-                        onCopy = {
-                            val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
-                                .format(java.util.Date())
-                            val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
-                            clipboard.setText(androidx.compose.ui.text.AnnotatedString(Parcels.toText(parcel, shown.record, stamp)))
-                            Trail.say("parcel ${parcel.number} copied")
-                        },
-                        onText = {
-                            val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
-                                .format(java.util.Date())
-                            val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
-                            val text = Parcels.toText(parcel, shown.record, stamp)
-                            scope.launch {
-                                val (_, said) = withContext(Dispatchers.IO) {
-                                    Folder.saveText(appContext, store, Parcels.textFileName(parcel), text)
-                                }
-                                Trail.say(said)
-                            }
-                        },
-                        onHighlight = { colour ->
-                            if (colour == null) {
-                                setMarks(Parcels.without(marks, shown.parcel.reference))
-                            } else {
-                                parcelColour = colour
-                                store.parcelColour = colour
-                                // A colour changed on a mark that has its shape keeps the shape.
-                                val had = marks.firstOrNull { it.reference == shown.parcel.reference }
-                                val mark = Parcels.markOf(shown.parcel, colour)
-                                setMarks(Parcels.withMark(marks, if (mark.rings.isEmpty() && had != null) mark.copy(rings = had.rings) else mark))
-                                scope.launch { fillShapes() }
-                            }
-                        },
-                        defaultColour = parcelColour,
-                    )
-                }
                 // THE ORDER IS THE THUMB'S, NOT THE LIST'S. Baba, 15.9.2026: the record circle sits
                 // in the middle, straight above the phone's own home button, with the centre key
                 // beside it; the three that are pressed rarely spread out from there.
@@ -563,8 +554,51 @@ fun TrailApp(
         // takes itself away after three seconds, so a walk can be ended with one press and no
         // second thought — but the countdown STOPS the moment he touches the field, because a
         // box that closes while somebody is typing in it is worse than no box at all.
+        // THE SHEET, OVER EVERYTHING (27.9.2026): the whole screen, his word.
+        card?.let { shown ->
+            val mark = marks.firstOrNull { it.reference == shown.parcel.reference }
+            ParcelCardView(
+                card = shown,
+                markedColour = mark?.colour,
+                onClose = { card = null },
+                onCopy = {
+                    val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
+                        .format(java.util.Date())
+                    val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
+                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(Parcels.toText(parcel, shown.record, stamp)))
+                    Trail.say("parcel ${parcel.number} copied")
+                },
+                onText = {
+                    val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
+                        .format(java.util.Date())
+                    val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
+                    val text = Parcels.toText(parcel, shown.record, stamp)
+                    scope.launch {
+                        val (_, said) = withContext(Dispatchers.IO) {
+                            Folder.saveText(appContext, store, Parcels.textFileName(parcel), text)
+                        }
+                        Trail.say(said)
+                    }
+                },
+                onHighlight = { colour ->
+                    if (colour == null) {
+                        setMarks(Parcels.without(marks, shown.parcel.reference))
+                    } else {
+                        parcelColour = colour
+                        store.parcelColour = colour
+                        // A colour changed on a mark that has its shape keeps the shape.
+                        val had = marks.firstOrNull { it.reference == shown.parcel.reference }
+                        val mark = Parcels.markOf(shown.parcel, colour)
+                        setMarks(Parcels.withMark(marks, if (mark.rings.isEmpty() && had != null) mark.copy(rings = had.rings) else mark))
+                        scope.launch { fillShapes() }
+                    }
+                },
+                defaultColour = parcelColour,
+            )
+        }
         if (parcelPanel) {
             ParcelsPanel(
+                store = store,
                 on = cadastreOn,
                 marks = marks,
                 colour = parcelColour,
@@ -579,21 +613,8 @@ fun TrailApp(
                     parcelColour = c
                     store.parcelColour = c
                 },
-                onFound = { found ->
-                    setMarks(found.fold(marks) { acc, p -> Parcels.withMark(acc, Parcels.markOf(p, parcelColour)) })
-                    // The map goes to the first one when its outline has come; the card opens now.
-                    found.firstOrNull()?.let { first ->
-                        parcelPanel = false
-                        scope.launch {
-                            launch { openCard(first) }
-                            fillShapes()
-                            marks.firstOrNull { it.reference == first.reference && it.rings.isNotEmpty() }?.let { m ->
-                                val (lat, lon) = Parcels.Parcel(m.id, m.number, m.reference, null, m.rings).middle
-                                Canvases.goTo(lat, lon, 18)
-                            }
-                        }
-                    }
-                },
+                onParcel = { hit -> parcelPanel = false; scope.launch { showFoundParcel(hit) } },
+                onPlace = { hit -> parcelPanel = false; showPlace(hit) },
                 onGo = { mark ->
                     val p = Parcels.Parcel(mark.id, mark.number, mark.reference, null, mark.rings)
                     if (mark.rings.isNotEmpty()) {
@@ -2647,10 +2668,12 @@ data class ParcelCard(
 )
 
 /**
- * THE PARCEL'S CARD. Its number and municipality, its area and address, what the land is used
- * for, and every possessor on every possession sheet with the share and the address, as the state
- * publishes them. At the bottom, his words (27.9.2026): *"a simple tick mark highlight, and next to
- * that highlight multiple colors"*, the same five as the trails.
+ * THE PARCEL'S SHEET, THE WHOLE SCREEN (27.9.2026). His words: *"expand the TextView to the whole
+ * screen and add a filter at the top so user can filter owners or any other text."* A sheet with
+ * fifty co-owners was a strip he scrolled with a thumb over the map. Now the number, CPY, TXT and
+ * the way out along the top; under them a filter that keeps only the rows whose words match (no
+ * diacritics needed: "cabri" finds Čabrijan); the rows; and the highlight tick and the trail
+ * colours along the bottom, where his thumb is.
  */
 @Composable
 private fun ParcelCardView(
@@ -2663,92 +2686,96 @@ private fun ParcelCardView(
     onHighlight: (Long?) -> Unit,
 ) {
     val record = card.record
+    var filter by remember(card.parcel.reference) { mutableStateOf("") }
+    val rows = remember(record) { record?.let { Parcels.sheetRows(it) }.orEmpty() }
+    val shown = remember(rows, filter) { Parcels.filterRows(rows, filter) }
+
     Column(
         Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Paint.Card)
-            // THE SHEET HOLDS ITS OWN TOUCHES (27.9.2026). A press on its words went through to the
-            // map underneath and selected whatever parcel lay there, which closed the sheet.
+            .fillMaxSize()
+            .background(Paint.Ground)
             .swallowTouches()
-            .padding(GAP),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .safeDrawingPadding()
+            .padding(horizontal = GAP),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Label(card.parcel.number, Paint.Amber, size = 20, align = TextAlign.Start)
-            Spacer(Modifier.width(GAP))
-            Label(
-                text = record?.let { "k.o. ${it.municipality} · ${it.municipalityNumber}" }
-                    ?: "k.o. ${card.parcel.municipality}",
-                colour = Paint.Dim,
-                size = 12,
-                align = TextAlign.Start,
-                modifier = Modifier.weight(1f),
-            )
-            // CPY and TXT, at the top right beside the way out (27.9.2026): the whole sheet to the
-            // clipboard, or to a text file.
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onCopy)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) { Label("CPY", Paint.Amber, size = 13) }
-            Spacer(Modifier.width(GAP))
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onText)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            ) { Label("TXT", Paint.Amber, size = 13) }
-            Spacer(Modifier.width(GAP))
-            Label("✕", Paint.Sand, size = 18, modifier = Modifier.clickable(onClick = onClose).padding(6.dp))
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Label(card.parcel.number, Paint.Amber, size = 22, align = TextAlign.Start)
+                Label(
+                    text = record?.let { "k.o. ${it.municipality} · ${it.municipalityNumber}" } ?: "k.o. ${card.parcel.municipality}",
+                    colour = Paint.Dim,
+                    size = 12,
+                    align = TextAlign.Start,
+                )
+            }
+            SheetKey("CPY", onCopy)
+            Spacer(Modifier.width(8.dp))
+            SheetKey("TXT", onText)
+            Spacer(Modifier.width(8.dp))
+            Label("✕", Paint.Sand, size = 22, modifier = Modifier.clickable(onClick = onClose).padding(8.dp))
+        }
+        val area = record?.areaM2?.toIntOrNull() ?: card.parcel.areaM2
+        Label(
+            text = Parcels.areaLabel(area) + (record?.address?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+            colour = Paint.Sand,
+            size = 14,
+            align = TextAlign.Start,
+        )
+        // THE FILTER
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+                .clip(RoundedCornerShape(23.dp))
+                .border(1.5.dp, Paint.Amber, RoundedCornerShape(23.dp))
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                if (filter.isEmpty()) Label("filter: an owner, an address, anything", Paint.Dim, size = 14, align = TextAlign.Start)
+                BasicTextField(
+                    value = filter,
+                    onValueChange = { filter = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Paint.Sand, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
+                    cursorBrush = SolidColor(Paint.AmberBright),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (filter.isNotEmpty()) {
+                Label("${shown.size} of ${rows.size}", Paint.Dim, size = 12)
+                Label("✕", Paint.Sand, size = 16, modifier = Modifier.clickable { filter = "" }.padding(start = 10.dp))
+            }
         }
         Column(
-            Modifier.fillMaxWidth().heightIn(max = 260.dp).verticalScroll(rememberScrollState()),
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            val area = record?.areaM2?.toIntOrNull() ?: card.parcel.areaM2
-            Label(
-                text = Parcels.areaLabel(area) + (record?.address?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                colour = Paint.Sand,
-                size = 13,
-                align = TextAlign.Start,
-            )
             when {
                 record != null -> {
-                    record.uses.forEach { use ->
-                        Label("${use.name}  ${use.areaM2} m²  ·  sheet ${use.sheet}", Paint.Dim, size = 11, align = TextAlign.Start)
-                    }
-                    record.sheets.forEach { sheet ->
-                        Spacer(Modifier.height(4.dp))
-                        Label("POSSESSION SHEET ${sheet.number}", Paint.Amber, size = 11, align = TextAlign.Start)
-                        sheet.owners.forEach { owner ->
-                            Row(Modifier.fillMaxWidth()) {
-                                Label(owner.name, Paint.Sand, size = 14, align = TextAlign.Start, modifier = Modifier.weight(1f))
-                                Label(owner.share, Paint.AmberBright, size = 14)
-                            }
-                            if (owner.address.isNotBlank()) Label(owner.address, Paint.Dim, size = 11, align = TextAlign.Start)
+                    var heading = ""
+                    shown.forEach { r ->
+                        if (r.heading != heading) {
+                            heading = r.heading
+                            Spacer(Modifier.height(6.dp))
+                            Label(r.heading, Paint.Amber, size = 12, align = TextAlign.Start)
                         }
+                        Row(Modifier.fillMaxWidth()) {
+                            Label(r.main, Paint.Sand, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                            if (r.side.isNotBlank()) Label(r.side, Paint.AmberBright, size = 14)
+                        }
+                        if (r.under.isNotBlank()) Label(r.under, Paint.Dim, size = 12, align = TextAlign.Start)
                     }
-                    if (record.sheets.isEmpty()) Label("no possessors listed", Paint.Dim, size = 12, align = TextAlign.Start)
-                    // The land book is where the legal owners are written; the cadastre's
-                    // possessors above are who holds the land, which is not always the same.
-                    record.landBooks.forEach { book ->
-                        Spacer(Modifier.height(4.dp))
-                        Label("LAND REGISTRY", Paint.Amber, size = 11, align = TextAlign.Start)
-                        Label("z.k. uložak ${book.unit} · k.o. ${book.book} · ${book.kind.lowercase()}", Paint.Sand, size = 12, align = TextAlign.Start)
-                        Label(book.office, Paint.Dim, size = 11, align = TextAlign.Start)
-                    }
+                    if (rows.isEmpty()) Label("no possessors listed", Paint.Dim, size = 13, align = TextAlign.Start)
+                    else if (shown.isEmpty()) Label("nothing on this sheet matches \"$filter\"", Paint.Dim, size = 13, align = TextAlign.Start)
                 }
-                card.problem != null -> Label(card.problem, Paint.Red, size = 12, align = TextAlign.Start)
-                else -> Label("asking the cadastre for the owners…", Paint.Dim, size = 12, align = TextAlign.Start)
+                card.problem != null -> Label(card.problem, Paint.Red, size = 13, align = TextAlign.Start)
+                else -> Label("asking the cadastre for the owners…", Paint.Dim, size = 13, align = TextAlign.Start)
             }
         }
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -2758,7 +2785,7 @@ private fun ParcelCardView(
                 Box(
                     Modifier
                         .weight(1f)
-                        .height(30.dp)
+                        .height(34.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(option))
                         .clickable { onHighlight(option) },
@@ -2771,65 +2798,138 @@ private fun ParcelCardView(
     }
 }
 
+@Composable
+private fun SheetKey(word: String, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .border(1.5.dp, Paint.Amber, RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) { Label(word, Paint.Amber, size = 14) }
+}
+
 /**
- * THE CADASTRE'S PANEL: the switch, the search, and the parcels he highlighted. Search is by
- * number inside the cadastral municipality under the middle of the map, which is how a parcel is
- * named ("2450, k.o. Kukljica"); several numbers at once are one request.
+ * THE ONE LIST OF RESULTS (27.9.2026), shaped like Google Maps': a pin with the distance under it,
+ * the name, the line under the name. Light under Google's white field, dark in the K panel.
+ */
+@Composable
+private fun ResultsList(hits: List<Finding.Hit>, light: Boolean, onPick: (Finding.Hit) -> Unit) {
+    val ink = if (light) Color(0xFF202124) else Paint.Sand
+    val dim = if (light) Color(0xFF70757A) else Paint.Dim
+    val face = if (light) Color.White else Paint.Card
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = 460.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(face)
+            .verticalScroll(rememberScrollState()),
+    ) {
+        hits.forEachIndexed { i, hit ->
+            if (i > 0) Box(Modifier.fillMaxWidth().padding(start = 64.dp).height(1.dp).background(dim.copy(alpha = 0.25f)))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onPick(hit) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.width(52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("⌖", color = dim, fontSize = 20.sp)
+                    Text(Finding.distanceLabel(hit.distanceM), color = dim, fontSize = 11.sp, maxLines = 1)
+                }
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text(hit.title, color = ink, fontSize = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (hit.under.isNotBlank()) Text(hit.under, color = dim, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+    }
+}
+
+/** What the K panel's search looks for (27.9.2026): *"a dropdown menu for number, owner, street."* */
+private enum class SearchBy(val label: String, val hint: String) {
+    NUMBER("number", "2450, 2449/3 — several at once"),
+    SHEET("owner's sheet", "possession sheet number, from any parcel's sheet: every parcel that holder has"),
+    STREET("street", "a street and house number; Google finds it"),
+}
+
+/**
+ * THE CADASTRE'S PANEL: the switch, the search with its dropdown, the colour, and the parcels he
+ * highlighted. Every search answers in the same list as Google's field and every answer becomes a
+ * point on the map. By OWNER: the state publishes no search by a person's name (OSS's public
+ * search takes a parcel or a possession sheet number, nothing else), so the owner's entry is his
+ * possession sheet, whose number is on every parcel's sheet, and it lists everything he holds.
  */
 @Composable
 private fun ParcelsPanel(
+    store: Store,
     on: Boolean,
     marks: List<Parcels.Mark>,
     colour: Long,
     onSwitch: (Boolean) -> Unit,
     onColour: (Long) -> Unit,
-    onFound: (List<Parcels.Parcel>) -> Unit,
+    onParcel: (Finding.Hit) -> Unit,
+    onPlace: (Finding.Hit) -> Unit,
     onGo: (Parcels.Mark) -> Unit,
     onRemove: (Parcels.Mark) -> Unit,
     onClearAll: () -> Unit,
     onClose: () -> Unit,
 ) {
     var text by remember { mutableStateOf("") }
+    var by by remember { mutableStateOf(SearchBy.NUMBER) }
+    var menu by remember { mutableStateOf(false) }
     var line by remember { mutableStateOf<String?>(null) }
-    var here by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var here by remember { mutableStateOf<Triple<String, String, String>?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
+    val session = remember { java.util.UUID.randomUUID().toString() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         val (lat, lon) = Canvases.centre() ?: return@LaunchedEffect
-        here = runCatching { ParcelNet.municipality(lat, lon) }.getOrNull()
+        here = runCatching { ParcelNet.municipalityFull(lat, lon) }.getOrNull()
         if (here == null) line = "the municipality under the map could not be read"
     }
 
     fun find() {
-        val numbers = Parcels.numbers(text)
         val ko = here
-        when {
-            numbers.isEmpty() -> line = "type a parcel number, like 2450 or 2449/3"
-            ko == null -> line = "move the map over the municipality first"
-            else -> {
-                busy = true
-                line = "asking the cadastre…"
-                scope.launch {
-                    val answer = runCatching { ParcelNet.find(ko.first, numbers) }
-                    busy = false
-                    val found = answer.getOrNull()
-                    line = when {
-                        found == null -> "the cadastre did not answer: ${answer.exceptionOrNull()?.message}"
-                        found.isEmpty() -> "none of those is in k.o. ${ko.second}"
-                        found.size < numbers.size ->
-                            "found ${found.size} of ${numbers.size}; not in k.o. ${ko.second}: " +
-                                numbers.filter { n -> found.none { it.number == n } }.joinToString(", ")
-                        else -> null
+        val words = text.trim()
+        if (words.isEmpty()) { line = "type what to look for"; return }
+        busy = true
+        line = "searching…"
+        hits = emptyList()
+        scope.launch {
+            val answer: Result<List<Finding.Hit>> = runCatching {
+                when (by) {
+                    SearchBy.NUMBER -> {
+                        ko ?: error("move the map over the municipality first")
+                        Parcels.numbers(words).ifEmpty { error("type a parcel number, like 2450 or 2449/3") }
+                            .flatMap { ParcelNet.ossSearch(ko.third, number = it) }
                     }
-                    if (!found.isNullOrEmpty()) onFound(found)
+                    SearchBy.SHEET -> {
+                        ko ?: error("move the map over the municipality first")
+                        val n = Regex("""\d+""").find(words)?.value ?: error("type the possession sheet's number")
+                        ParcelNet.ossSearch(ko.third, sheet = n)
+                    }
+                    SearchBy.STREET -> {
+                        val near = Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
+                        val query = ko?.let { "$words, ${it.second.lowercase().replaceFirstChar { c -> c.uppercase() }}" } ?: words
+                        val (found, problem) = PlaceSearch.find(query, near, store, session)
+                        if (found.isEmpty()) error(problem ?: "nothing found")
+                        found
+                    }
                 }
             }
+            busy = false
+            hits = answer.getOrNull().orEmpty()
+            line = answer.exceptionOrNull()?.message
+                ?: if (hits.isEmpty()) "nothing found in k.o. ${ko?.second ?: ""}" else "${hits.size} found"
         }
     }
 
     Box(
-        // The veil round the panel closes it, and nothing under it is touched.
         Modifier.fillMaxSize().background(Paint.Veil)
             .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }, onClick = onClose)
             .safeDrawingPadding().padding(GAP),
@@ -2854,12 +2954,40 @@ private fun ParcelsPanel(
                 Label("parcels and their numbers on the map", Paint.Sand, size = 13, align = TextAlign.Start)
             }
             Label(
-                text = here?.let { "find in k.o. ${it.second} (${it.first}), under the map" }
+                text = here?.let { "searching in k.o. ${it.second} (${it.first}), under the map" }
                     ?: "reading the municipality under the map…",
                 colour = Paint.Dim,
                 size = 11,
                 align = TextAlign.Start,
             )
+            // THE DROPDOWN: what the field means.
+            Box {
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Paint.Card)
+                        .clickable { menu = true }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Label("search by  ", Paint.Dim, size = 13)
+                    Label(by.label, Paint.Amber, size = 15)
+                    Label("  ▾", Paint.Amber, size = 15)
+                }
+                androidx.compose.material3.DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    SearchBy.entries.forEach { choice ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(choice.label, fontSize = 16.sp) },
+                            onClick = {
+                                by = choice
+                                menu = false
+                                hits = emptyList()
+                                line = null
+                            },
+                        )
+                    }
+                }
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP)) {
                 BasicTextField(
                     value = text,
@@ -2867,6 +2995,8 @@ private fun ParcelsPanel(
                     singleLine = true,
                     textStyle = TextStyle(color = Paint.Sand, fontSize = 16.sp, fontFamily = FontFamily.Monospace),
                     cursorBrush = SolidColor(Paint.AmberBright),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { if (!busy) find() }),
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(8.dp))
@@ -2883,7 +3013,14 @@ private fun ParcelsPanel(
                     contentAlignment = Alignment.Center,
                 ) { Label("FIND", if (busy) Paint.Dim else Paint.Ground, size = 14) }
             }
-            Label("2450, 2449/3 — several at once", Paint.Dim, size = 11, align = TextAlign.Start)
+            Label(by.hint, Paint.Dim, size = 11, align = TextAlign.Start)
+            line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
+            if (hits.isNotEmpty()) {
+                ResultsList(hits, light = false) { hit ->
+                    if (hit.source == Finding.Source.PARCEL) onParcel(hit) else onPlace(hit)
+                }
+            }
+
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Label("colour", Paint.Dim, size = 11)
                 TRACK_COLOURS.forEach { option ->
@@ -2900,12 +3037,9 @@ private fun ParcelsPanel(
                     }
                 }
             }
-            line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
 
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Label("HIGHLIGHTED  ${marks.size}", Paint.Amber, size = 12, align = TextAlign.Start, modifier = Modifier.weight(1f))
-                // One press for all of them: v87 highlighted every parcel tapped, and those are
-                // not ones he chose (27.9.2026). Asks once before it clears.
                 if (marks.isNotEmpty()) {
                     var sure by remember { mutableStateOf(false) }
                     Label(
@@ -2919,7 +3053,7 @@ private fun ParcelsPanel(
                 }
             }
             if (marks.isEmpty()) {
-                Label("None yet. Tap a parcel on the map and tick highlight, or find one here.", Paint.Dim, size = 12, align = TextAlign.Start)
+                Label("None yet. Tap a parcel, tap it again, tick highlight or pick a colour.", Paint.Dim, size = 12, align = TextAlign.Start)
             }
             marks.forEach { mark ->
                 Row(
@@ -2948,31 +3082,39 @@ private fun ParcelsPanel(
     }
 }
 
-
 /**
- * THE SEARCH FIELD ON GOOGLE'S MAP (27.9.2026). Marko: *"a search field at the top, round entry
- * field, same as in google maps, when user can search for the street."* A pill across the top; the
- * keyboard's search key asks Google Places (his key, biased to where he is, one billed request per
- * press and never on its own); the answers drop down under it and a tap on one takes the map
- * there. The ✕ empties it.
+ * THE SEARCH FIELD ON GOOGLE'S MAP, AS GOOGLE MAPS HAS IT (27.9.2026). Suggestions while he types
+ * (autocomplete, billed once per session), the full list when he presses search, nearest first
+ * with the distance under each pin; a tap takes the map there and drops the cyan pin.
  */
 @Composable
-private fun GoogleSearchBar(store: Store, near: Fix?) {
+private fun GoogleSearchBar(store: Store, near: Fix?, onPlace: (Finding.Hit) -> Unit) {
     var text by remember { mutableStateOf("") }
-    var found by remember { mutableStateOf<List<Places.Place>>(emptyList()) }
+    var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
     var line by remember { mutableStateOf<String?>(null) }
+    var session by remember { mutableStateOf(java.util.UUID.randomUUID().toString()) }
+    var typed by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val keyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+
+    fun from(): Fix? = near ?: Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
+
+    // As he types: a moment after the last key, autocomplete only.
+    LaunchedEffect(typed) {
+        if (typed == 0 || text.trim().length < 3) return@LaunchedEffect
+        delay(400)
+        val (found, _) = PlaceSearch.find(text.trim(), from(), store, session, full = false)
+        hits = found
+    }
 
     fun go() {
         if (text.isBlank()) return
         keyboard?.hide()
         line = "searching…"
         scope.launch {
-            val here = near ?: Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
-            val (places, problem) = Places.search(text.trim(), here, store)
-            found = places
-            line = problem ?: if (places.isEmpty()) "nothing found" else null
+            val (found, problem) = PlaceSearch.find(text.trim(), from(), store, session, full = true)
+            hits = found
+            line = problem
         }
     }
 
@@ -2990,18 +3132,18 @@ private fun GoogleSearchBar(store: Store, near: Fix?) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
-                if (text.isEmpty()) {
-                    Text("Search here", color = Color(0xFF70757A), fontSize = 16.sp)
-                }
+                if (text.isEmpty()) Text("Search here", color = Color(0xFF70757A), fontSize = 16.sp)
                 BasicTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    onValueChange = {
+                        text = it
+                        typed += 1
+                        if (it.isBlank()) hits = emptyList()
+                    },
                     singleLine = true,
                     textStyle = TextStyle(color = Color(0xFF202124), fontSize = 16.sp),
                     cursorBrush = SolidColor(Color(0xFF1A73E8)),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        imeAction = androidx.compose.ui.text.input.ImeAction.Search,
-                    ),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go() }),
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -3014,48 +3156,39 @@ private fun GoogleSearchBar(store: Store, near: Fix?) {
                     modifier = Modifier
                         .clickable {
                             text = ""
-                            found = emptyList()
+                            hits = emptyList()
                             line = null
+                            ParcelsShown.pin = null
+                            Canvases.refreshParcels()
                         }
                         .padding(start = 10.dp),
                 )
             }
         }
         line?.let {
-            Box(
-                Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            ) { Text(it, color = Color(0xFF3C4043), fontSize = 14.sp) }
+            Box(Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(it, color = Color(0xFF3C4043), fontSize = 14.sp)
+            }
         }
-        if (found.isNotEmpty()) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                found.forEach { place ->
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                Canvases.goTo(place.lat, place.lon, 17)
-                                text = place.name
-                                found = emptyList()
-                            }
-                            .padding(horizontal = 18.dp, vertical = 10.dp),
-                    ) {
-                        Text(place.name, color = Color(0xFF202124), fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(place.where, color = Color(0xFF70757A), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (hits.isNotEmpty()) {
+            ResultsList(hits, light = true) { hit ->
+                keyboard?.hide()
+                scope.launch {
+                    val found = PlaceSearch.locate(hit, store, session)
+                    if (found == null) {
+                        line = "Google did not say where that is"
+                        return@launch
                     }
+                    text = hit.title
+                    hits = emptyList()
+                    line = null
+                    session = java.util.UUID.randomUUID().toString()
+                    onPlace(found)
                 }
             }
         }
     }
 }
-
 
 /** Every touch on this is its own: nothing reaches the map beneath. */
 private fun Modifier.swallowTouches(): Modifier = this.pointerInput(Unit) {

@@ -46,6 +46,34 @@ object ParcelNet {
         Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning")))
     }
 
+    /** The municipality under a point with OSS's internal id too: (reg number, name, internal id). */
+    suspend fun municipalityFull(lat: Double, lon: Double): Triple<String, String, String>? = withContext(Dispatchers.IO) {
+        val text = get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))
+        val (reg, name) = Parcels.zoningFromInfo(text) ?: return@withContext null
+        val id = Parcels.zoningIdFromInfo(text) ?: return@withContext null
+        Triple(reg, name, id)
+    }
+
+    /** OSS's own public search: a number, or a whole possession sheet, in one municipality. */
+    suspend fun ossSearch(municipalityId: String, number: String? = null, sheet: String? = null): List<Finding.Hit> =
+        withContext(Dispatchers.IO) {
+            val c = (URL(Parcels.OSS_SEARCH).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                doOutput = true
+                connectTimeout = 15_000
+                readTimeout = 25_000
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("User-Agent", "MantraTrail/1")
+            }
+            try {
+                c.outputStream.use { it.write(Parcels.searchBody(municipalityId, number, sheet).toByteArray()) }
+                if (c.responseCode != HttpURLConnection.HTTP_OK) throw Refused("the cadastre answered ${c.responseCode}")
+                Parcels.parseSearch(c.inputStream.bufferedReader().use { it.readText() })
+            } finally {
+                c.disconnect()
+            }
+        }
+
     /** Parcels by number in one municipality, through OSS's search: one quick request each. */
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
@@ -159,6 +187,10 @@ object ParcelsShown {
      */
     @Volatile
     var selection: Parcels.Mark? = null
+
+    /** Where the last search result is, pinned on whichever map is up. */
+    @Volatile
+    var pin: Pair<Double, Double>? = null
 
     /** Everything the engines draw: his marks, and the selection on top. */
     fun drawn(): List<Parcels.Mark> = marks + listOfNotNull(selection)

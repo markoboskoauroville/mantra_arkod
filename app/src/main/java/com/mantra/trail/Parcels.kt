@@ -365,6 +365,68 @@ object Parcels {
         appendLine("source: State Geodetic Administration, oss.uredjenazemlja.hr; saved $madeAt by Mantra Trail")
     }
 
+    /**
+     * THE SHEET AS ROWS, SO IT CAN BE FILTERED (27.9.2026): *"expand the TextView to the whole
+     * screen and add a filter at the top so user can filter owners or any other text."* A row is one
+     * thing a person would look for: a land use, one possessor with share and address, a land-book
+     * unit. A heading stays when anything under it matches.
+     */
+    data class SheetRow(val heading: String, val main: String, val side: String = "", val under: String = "")
+
+    fun sheetRows(record: Record): List<SheetRow> = buildList {
+        record.uses.forEach { add(SheetRow("LAND USE", "${it.name}  ${it.areaM2} m²", "sheet ${it.sheet}")) }
+        record.sheets.forEach { sheet ->
+            sheet.owners.forEach { add(SheetRow("POSSESSION SHEET ${sheet.number}", it.name, it.share, it.address)) }
+        }
+        record.landBooks.forEach {
+            add(SheetRow("LAND REGISTRY", "z.k. uložak ${it.unit} · k.o. ${it.book}", it.kind.lowercase(), it.office))
+        }
+    }
+
+    /** The rows a filter lets through; a heading's own words let its whole group through. */
+    fun filterRows(rows: List<SheetRow>, query: String): List<SheetRow> =
+        rows.filter { r ->
+            Finding.matches(r.heading, query) || Finding.matches(r.main + " " + r.side + " " + r.under, query)
+        }
+
+    // --- the cadastre's own search (OSS, public) -----------------------------------------------
+
+    const val OSS_SEARCH = "https://oss.uredjenazemlja.hr/oss/public/cad/search-parcels"
+
+    /**
+     * The body OSS's own public search posts: a parcel number, or a possession sheet number, in a
+     * municipality by its INTERNAL id (1354 for Kukljica, which the zoning layer's ID gives). The
+     * state publishes no search by a person's name; a possession sheet is one holder's parcels.
+     */
+    fun searchBody(municipalityId: String, number: String? = null, sheet: String? = null): String =
+        JSONObject().apply {
+            put("cadMunicipalityId", municipalityId.toLongOrNull() ?: municipalityId)
+            number?.let { put("parcelNumber", it) }
+            sheet?.let { put("possessionSheetNumber", it) }
+        }.toString()
+
+    /** Each parcel OSS found, as a hit: its number, address, area and the holders' names. */
+    fun parseSearch(json: String): List<Finding.Hit> {
+        val a = JSONArray(json)
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map { p ->
+            val holders = p.optJSONObject("possessionSheet")?.optJSONArray("possessors")
+            val names = if (holders == null) "" else
+                (0 until holders.length()).mapNotNull { holders.optJSONObject(it)?.optString("name")?.trim() }
+                    .take(3).joinToString(", ") + if (holders.length() > 3) " …" else ""
+            Finding.Hit(
+                id = p.optLong("parcelId").toString(),
+                title = "${p.optString("parcelNumber")} · k.o. ${p.optString("cadMunicipalityName")}",
+                under = listOf(p.optString("address"), p.optString("area").takeIf { it.isNotBlank() }?.let { "$it m²" }, names)
+                    .filter { !it.isNullOrBlank() }.joinToString(" · "),
+                source = Finding.Source.PARCEL,
+                ref = "${p.optString("cadMunicipalityRegNum")}-${p.optString("parcelNumber")}",
+            )
+        }
+    }
+
+    /** The zoning layer's plain text also carries the municipality's internal id: "ID = 1354". */
+    fun zoningIdFromInfo(text: String): String? = parseInfo(text)?.get("ID")
+
     /** "parcel 334723-2449_3.txt": the reference, with the stroke a file name cannot hold. */
     fun textFileName(parcel: Parcel): String = "parcel ${parcel.reference.replace('/', '_')}.txt"
 
