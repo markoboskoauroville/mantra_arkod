@@ -168,7 +168,8 @@ fun SettingsFace(
             }
 
             Group("Offline maps") {
-                Opens("Offline maps", R.drawable.ic_mountain, under = offlineUnder, onClick = onMaps)
+                // The group says "Offline maps"; the row says what it does (27.9.2026).
+                Opens("Download", R.drawable.ic_save, onClick = onMaps)
                 installedMaps.forEach { file ->
                     Hairline()
                     Pick(

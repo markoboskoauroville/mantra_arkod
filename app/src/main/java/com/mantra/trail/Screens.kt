@@ -471,7 +471,9 @@ fun TrailApp(
                 // where either thumb reaches it: Baba, 15.9.2026, *"give me plus and minus so I
                 // don't need to zoom with my pinching. It hurts."*
                 Row(
-                    Modifier.fillMaxWidth().background(Paint.Bar).padding(horizontal = 4.dp),
+                    // A FIRM BAR UNDER THE ICONS (27.9.2026): line icons over a street map
+                    // disappeared into the street names on the thin bar the words once sat on.
+                    Modifier.fillMaxWidth().background(Paint.Ground.copy(alpha = 0.86f)).padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Key(glyph = "−", lit = false, onClick = { Canvases.zoomOut() }, icon = R.drawable.ic_minus)
@@ -2286,7 +2288,6 @@ private fun RouteMenu(
                 icon = R.drawable.ic_route,
                 onClick = { onRoute(profile, options) },
                 enabled = enough,
-                trailing = if (enough) "$options" else null,
                 modifier = Modifier.fillMaxWidth(),
             )
 

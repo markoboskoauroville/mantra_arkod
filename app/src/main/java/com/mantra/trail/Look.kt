@@ -106,11 +106,10 @@ fun Action(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (icon != null) Glyph(icon, ink)
-        Word(verb, ink, size = 16, bold = !quiet, modifier = Modifier.weight(1f, fill = false))
-        if (trailing != null) {
-            Spacer(Modifier.weight(1f))
-            Word(trailing, if (quiet) Paint.Dim else ink.copy(alpha = 0.75f), size = 13)
-        }
+        // With something trailing, the verb takes the room so the trailing word sits at the far
+        // edge (a shared weight left "1.1 GB" floating in the middle, 27.9.2026).
+        Word(verb, ink, size = 16, bold = !quiet, modifier = if (trailing != null) Modifier.weight(1f) else Modifier)
+        if (trailing != null) Word(trailing, if (quiet) Paint.Dim else ink.copy(alpha = 0.75f), size = 13)
     }
 }
 
