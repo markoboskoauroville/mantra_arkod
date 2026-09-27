@@ -111,3 +111,10 @@ engine uses the same function through a `TileProvider`.
 
 **A highlight keeps the shape**, not only the number, so his land is drawn on a hillside with no
 signal. Names in the tests are invented; no real person's record is in this repository.
+
+## 27.9.2026 — v83, the tap reaches the cadastre
+
+On the Pixel 7 emulator v82 drew the cadastre over Kukljica exactly as the portal does, and a tap
+on parcel 2451 did nothing: a VTM layer listening for its TAP gesture was never called. The tap is
+now caught by Android's own GestureDetector on the map view, which passes every touch on to the
+map, and "single tap confirmed" keeps the double tap for zooming.

@@ -68,25 +68,32 @@ class VtmCanvas(private val context: Context, private val store: Store) {
     private val markPaths = ArrayList<PathLayer>()
 
     /**
-     * THE FINGER ON A PARCEL (27.9.2026). A layer that only listens: a single tap is turned into a
-     * place on the ground and handed on, and the map keeps the gesture, so panning and the double
-     * tap to zoom are untouched.
+     * THE FINGER ON A PARCEL (27.9.2026). Android's own detector, beside the map rather than
+     * inside it: a layer listening for VTM's TAP gesture was never called on the emulator, so the
+     * view's touches are watched here and passed on untouched. "Single tap confirmed" waits out
+     * the double tap, so a double tap still zooms and never opens a card.
      */
-    private inner class TapLayer : org.oscim.layers.Layer(view.map()), org.oscim.event.GestureListener {
-        override fun onGesture(g: org.oscim.event.Gesture, e: org.oscim.event.MotionEvent): Boolean {
-            if (g !is org.oscim.event.Gesture.Tap) return false
-            val at = map.viewport().fromScreenPoint(e.x, e.y)
-            ParcelsShown.tap(at.latitude, at.longitude)
-            return false
-        }
-    }
+    private val taps = android.view.GestureDetector(
+        context,
+        object : android.view.GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapConfirmed(e: android.view.MotionEvent): Boolean {
+                val at = map.viewport().fromScreenPoint(e.x, e.y)
+                ParcelsShown.tap(at.latitude, at.longitude)
+                return false
+            }
+        },
+    )
 
     init {
         // The ground behind every map, before any of them is drawn: black, because this is a dark
         // application and VTM's own default is light grey.
         org.oscim.renderer.MapRenderer.setBackgroundColor(android.graphics.Color.BLACK)
         map.setMapPosition(store.lastLat, store.lastLon, (1 shl store.lastZoom).toDouble())
-        map.layers().add(TapLayer())
+        @Suppress("ClickableViewAccessibility")
+        view.setOnTouchListener { _, event ->
+            taps.onTouchEvent(event)
+            false
+        }
     }
 
     /**

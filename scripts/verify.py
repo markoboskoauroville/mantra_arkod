@@ -962,7 +962,7 @@ check("the cadastre's tiles are resolved and recoloured in the tile fetcher",
       and "ParcelNet.tile(url, ParcelsShown.ink)" in (MAIN / "TileHttp.kt").read_text(),
       "TileHttp.kt examined")
 check("a tap on either engine reaches the cadastre",
-      "ParcelsShown.tap(at.latitude, at.longitude)" in canvas_src
+      "ParcelsShown.tap(at.latitude, at.longitude)" in canvas_src and "onSingleTapConfirmed" in canvas_src
       and "ParcelsShown.tap(at.latitude, at.longitude)" in (MAIN / "GoogleCanvas.kt").read_text(),
       "VtmCanvas.kt and GoogleCanvas.kt examined")
 check("the parcel card has the highlight tick and the trail colours",
