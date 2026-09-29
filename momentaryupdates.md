@@ -16,6 +16,8 @@ Every new request lands here first and is pushed before any code, so a quota cut
 POSSESSION SHEET 1615 with the possessors and their shares.)
 
 1. The sheet in three tabs: LAND USE · POSSESSION SHEET (posjedovni list) · OWNER SHEET (vlasnički list).
-   **Status:** open
+   **Status:** done in v94 (29.9.2026), proved on the emulator.
 2. The owner sheet: from the parcel's number, fetch the land registry (zemljišna knjiga) folio's
-   B list (the owners) from the public source and show it. **Status:** open, source being found
+   B list (the owners) from the public source and show it. **Status:** done in v94. The source is
+   OSS's public land registry (`lr/lr-unit`). Linked parcels open by themselves; where the state has no
+   link (all of Drenova), he types the land-book parcel or the z.k. uložak once, and it is kept.

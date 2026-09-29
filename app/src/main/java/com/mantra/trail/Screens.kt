@@ -245,6 +245,33 @@ fun TrailApp(
             record = answer.getOrNull(),
             problem = answer.exceptionOrNull()?.let { "the owners could not be read: ${it.message ?: it.javaClass.simpleName}" },
         )
+        // THE OWNER SHEET (29.9.2026): the folios the cadastre links to, else the one he found by
+        // hand for this parcel before; asked after the record, so the first two tabs never wait.
+        val record = answer.getOrNull() ?: return
+        val folios = runCatching {
+            ParcelNet.ownerSheets(record).ifEmpty {
+                store.folioLinks[parcel.reference]?.let { (book, unit) -> listOfNotNull(ParcelNet.folio(book, unit)) }.orEmpty()
+            }
+        }
+        if (card?.parcel?.id != parcel.id) return
+        card = card?.copy(
+            folios = folios.getOrNull() ?: emptyList(),
+            folioProblem = folios.exceptionOrNull()?.let { "the land registry could not be read: ${it.message ?: it.javaClass.simpleName}" },
+        )
+    }
+
+    /** He typed a land-book parcel number or a folio number where the state has no link. */
+    suspend fun findFolio(parcel: Parcels.Parcel, municipality: String, number: String, isFolio: Boolean) {
+        card = card?.copy(folios = null, folioProblem = null)
+        val answer = runCatching { ParcelNet.findOwnerSheets(municipality, number, isFolio) }
+        if (card?.parcel?.id != parcel.id) return
+        val found = answer.getOrNull().orEmpty()
+        card = card?.copy(
+            folios = found,
+            folioProblem = answer.exceptionOrNull()?.let { "the land registry could not be read: ${it.message ?: it.javaClass.simpleName}" }
+                ?: if (found.isEmpty()) "the land book of $municipality has no ${if (isFolio) "folio" else "parcel"} $number" else null,
+        )
+        found.firstOrNull()?.let { f -> store.folioLinks = store.folioLinks + (parcel.reference to (f.bookId to f.unit)) }
     }
 
     /**
@@ -575,14 +602,14 @@ fun TrailApp(
                     val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
                         .format(java.util.Date())
                     val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
-                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(Parcels.toText(parcel, shown.record, stamp)))
+                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(Parcels.toText(parcel, shown.record, stamp, shown.folios.orEmpty())))
                     Trail.say("parcel ${parcel.number} copied")
                 },
                 onText = {
                     val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
                         .format(java.util.Date())
                     val parcel = shown.parcel.copy(rings = mark?.rings ?: shown.parcel.rings)
-                    val text = Parcels.toText(parcel, shown.record, stamp)
+                    val text = Parcels.toText(parcel, shown.record, stamp, shown.folios.orEmpty())
                     scope.launch {
                         val (_, said) = withContext(Dispatchers.IO) {
                             Folder.saveText(appContext, store, Parcels.textFileName(parcel), text)
@@ -604,6 +631,14 @@ fun TrailApp(
                     }
                 },
                 defaultColour = parcelColour,
+                onFindFolio = { number, isFolio ->
+                    val ko = shown.record?.municipality.orEmpty()
+                    scope.launch { findFolio(shown.parcel, ko, number, isFolio) }
+                },
+                onForgetFolio = {
+                    store.folioLinks = store.folioLinks - shown.parcel.reference
+                    card = card?.copy(folios = emptyList(), folioProblem = null)
+                },
             )
         }
         if (parcelPanel) {
@@ -2253,6 +2288,7 @@ private fun Label(
     size: Int = 14,
     align: TextAlign = TextAlign.Center,
     modifier: Modifier = Modifier,
+    lines: Int = 2,
 ) {
     Text(
         modifier = modifier,
@@ -2261,7 +2297,7 @@ private fun Label(
         fontSize = size.sp,
         fontFamily = FontFamily.Monospace,
         textAlign = align,
-        maxLines = 2,
+        maxLines = lines,
         overflow = TextOverflow.Ellipsis,
         style = TextStyle(
             shadow = Shadow(color = Paint.Ground, offset = Offset(0f, 1.5f), blurRadius = 5f),
@@ -2276,6 +2312,9 @@ data class ParcelCard(
     val parcel: Parcels.Parcel,
     val record: Parcels.Record? = null,
     val problem: String? = null,
+    /** The owner sheets (vlasnički list); null while the land registry is being asked. */
+    val folios: List<Parcels.Folio>? = null,
+    val folioProblem: String? = null,
 )
 
 /**
@@ -2295,11 +2334,22 @@ private fun ParcelCardView(
     onText: () -> Unit,
     onCopy: () -> Unit,
     onHighlight: (Long?) -> Unit,
+    onFindFolio: (String, Boolean) -> Unit,
+    onForgetFolio: () -> Unit,
 ) {
     val record = card.record
     var filter by remember(card.parcel.reference) { mutableStateOf("") }
-    val rows = remember(record) { record?.let { Parcels.sheetRows(it) }.orEmpty() }
-    val shown = remember(rows, filter) { Parcels.filterRows(rows, filter) }
+    // THE THREE TABS (29.9.2026): land use, possession sheet, owner sheet. The possession sheet
+    // first, as before, since it is what he opens the sheet for most.
+    var tab by remember(card.parcel.reference) { mutableStateOf(Parcels.Tab.POSSESSION) }
+    val folios = card.folios.orEmpty()
+    val rows = remember(record, folios) {
+        val base = record?.let { Parcels.sheetRows(it) }.orEmpty()
+        // Once a folio is read, its own header says what the bare link said.
+        (if (folios.isEmpty()) base else base.filterNot { it.heading == "LAND REGISTRY" }) + folios.flatMap { Parcels.folioRows(it) }
+    }
+    val inTab = remember(rows, tab) { rows.filter { Parcels.tabOf(it) == tab } }
+    val shown = remember(inTab, filter) { Parcels.filterRows(inTab, filter) }
 
     Column(
         Modifier
@@ -2355,10 +2405,21 @@ private fun ParcelCardView(
                 )
             }
             if (filter.isNotEmpty()) {
-                Label("${shown.size} of ${rows.size}", Paint.Dim, size = 12)
+                Label("${shown.size} of ${inTab.size}", Paint.Dim, size = 12)
                 IconAction(R.drawable.ic_close, null, onClick = { filter = "" }, tint = Paint.Dim)
             }
         }
+        // THE TABS: one choice bar, the language's CHOICE; a filter's matches counted on each.
+        val tabs = Parcels.Tab.values()
+        Choice(
+            parts = tabs.map { t ->
+                val n = if (filter.isEmpty()) null else Parcels.filterRows(rows.filter { Parcels.tabOf(it) == t }, filter).size
+                Part(word = t.word + (n?.let { " $it" } ?: ""))
+            },
+            chosen = tab.ordinal,
+            onChoose = { tab = tabs[it] },
+            modifier = Modifier.fillMaxWidth(),
+        )
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -2372,14 +2433,27 @@ private fun ParcelCardView(
                             Spacer(Modifier.height(6.dp))
                             Label(r.heading, Paint.Amber, size = 12, align = TextAlign.Start)
                         }
+                        // The land registry's entries are legal sentences; they are read whole (29.9.2026).
+                        val lines = if (tab == Parcels.Tab.OWNER) 40 else 2
                         Row(Modifier.fillMaxWidth()) {
-                            Label(r.main, Paint.Sand, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                            Label(r.main, Paint.Sand, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f), lines = lines)
                             if (r.side.isNotBlank()) Label(r.side, Paint.AmberBright, size = 14)
                         }
-                        if (r.under.isNotBlank()) Label(r.under, Paint.Dim, size = 12, align = TextAlign.Start)
+                        if (r.under.isNotBlank()) Label(r.under, Paint.Dim, size = 12, align = TextAlign.Start, lines = lines)
                     }
-                    if (rows.isEmpty()) Label("no possessors listed", Paint.Dim, size = 13, align = TextAlign.Start)
-                    else if (shown.isEmpty()) Label("nothing on this sheet matches \"$filter\"", Paint.Dim, size = 13, align = TextAlign.Start)
+                    if (tab == Parcels.Tab.OWNER) {
+                        when {
+                            card.folios == null -> Label("asking the land registry for the owners…", Paint.Dim, size = 13, align = TextAlign.Start)
+                            folios.isEmpty() -> FolioFinder(record, card.folioProblem, onFindFolio)
+                            else -> card.folioProblem?.let { Label(it, Paint.Red, size = 13, align = TextAlign.Start) }
+                        }
+                        // A folio he found by hand can be found again, if the number was the wrong one.
+                        if (folios.isNotEmpty() && record.landBooks.isEmpty()) {
+                            Action("another number", R.drawable.ic_search, onClick = onForgetFolio, quiet = true)
+                        }
+                    }
+                    if (inTab.isEmpty() && tab != Parcels.Tab.OWNER) Label("nothing listed", Paint.Dim, size = 13, align = TextAlign.Start)
+                    else if (inTab.isNotEmpty() && shown.isEmpty()) Label("nothing on this sheet matches \"$filter\"", Paint.Dim, size = 13, align = TextAlign.Start)
                 }
                 card.problem != null -> Label(card.problem, Paint.Red, size = 13, align = TextAlign.Start)
                 else -> Label("asking the cadastre for the owners…", Paint.Dim, size = 13, align = TextAlign.Start)
@@ -2408,6 +2482,60 @@ private fun ParcelCardView(
                 }
             }
         }
+    }
+}
+
+/**
+ * WHERE THE STATE LINKS NO FOLIO (29.9.2026). In Drenova, and wherever the cadastre was measured
+ * anew, the land book still keeps the old parcel numbers and the record names no folio. Then he
+ * types the land book's own parcel number (from an old deed or an extract) or the folio's number
+ * (z.k. uložak), and the book is found by the municipality's name. What he finds is kept.
+ */
+@Composable
+private fun FolioFinder(record: Parcels.Record, problem: String?, onFind: (String, Boolean) -> Unit) {
+    var number by remember(record.number) { mutableStateOf("") }
+    var byFolio by remember(record.number) { mutableStateOf(false) }
+    val go = { number.trim().takeIf { it.isNotEmpty() }?.let { onFind(it, byFolio) } }
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Label(
+            "The cadastre links no land-registry folio to ${record.number}: the land book of " +
+                "${record.municipality} keeps its own, older numbers. Type one of them.",
+            Paint.Sand, size = 13, align = TextAlign.Start, lines = 6,
+        )
+        problem?.let { Label(it, Paint.Red, size = 13, align = TextAlign.Start) }
+        Choice(
+            parts = listOf(Part("land-book parcel"), Part("z.k. uložak")),
+            chosen = if (byFolio) 1 else 0,
+            onChoose = { byFolio = it == 1 },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Paint.Card)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                if (number.isEmpty()) Label(if (byFolio) "1243" else "370/1", Paint.Dim, size = 15, align = TextAlign.Start)
+                BasicTextField(
+                    value = number,
+                    onValueChange = { number = it.filter { c -> c.isDigit() || c == '/' }.take(12) },
+                    singleLine = true,
+                    textStyle = TextStyle(color = Paint.Sand, fontSize = 17.sp, fontFamily = FontFamily.Monospace),
+                    cursorBrush = SolidColor(Paint.AmberBright),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                        imeAction = androidx.compose.ui.text.input.ImeAction.Search,
+                    ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+        Action("find the owners", R.drawable.ic_search, onClick = { go() }, enabled = number.isNotBlank(), modifier = Modifier.fillMaxWidth())
     }
 }
 

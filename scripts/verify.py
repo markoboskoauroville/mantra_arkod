@@ -1009,7 +1009,13 @@ check("the sheet and the K panel hold their touches, nothing reaches the map ben
       "Screens.kt examined")
 
 check("the sheet is the whole screen, with a filter",
-      "Parcels.filterRows(rows, filter)" in screens_src and "R.drawable.ic_filter" in screens_src,
+      "Parcels.filterRows(inTab, filter)" in screens_src and "R.drawable.ic_filter" in screens_src,
+      "Screens.kt examined")
+# THE OWNER SHEET (29.9.2026): three tabs, and the land registry's folio, linked or found by hand.
+check("the sheet has three tabs: land use, possession, owner (vlasnički list)",
+      "Parcels.Tab.values()" in screens_src and "Parcels.folioRows(" in screens_src
+      and "ParcelNet.ownerSheets(" in screens_src and "ParcelNet.findOwnerSheets(" in screens_src
+      and "fun FolioFinder(" in screens_src and "store.folioLinks" in screens_src,
       "Screens.kt examined")
 check("the K search has its dropdown: number, owner's sheet, street",
       "enum class SearchBy" in screens_src and "DropdownMenu(" in screens_src and "ParcelNet.ossSearch(" in screens_src,

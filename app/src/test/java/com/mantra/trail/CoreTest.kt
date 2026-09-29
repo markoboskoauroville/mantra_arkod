@@ -1726,4 +1726,74 @@ class CoreTest {
             "--------------------------------------------\n"
         assertEquals("1354", Parcels.zoningIdFromInfo(text))
     }
+
+    // --- the owner sheet, the land registry (29.9.2026) -----------------------------------------
+
+    /** Folio 1500, k.o. Drenova, as the land registry sent it on 29.9.2026, cut to two shares. */
+    private val folio1500 = """[{"lrUnitId":1,"lrUnitNumber":"1500","mainBookId":32218,"mainBookName":"DRENOVA",
+        "institutionName":"Zemljišnoknjižni odjel Rijeka","lrUnitTypeName":"VLASNIČKI","lastDiaryNumber":"Z-8817/2024",
+        "activePlumbs":[],
+        "ownershipSheetB":{"lrUnitShares":[
+          {"description":"2. Suvlasnički dio: 1/3","lrOwners":[{"name":"LIVAJA DRAGICA ","address":"Brune Francetića 17, Rijeka",
+            "lrEntry":{"description":"Zaprimljeno 20.03.2024.g. pod brojem Z-7547/2024<br><br>UKNJIŽBA, PRAVO VLASNIŠTVA","orderNumber":"2.2"}}],
+           "subSharesAndEntries":[{"description":"ZABILJEŽBA, DOŽIVOTNO UZDRŽAVANJE","orderNumber":"2.3"}],"orderNumber":"2"},
+          {"description":"3. Suvlasnički dio: 1/3","lrOwners":[{"name":"LIVAJA ZORAN"}],"subSharesAndEntries":[],"orderNumber":"3"}],
+          "lrEntries":[]},
+        "possessionSheetA1":{"lrParcels":[{"parcelNumber":"115","address":"ORANICA","areaInHvat":"44"},
+          {"parcelNumber":"1170/4","address":"CESTE","area":"26"}]},
+        "encumbranceSheetC":{"lrEntryGroups":[{"description":"1. ","lrEntries":[{"description":
+          "<span class='lr-entry-black' >Primljeno, 25. lipnja 1974. Z-1754/74<br><br>služnost prolaza</span>","orderNumber":"1.1"}]}]}}]"""
+
+    @Test fun theOwnerSheetIsReadWithItsSharesOwnersAndBurdens() {
+        val f = Parcels.parseFolio(folio1500)!!
+        assertEquals("1500", f.unit)
+        assertEquals("32218", f.bookId)
+        assertEquals("DRENOVA", f.book)
+        assertEquals(2, f.shares.size)
+        assertEquals("1/3", Parcels.shareOf(f.shares[0].title))
+        assertEquals("LIVAJA DRAGICA", f.shares[0].owners[0].name)
+        assertEquals("2.2  Zaprimljeno 20.03.2024.g. pod brojem Z-7547/2024 · UKNJIŽBA, PRAVO VLASNIŠTVA", f.shares[0].entries[0])
+        assertEquals("2.3  ZABILJEŽBA, DOŽIVOTNO UZDRŽAVANJE", f.shares[0].entries[1])
+        assertEquals(listOf("1.1  Primljeno, 25. lipnja 1974. Z-1754/74 · služnost prolaza"), f.burdens)
+        assertEquals(listOf("115  ORANICA  44 čhv", "1170/4  CESTE  26 m²"), f.parcels)
+    }
+
+    @Test fun aFolioThatIsNotThereIsNullNotACrash() {
+        assertNull(Parcels.parseFolio("[]"))
+        assertNull(Parcels.parseFolio("""{"status":"NOT_FOUND","statusCode":404}"""))
+        assertEquals(emptyList<String>(), Parcels.parseFolioNumbers("""{"status":"NOT_FOUND"}"""))
+        assertEquals(listOf("1243"), Parcels.parseFolioNumbers("""[{"lrUnitNumber":"1243","mainBookId":32218}]"""))
+    }
+
+    @Test fun theLandBookIsTheOneNamedExactlyAsTheMunicipality() {
+        val json = """[{"key1":"30036","value1":"SLATINSKI DRENOVAC","value2":"ORAHOVICA"},
+            {"key1":"32218","value1":"DRENOVA","value2":"RIJEKA"}]"""
+        assertEquals(listOf(Parcels.Book("32218", "DRENOVA", "RIJEKA")), Parcels.parseBooks(json, "Drenova"))
+        assertTrue(Parcels.foliosByParcelUrl("32218", "370/1").contains("parcelNumber=370%2F1"))
+        assertTrue(Parcels.folioUrl("32218", "1243").contains("lrUnitNumber=1243&mainBookId=32218"))
+    }
+
+    @Test fun theOwnerSheetRowsGoToTheThirdTabAndTheFilterFindsThem() {
+        val rows = Parcels.folioRows(Parcels.parseFolio(folio1500)!!)
+        assertTrue(rows.all { Parcels.tabOf(it) == Parcels.Tab.OWNER })
+        val owners = rows.filter { it.main.startsWith("LIVAJA") }
+        assertEquals(listOf("1/3", "1/3"), owners.map { it.side })
+        assertEquals(1, Parcels.filterRows(rows, "zoran").count { it.main == "LIVAJA ZORAN" })
+        assertEquals(Parcels.Tab.USE, Parcels.tabOf(Parcels.SheetRow("LAND USE", "x")))
+        assertEquals(Parcels.Tab.POSSESSION, Parcels.tabOf(Parcels.SheetRow("POSSESSION SHEET 1615", "x")))
+        assertEquals(Parcels.Tab.OWNER, Parcels.tabOf(Parcels.SheetRow("LAND REGISTRY", "x")))
+    }
+
+    @Test fun aFolioFoundByHandIsKeptPerParcel() {
+        val links = mapOf("324523-3700/11" to ("32218" to "1243"))
+        assertEquals(links, Parcels.decodeLinks(Parcels.encodeLinks(links)))
+        assertEquals(emptyMap<String, Pair<String, String>>(), Parcels.decodeLinks(""))
+    }
+
+    @Test fun theTextFileCarriesTheOwnerSheet() {
+        val p = Parcels.Parcel(1, "3700/11", "324523-3700/11", 3071, emptyList())
+        val text = Parcels.toText(p, null, "29.9.2026", listOf(Parcels.parseFolio(folio1500)!!))
+        assertTrue(text.contains("OWNER SHEET (vlasnički list), z.k. uložak 1500, k.o. DRENOVA"))
+        assertTrue(text.contains("LIVAJA ZORAN"))
+    }
 }

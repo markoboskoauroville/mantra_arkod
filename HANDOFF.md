@@ -95,6 +95,20 @@ opens, with no signal; the owners and the lines themselves need the network.
 **Google's map** has a round search field at the top (Places, his key), shown unless "Search bar on
 Google's map" in settings hides it. The sheet and the K panel swallow every touch on them.
 
+## THE OWNER SHEET, VLASNIČKI LIST (v94, 29.9.2026)
+
+The sheet has **three tabs**: *land use*, *possession* (the cadastre's posjedovni list, who uses it)
+and *owner* (the land registry's vlasnički list, who owns it in law). The owner tab reads the folio
+(z.k. uložak) from OSS's public land registry, no key, 0.3 s: sheet B (shares, owners, addresses, the
+entry that made each an owner), sheet C (encumbrances, in full) and the folio's own parcels.
+
+The bridge is the cadastral record's link (`lrUnitsFromParcelLinks`). **Where the cadastre was
+surveyed anew and the land book kept the old numbers (all of Drenova, Rijeka: not one parcel linked,
+measured 29.9.2026), the state publishes no link.** There the tab says so and takes the land book's
+own parcel number or the folio number; the book is found by the municipality's name
+(`search-lr-parcels/main-books`), and what he finds is kept per parcel (`Store.folioLinks`), with
+"another number" to change it. Endpoints: `lr/lr-unit`, `lr-units/by-parcel-number`, in `Parcels.kt`.
+
 ## THE LANGUAGE IT SPEAKS (v91–v93, 27.9.2026)
 
 Mantra Trail is where the **TRAIL** language of the Mantra Design Language was born. The rules live in

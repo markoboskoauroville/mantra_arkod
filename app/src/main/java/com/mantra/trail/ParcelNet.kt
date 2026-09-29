@@ -41,6 +41,39 @@ object ParcelNet {
         Parcels.parseRecord(get(Parcels.recordUrl(parcelId)))
     }
 
+    /** Like [get], but a refusal is null: the land registry answers 404 for a number it lacks. */
+    private fun soft(url: String): String? = runCatching { get(url) }.getOrNull()
+
+    /** One land-registry folio, sheets A, B and C; null when the book has no such folio. */
+    suspend fun folio(bookId: String, unit: String): Parcels.Folio? = withContext(Dispatchers.IO) {
+        soft(Parcels.folioUrl(bookId, unit))?.let { Parcels.parseFolio(it) }
+    }
+
+    /** THE OWNER SHEETS THE CADASTRE LINKS TO (29.9.2026): every folio its record names, each once. */
+    suspend fun ownerSheets(record: Parcels.Record): List<Parcels.Folio> = withContext(Dispatchers.IO) {
+        record.landBooks.filter { it.bookId.isNotBlank() && it.unit.isNotBlank() }
+            .distinctBy { it.bookId to it.unit }
+            .mapNotNull { folio(it.bookId, it.unit) }
+    }
+
+    /**
+     * WHERE THE STATE HAS NO LINK (29.9.2026): the land book found by the municipality's name, then
+     * the number he typed, as the folio's own number or as a land-book parcel number. Every book of
+     * that name is tried; the first that answers is the one.
+     */
+    suspend fun findOwnerSheets(municipality: String, number: String, isFolio: Boolean): List<Parcels.Folio> =
+        withContext(Dispatchers.IO) {
+            val books = Parcels.parseBooks(get(Parcels.booksUrl(municipality)), municipality)
+            if (books.isEmpty()) throw Refused("no land book is named $municipality")
+            for (book in books) {
+                val units = if (isFolio) listOf(number)
+                else soft(Parcels.foliosByParcelUrl(book.id, number))?.let { Parcels.parseFolioNumbers(it) }.orEmpty()
+                val found = units.distinct().mapNotNull { folio(book.id, it) }
+                if (found.isNotEmpty()) return@withContext found.map { it.copy(bookId = book.id) }
+            }
+            emptyList()
+        }
+
     /** The cadastral municipality under the middle of the screen: ("334723", "KUKLJICA"). */
     suspend fun municipality(lat: Double, lon: Double): Pair<String, String>? = withContext(Dispatchers.IO) {
         Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning")))

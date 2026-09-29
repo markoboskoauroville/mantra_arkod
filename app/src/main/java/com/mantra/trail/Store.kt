@@ -241,6 +241,14 @@ class Store(context: Context) {
         get() = prefs.getLong(KEY_PARCEL_COLOUR, 0xFFE8A64BL)
         set(v) = prefs.edit().putLong(KEY_PARCEL_COLOUR, v).apply()
 
+    /**
+     * THE OWNER SHEETS HE FOUND BY HAND (29.9.2026): where the state links no folio to a parcel,
+     * the one he found is kept, cadastral reference to (land book id, folio), and opens by itself.
+     */
+    var folioLinks: Map<String, Pair<String, String>>
+        get() = Parcels.decodeLinks(prefs.getString(KEY_FOLIO_LINKS, "") ?: "")
+        set(v) = prefs.edit().putString(KEY_FOLIO_LINKS, Parcels.encodeLinks(v)).apply()
+
     /** The round search bar over Google's map, shown unless he hides it (27.9.2026). */
     var googleSearchBar: Boolean
         get() = prefs.getBoolean(KEY_GOOGLE_SEARCH, true)
@@ -248,6 +256,7 @@ class Store(context: Context) {
 
     companion object {
         private const val KEY_GOOGLE_SEARCH = "googleSearchBar"
+        private const val KEY_FOLIO_LINKS = "folioLinks"
         private const val KEY_CADASTRE = "cadastreOn"
         private const val KEY_PARCEL_MARKS = "parcelMarks"
         private const val KEY_PARCEL_COLOUR = "parcelColour"

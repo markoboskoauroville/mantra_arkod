@@ -275,7 +275,7 @@ object Parcels {
     data class Use(val name: String, val areaM2: String, val sheet: String)
 
     /** A land-registry unit the parcel is entered in: where its legal owners are written. */
-    data class LandBook(val unit: String, val book: String, val office: String, val kind: String)
+    data class LandBook(val unit: String, val book: String, val office: String, val kind: String, val bookId: String = "")
 
     data class Record(
         val number: String,
@@ -317,9 +317,165 @@ object Parcels {
             landBooks = (0 until books.length()).mapNotNull { i ->
                 val b = books.optJSONObject(i) ?: return@mapNotNull null
                 LandBook(b.optString("lrUnitNumber"), b.optString("mainBookName"),
-                    b.optString("institutionName"), b.optString("lrUnitTypeName"))
+                    b.optString("institutionName"), b.optString("lrUnitTypeName"), b.optString("mainBookId"))
             },
         )
+    }
+
+    // --- the land registry: the owner sheet (vlasnički list), 29.9.2026 -------------------------
+
+    /*
+     * Marko, 29.9.2026: *"beside Posjedovni list, we need to have Vlasnički list ... one data needs
+     * to go to the other site and then get the data back."* Two registers say who has a parcel. The
+     * cadastre's possession sheet (posjedovni list) says who USES it; the land registry's folio
+     * (zemljišnoknjižni uložak), sheet B, says who OWNS it, in law. Both are in OSS, public, no key:
+     *
+     *   lr/lr-unit?lrUnitNumber&mainBookId      the whole folio: A (its parcels), B (the owners,
+     *                                           their shares, the entry that made them owners),
+     *                                           C (encumbrances: mortgages, easements). 0.3 s.
+     *   lr-units/by-parcel-number               the folio a LAND-BOOK parcel number is in.
+     *   search-lr-parcels/main-books?search     the land book (glavna knjiga) by its name.
+     *
+     * The bridge is the cadastral record's own link (lrUnitsFromParcelLinks). Where the cadastre was
+     * surveyed anew and the land book kept the old numbers (all of Drenova, Rijeka: measured
+     * 29.9.2026, not one parcel linked), the state has no public link; there he types the land
+     * book's own parcel number or the folio's number, and the book is found by the municipality's name.
+     */
+
+    const val LR = "https://oss.uredjenazemlja.hr/oss/public"
+
+    fun folioUrl(bookId: String, unit: String): String =
+        "$LR/lr/lr-unit?lrUnitNumber=" + URLEncoder.encode(unit, "UTF-8") +
+            "&mainBookId=" + URLEncoder.encode(bookId, "UTF-8") + "&historicalOverview=false"
+
+    fun foliosByParcelUrl(bookId: String, number: String): String =
+        "$LR/lr-units/by-parcel-number?mainBookId=" + URLEncoder.encode(bookId, "UTF-8") +
+            "&parcelNumber=" + URLEncoder.encode(number, "UTF-8") + "&lrUnitNumber="
+
+    fun booksUrl(name: String): String =
+        "$LR/search-lr-parcels/main-books?search=" + URLEncoder.encode(name, "UTF-8")
+
+    /** A land book, found by name: its id, and the court office that keeps it. */
+    data class Book(val id: String, val name: String, val office: String)
+
+    /** The books named exactly as the cadastral municipality; the search also offers "DRENOVAC". */
+    fun parseBooks(json: String, name: String): List<Book> {
+        val a = JSONArray(json)
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }
+            .filter { it.optString("value1").equals(name.trim(), ignoreCase = true) }
+            .map { Book(it.optString("key1"), it.optString("value1"), it.optString("value2")) }
+    }
+
+    /** The folio numbers a land-book parcel number is entered in. */
+    fun parseFolioNumbers(json: String): List<String> {
+        val t = json.trim()
+        if (!t.startsWith("[")) return emptyList()   // {"status":"NOT_FOUND",...}
+        val a = JSONArray(t)
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("lrUnitNumber")?.takeIf { n -> n.isNotBlank() } }
+    }
+
+    /** One share of the folio: "2. Suvlasnički dio: 1/3", who holds it, and what was written on it. */
+    data class Share(val title: String, val owners: List<Owner>, val entries: List<String>)
+
+    data class Folio(
+        val unit: String,
+        val book: String,
+        val office: String,
+        val kind: String,
+        val lastDiary: String,
+        val pending: Int,
+        val shares: List<Share>,
+        val parcels: List<String>,
+        val burdens: List<String>,
+        val bookId: String = "",
+    )
+
+    /** The land registry writes its entries as HTML; a line is enough on a phone. */
+    fun plain(html: String): String =
+        html.replace(Regex("(?i)<br\\s*/?>"), " · ")
+            .replace(Regex("<[^>]+>"), "")
+            .replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", "\"").replace("&lt;", "<").replace("&gt;", ">")
+            .replace(Regex("(\\s*·\\s*)+"), " · ")
+            .replace(Regex("\\s+"), " ")
+            .trim().trim('·').trim()
+
+    fun parseFolio(json: String): Folio? {
+        val t = json.trim()
+        val o = when {
+            t.startsWith("[") -> JSONArray(t).optJSONObject(0)
+            t.startsWith("{") -> JSONObject(t).takeIf { it.has("lrUnitNumber") }
+            else -> null
+        } ?: return null
+        val b = o.optJSONObject("ownershipSheetB")
+        val shares = b?.optJSONArray("lrUnitShares") ?: JSONArray()
+        val a1 = o.optJSONObject("possessionSheetA1")?.optJSONArray("lrParcels") ?: JSONArray()
+        val groups = o.optJSONObject("encumbranceSheetC")?.optJSONArray("lrEntryGroups") ?: JSONArray()
+        fun entries(arr: JSONArray?): List<String> = if (arr == null) emptyList() else
+            (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }
+                .map { e -> listOf(e.optString("orderNumber"), plain(e.optString("description"))).filter { it.isNotBlank() }.joinToString("  ") }
+                .filter { it.isNotBlank() }
+        return Folio(
+            bookId = o.optString("mainBookId"),
+            unit = o.optString("lrUnitNumber"),
+            book = o.optString("mainBookName"),
+            office = o.optString("institutionName"),
+            kind = o.optString("lrUnitTypeName"),
+            lastDiary = o.optString("lastDiaryNumber").takeUnless { it == "null" }.orEmpty(),
+            pending = o.optJSONArray("activePlumbs")?.length() ?: 0,
+            shares = (0 until shares.length()).mapNotNull { shares.optJSONObject(it) }.map { s ->
+                val people = s.optJSONArray("lrOwners") ?: JSONArray()
+                val owners = (0 until people.length()).mapNotNull { people.optJSONObject(it) }.map { w ->
+                    Owner(w.optString("name").trim(), "", w.optString("address").trim())
+                }
+                val basis = (0 until people.length()).mapNotNull { people.optJSONObject(it)?.optJSONObject("lrEntry") }
+                    .map { e -> listOf(e.optString("orderNumber"), plain(e.optString("description"))).filter { it.isNotBlank() }.joinToString("  ") }
+                Share(plain(s.optString("description")), owners, (basis + entries(s.optJSONArray("subSharesAndEntries"))).distinct())
+            } + entries(b?.optJSONArray("lrEntries")).map { Share("", emptyList(), listOf(it)) },
+            parcels = (0 until a1.length()).mapNotNull { a1.optJSONObject(it) }.map { p ->
+                val area = p.optString("area").ifBlank { p.optString("areaInHvat").takeIf { it.isNotBlank() }?.let { "$it čhv" }.orEmpty() }
+                listOf(p.optString("parcelNumber"), p.optString("address"), if (area.isNotBlank() && !area.endsWith("čhv")) "$area m²" else area)
+                    .filter { it.isNotBlank() }.joinToString("  ")
+            },
+            burdens = (0 until groups.length()).mapNotNull { groups.optJSONObject(it) }.flatMap { entries(it.optJSONArray("lrEntries")) },
+        )
+    }
+
+    /** "1. Vlasnički dio: 1/1" → ("1/1"); the share alone, for the right-hand column. */
+    fun shareOf(title: String): String = title.substringAfterLast(':', "").trim()
+
+    /** The owner sheet as rows, the same rows as the rest of the sheet, so the one filter works on it. */
+    fun folioRows(f: Folio): List<SheetRow> = buildList {
+        val head = "OWNER SHEET · z.k. uložak ${f.unit}"
+        add(SheetRow(head, "k.o. ${f.book} · ${f.kind.lowercase()}", "", f.office +
+            (if (f.lastDiary.isNotBlank()) " · last entry ${f.lastDiary}" else "")))
+        if (f.pending > 0) add(SheetRow(head, "⚠ ${f.pending} change(s) pending (plomba)", ""))
+        f.shares.forEach { s ->
+            if (s.owners.isEmpty()) s.entries.forEach { add(SheetRow(head, s.title.ifBlank { "entry" }, "", it)) }
+            s.owners.forEachIndexed { i, o ->
+                val under = listOf(o.address, if (i == s.owners.lastIndex) s.entries.joinToString(" | ") else "")
+                    .filter { it.isNotBlank() }.joinToString(" · ")
+                add(SheetRow(head, o.name, if (i == 0) shareOf(s.title) else "", under))
+            }
+        }
+        if (f.burdens.isNotEmpty()) f.burdens.forEach { add(SheetRow("ENCUMBRANCES · uložak ${f.unit}", it)) }
+        else add(SheetRow("ENCUMBRANCES · uložak ${f.unit}", "none written", ""))
+        f.parcels.forEach { add(SheetRow("LAND-BOOK PARCELS · uložak ${f.unit}", it)) }
+    }
+
+    fun folioText(f: Folio): String = buildString {
+        appendLine("OWNER SHEET (vlasnički list), z.k. uložak ${f.unit}, k.o. ${f.book}, ${f.kind}")
+        appendLine("  ${f.office}" + if (f.lastDiary.isNotBlank()) ", last entry ${f.lastDiary}" else "")
+        if (f.pending > 0) appendLine("  ${f.pending} change(s) pending (plomba)")
+        f.shares.forEach { s ->
+            if (s.title.isNotBlank()) appendLine("  ${s.title}")
+            s.owners.forEach { o -> appendLine("    ${o.name}" + if (o.address.isNotBlank()) ", ${o.address}" else "") }
+            s.entries.forEach { appendLine("      $it") }
+        }
+        appendLine("ENCUMBRANCES (teretni list)")
+        if (f.burdens.isEmpty()) appendLine("  none written")
+        f.burdens.forEach { appendLine("  $it") }
+        appendLine("LAND-BOOK PARCELS")
+        f.parcels.forEach { appendLine("  $it") }
     }
 
     /**
@@ -327,7 +483,7 @@ object Parcels {
      * with parcel number and all the data inside."* Plain lines a person can read and a program can
      * split, everything the card shows and the outline's corners.
      */
-    fun toText(parcel: Parcel, record: Record?, madeAt: String): String = buildString {
+    fun toText(parcel: Parcel, record: Record?, madeAt: String, folios: List<Folio> = emptyList()): String = buildString {
         appendLine("PARCEL ${parcel.number}")
         appendLine("cadastral reference: ${parcel.reference}")
         if (record != null) {
@@ -355,6 +511,7 @@ object Parcels {
             appendLine("area: ${areaLabel(parcel.areaM2)}")
             appendLine("(the record could not be read when this was saved)")
         }
+        folios.forEach { appendLine(); append(folioText(it)) }
         val ring = parcel.rings.firstOrNull().orEmpty()
         if (ring.isNotEmpty()) {
             appendLine()
@@ -383,6 +540,18 @@ object Parcels {
             // omjerima" beside it squeezed "z.k. uložak 36131" to "z.k. uloža…" (27.9.2026).
             add(SheetRow("LAND REGISTRY", "z.k. uložak ${it.unit} · k.o. ${it.book}", "", "${it.kind.lowercase()} · ${it.office}"))
         }
+    }
+
+    /**
+     * THE THREE TABS (29.9.2026): *"one tab is land use, second tab possession sheet ... [third]
+     * owner sheet, vlasnički list."* Which tab a row belongs to, by its heading.
+     */
+    enum class Tab(val word: String) { USE("land use"), POSSESSION("possession"), OWNER("owner") }
+
+    fun tabOf(row: SheetRow): Tab = when {
+        row.heading.startsWith("LAND USE") -> Tab.USE
+        row.heading.startsWith("POSSESSION") -> Tab.POSSESSION
+        else -> Tab.OWNER
     }
 
     /** The rows a filter lets through; a heading's own words let its whole group through. */
@@ -438,6 +607,16 @@ object Parcels {
         val grouped = m2.toString().reversed().chunked(3).joinToString(" ").reversed()
         return "$grouped m²"
     }
+
+    /** "334523-3700/11|32218|1243": a folio he found by hand for a parcel the state does not link. */
+    fun encodeLinks(links: Map<String, Pair<String, String>>): String =
+        links.entries.joinToString("\n") { "${it.key.replace("|", "")}|${it.value.first}|${it.value.second}" }
+
+    fun decodeLinks(text: String): Map<String, Pair<String, String>> =
+        text.split("\n").mapNotNull { line ->
+            val f = line.split("|")
+            if (f.size == 3 && f.all { it.isNotBlank() }) f[0] to (f[1] to f[2]) else null
+        }.toMap()
 
     // --- what he marked --------------------------------------------------------------------------
 

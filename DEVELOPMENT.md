@@ -254,3 +254,17 @@ a choice, "Keep the screen" the solid action with its cost at the edge, download
 their size), the places face (the same many-answer search as Google's field, the same list), and
 the name box (discard quiet and red, OK solid; his two words kept). Three icons added: edit, eye,
 eye_off (33). Seven more old checks carried over to the new form, none deleted.
+
+## 29.9.2026 — v94, the owner sheet (vlasnički list) in a third tab
+
+His words: *"beside Posjedovni list, we need to have Vlasnički list ... one data needs to go to the
+other site and then get the data back."* The land registry's public endpoints were read out of
+OSS's own web app (its Angular bundle): `lr/lr-unit` gives the whole folio, A, B and C, in 0.3 s with
+no captcha. Kukljica's parcels carry the link to their folio; Drenova's carry none (every parcel
+sampled), because Rijeka's cadastre is a new survey and the land book keeps the old numbers, and
+the state's identification of one to the other is a paid request, not a public service. So a
+parcel with no link takes the land-book parcel or folio number by hand, and remembers it.
+Proved on the Pixel 7 emulator in portrait: 3700/11 Drenova (no link → 370/1 typed → folio 1243,
+PALJAN IVAN 1/1, the 1974 easement in full; reopened after a restart, it came by itself) and 2450
+Kukljica (folio 1817, REPUBLIKA HRVATSKA 1/1, automatically). Test 1: 216, 0 failed; verify.py 279.
+
