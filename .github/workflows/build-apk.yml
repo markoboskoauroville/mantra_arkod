@@ -8,7 +8,7 @@
 # secrets over the whole history, the structural checks, the loops counted, Test 1, the built APK
 # scanned, the three numbers compared, then publish and keep two.
 
-name: Build Mantra Trail
+name: Build Mantra ARKOD
 
 on:
   workflow_dispatch:
@@ -95,36 +95,27 @@ jobs:
       - name: "Gate G5 — loops and waits, counted"
         run: |
           set -uo pipefail
-          SRC=app/src/main/java/com/mantra/trail
+          SRC=app/src/main/java/com/mantra/arkod
           echo "source files examined:"; find "$SRC" -name '*.kt' | sed 's/^/  /'
           nocount() { "$@" || true; }
           notcomment() { grep -v ':[[:space:]]*\(//\|\*\)' || true; }
           LOOPS=$( nocount grep -rnE '(while|for|repeat)[[:space:]]*[({]' --include='*.kt' "$SRC" | wc -l)
           UNBOUNDED=$( nocount grep -rnF 'while (true)' --include='*.kt' "$SRC" | notcomment | wc -l)
           echo "loops examined:         $LOOPS"
-          # FIVE, AND EVERY BOUND IS NAMED. Raising this number is a decision, never a reflex,
-          # and the name is the decision:
-          #   1  the settings face's instruments — a LaunchedEffect; dies with the composition
-          #   2  the map screen's zoom reader — the same bound
-          #   3  the network sampler — the same bound
-          #   4  MapDownload's read loop — the end of the stream, and the socket's read timeout,
-          #      which is what stops a server that accepts and then goes quiet
-          #   5  GpxRead's scan — bounded by the text: every turn moves searchFrom past the match
-          #      it just made, and the loop leaves when there is no next match
-          #   6  SegmentDownload's read loop — the end of the stream, and the socket's own read
-          #      timeout, which is what stops a server that accepts and then goes quiet
-          #   7  the heading reader that turns the light in front of the position — a
-          #      LaunchedEffect; dies with the composition
-          #   8  OamDownload's read loop — the end of the stream, and the socket's read timeout
-          #   9  OamDownload's walk through the zip's entries — bounded by the archive: every turn
-          #      takes the next entry and the loop leaves when there is no next one
-          #  10  Polyline's bit reader — bounded by the string and by the shift: it leaves at the
-          #      first byte without a continuation bit, at the end of the text, or past 30 bits
-          #  11  swallowTouches, the parcel sheet's and the K panel's touch sink (27.9.2026) — a
-          #      pointerInput block; Compose cancels it when the sheet or panel leaves the screen
+          # SEVEN, AND EVERY BOUND IS NAMED (Mantra ARKOD, 29.9.2026: the routing, OpenAndroMaps and
+          # polyline loops left with their features). Raising this number is a decision, never a
+          # reflex, and the name is the decision:
+          #   1  the map screen's network sampler — a LaunchedEffect; dies with the composition
+          #   2  the map screen's zoom and resting-place reader — the same bound
+          #   3  the heading reader that turns the light in front of the position — the same bound
+          #   4  the compass overlay's heading reader — the same bound
+          #   5  swallowTouches, the sheets' and panels' touch sink — a pointerInput block; Compose
+          #      cancels it when the sheet leaves the screen
+          #   6  GpxRead's scan — bounded by the text: every turn moves past the match it made
+          #   7  MapDownload's read loop — the end of the stream, and the socket's read timeout
           echo "written as while(true): $UNBOUNDED   (every bound is named in the workflow)"
-          [ "$UNBOUNDED" -le 11 ] || { echo "an unbounded loop appeared that nobody has justified"; exit 1; }
-          grep -q "readTimeout" app/src/main/java/com/mantra/trail/MapDownload.kt || { echo "the download loop lost its deadline"; exit 1; }
+          [ "$UNBOUNDED" -le 7 ] || { echo "an unbounded loop appeared that nobody has justified"; exit 1; }
+          grep -q "readTimeout" app/src/main/java/com/mantra/arkod/MapDownload.kt || { echo "the download loop lost its deadline"; exit 1; }
           [ "$LOOPS" -ge 3 ] || { echo "found fewer loops than exist: this check is broken, not the code"; exit 1; }
 
       - name: "Test 1 — the mechanism"
@@ -140,71 +131,55 @@ jobs:
               total += int(r.get("tests", 0)); fails += int(r.get("failures", 0)); errors += int(r.get("errors", 0))
           print(f"result files: {len(files)}   tests run: {total}   failures: {fails}   errors: {errors}")
           if len(files) == 0: sys.exit("no test results at all: the suite did not run")
-          if total < 210: sys.exit(f"expected at least 210 cases, found {total}")
+          if total < 194: sys.exit(f"expected at least 194 cases, found {total}")
           sys.exit(1 if (fails or errors) else 0)
           EOF
 
-      - name: "Gate G2 — only the one key that is locked to this app"
-        env:
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+      - name: "Gate G2 — no key in the source"
         run: |
           set -euo pipefail
-          # REVERSED ON 17.9.2026, WITH THE REASON, and the old rule kept in words.
-          #
-          # The rule was: no service key may enter the build, written after a Google key was
-          # compiled into public APKs v4 to v6 and had to be revoked. It stands for every key
-          # that is not locked down.
-          #
-          # What changed: he asked for Google's own renderer, which is the only way to have their
-          # vector map at their speed, and the Maps SDK reads its key from the manifest — there is
-          # no runtime way to hand it one. So exactly one key may be in the APK, it must be the
-          # one from the repository secret, and that key is restricted in Cloud Console to this
-          # package name and to the fingerprint of the certificate that signs these builds. Pulled
-          # out of the APK it is refused everywhere else; proved on 17.9.2026, when the same key
-          # was answered with 403 "Requests from this Android client application are blocked".
-          #
-          # Anything else key-shaped is still a failure, and the key must never be in the source.
+          # Mantra ARKOD (29.9.2026): no Google key reaches this build in any form. Google's map is
+          # drawn with the key each person makes and enters on the phone.
           grep -rn 'AIza[0-9A-Za-z_-]\{35\}' app/src --include=* && { echo "a key is written in the source"; exit 1; } || true
-          echo "keys in the source: 0; in the manifest: one placeholder, filled from the secret"
+          echo "keys in the source: 0"
 
       - name: Restore the signing key
+        id: signing
         env:
-          KS: ${{ secrets.TRAIL_KEYSTORE }}
-          KS_PW: ${{ secrets.TRAIL_KEYSTORE_PASSWORD }}
+          KS: ${{ secrets.ARKOD_KEYSTORE }}
+          KS_PW: ${{ secrets.ARKOD_KEYSTORE_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "$KS" ]; then echo "No keystore secret. This build would not be upgradable in place."; exit 1; fi
-          echo "$KS" | base64 -d > trail.p12
-          printf 'storeFile=trail.p12\nstorePassword=%s\nkeyAlias=trail\nkeyPassword=%s\n' "$KS_PW" "$KS_PW" > keystore.properties
+          if [ -n "$KS" ]; then
+            echo "$KS" | base64 -d > arkod.p12
+            printf 'storeFile=arkod.p12\nstorePassword=%s\nkeyAlias=arkod\nkeyPassword=%s\n' "$KS_PW" "$KS_PW" > keystore.properties
+            echo "kind=release" >> "$GITHUB_OUTPUT"
+          else
+            # NO KEYSTORE SECRET YET (new repository, 29.9.2026). The build is still made, signed
+            # with a key made for this run alone, so it can be installed and tested; the release
+            # says so, because the next build will not install over it until ARKOD_KEYSTORE exists.
+            echo "::warning::ARKOD_KEYSTORE is not set: this build is signed with a throwaway key and cannot be updated in place."
+            PW=$(openssl rand -hex 16)
+            keytool -genkeypair -keystore arkod.p12 -storetype PKCS12 -alias arkod -keyalg RSA -keysize 2048 \
+              -validity 3650 -storepass "$PW" -keypass "$PW" -dname "CN=Mantra ARKOD test build" >/dev/null
+            printf 'storeFile=arkod.p12\nstorePassword=%s\nkeyAlias=arkod\nkeyPassword=%s\n' "$PW" "$PW" > keystore.properties
+            echo "kind=throwaway" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build the release APK
-        env:
-          # The key Google's own renderer reads from the manifest. It is restricted to this
-          # package and to the signing fingerprint, so what ends up in the APK is useless
-          # anywhere else (17.9.2026).
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
         run: ./gradlew :app:assembleRelease --no-daemon
 
       - name: "Gate G2 — scan the built APK"
-        env:
-          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
           echo "scanning: $APK ($(stat -c%s "$APK") bytes)"
-          # NOTHING IS EXCLUDED FROM THIS SCAN ANY MORE. It used to except the Maps key, which
-          # was "in the artefact by design" — and that design is what put a live key inside a
-          # public APK on 14.9.2026. Zero means zero.
-          # ONE KEY IS EXPECTED NOW (17.9.2026): the Maps SDK's, locked to this package and this
-          # signing certificate. Every other key shape is still a failure, and so is any Google
-          # key that is not the one from the secret.
-          FOUND=$(strings -a "$APK" | grep -oE 'AIza[0-9A-Za-z_-]{35}' | sort -u || true)
-          for K in $FOUND; do
-            if [ "$K" != "$MAPS_API_KEY" ]; then echo "an unexpected Google key is in the APK"; exit 1; fi
-          done
-          echo "Google keys in the APK: $(echo "$FOUND" | grep -c . || true) (the restricted one)"
+          # ZERO MEANS ZERO (Mantra ARKOD, 29.9.2026): no key of any shape, Google's included.
+          GOOGLE=$(strings -a "$APK" | grep -acE 'AIza[0-9A-Za-z_-]{35}' || true)
+          [ "$GOOGLE" = "0" ] || { echo "a Google key is in the APK"; exit 1; }
           OTHERS=$(strings -a "$APK" | grep -acE '(gsk_|ghp_|github_pat_|sk-ant-|xox[baprs]-)[A-Za-z0-9_-]{20,}' || true)
           [ "$OTHERS" = "0" ] || { echo "a key of another shape is in the APK"; exit 1; }
+          echo "keys in the APK: 0"
 
       - name: "Gate G1 — the three numbers agree"
         env:
@@ -225,16 +200,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.provenance.outputs.version }}
+          KIND: ${{ steps.signing.outputs.kind }}
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
-          OUT="${V}-mantra-trail-v${V}.apk"
+          OUT="${V}-mantra-arkod-v${V}.apk"
           cp "$APK" "$OUT"
           if gh release view "v${V}" >/dev/null 2>&1; then
             echo "NOTHING WAS PUBLISHED: release v${V} already exists. Bump appVersion in gradle.properties if the app changed."
             echo "published=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          gh release create "v${V}" "$OUT" --title "Mantra Trail v${V}" --notes "Offline outdoor maps, track recording, compass and level. Build ${GITHUB_RUN_NUMBER} from $(git rev-parse --short HEAD)."
+          NOTE="Katastarske čestice Hrvatske (ARKOD) na tri karte, s posjedovnim i vlasničkim listom, i Moje čestice. Build ${GITHUB_RUN_NUMBER} from $(git rev-parse --short HEAD)."
+          if [ "$KIND" = "throwaway" ]; then NOTE="TEST BUILD, signed with a throwaway key (ARKOD_KEYSTORE not set): uninstall before installing a later build. $NOTE"; fi
+          gh release create "v${V}" "$OUT" --title "Mantra ARKOD v${V}" --notes "$NOTE"
           echo "published=true" >> "$GITHUB_OUTPUT"
           echo "download: https://github.com/${GITHUB_REPOSITORY}/releases/download/v${V}/${OUT}"
           echo "### Download: [${OUT}](https://github.com/${GITHUB_REPOSITORY}/releases/download/v${V}/${OUT})" >> "$GITHUB_STEP_SUMMARY"

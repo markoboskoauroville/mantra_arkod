@@ -268,3 +268,44 @@ Proved on the Pixel 7 emulator in portrait: 3700/11 Drenova (no link → 370/1 t
 PALJAN IVAN 1/1, the 1974 easement in full; reopened after a restart, it came by itself) and 2450
 Kukljica (folio 1817, REPUBLIKA HRVATSKA 1/1, automatically). Test 1: 216, 0 failed; verify.py 279.
 
+
+
+## 29.9.2026 — Mantra ARKOD v1, out of Mantra Trail v94
+
+Marko asked for "Mantra Barcode" (his dictation of ARKOD, his name for the cadastre layer), in
+Croatian, in a repository he then named `manra_arkod`, read as `mantra_arkod`.
+
+**The repository could not be made from the cloud.** The session's GitHub connection answered 403
+to `create_repository`, and its permissions refused a new public repository. The app was built on
+MANTRA_TRAIL's branch `claude/gifted-curie-nbt328` as a whole-tree transformation, so pushing that
+branch as `main` of the new repository is the whole move (TESTING.md step 0).
+
+**Three maps, three keys, one engine.** OpenStreetMap came back (free, online only, the first-run
+map), the offline map became Croatia alone, and Google stayed. The Maps SDK went: it reads its key
+from the manifest, which puts one key into every APK, and he asked that each person make their own
+key from instructions on the screen. The Map Tiles API takes a key at run time and was already in
+the app (`GoogleTiles`), so all three maps are drawn by VTM and the cadastre, the taps and my
+parcels have one code path. The Sentinel imagery and OpenAndroMaps left with the fourth map.
+
+**Routes left whole**: BRouter under btools/, its profiles, segments, Google routes, heights,
+places-as-points and the point key. The track recording stayed ("basically rest is the same").
+
+**The middle of the map is a tap like anywhere else.** The 72 dp target that toggled the bare
+view was removed, and the crosshair is drawn without a click handler, so VTM's own tap reaches
+the parcel under it.
+
+**My parcels are Mantra Trail's highlights, grown up.** The same Mark and the same preference key,
+with a line style and a name added (a five-field line still reads, as dashed and unnamed). Dashed
+by default because the state's lines are never dashed. VTM draws the dash itself (stipple): the
+jar was read with javap first, which showed the dash takes `stippleColor` and the gap takes
+`color`, so the gap is transparent and the map shows through it. Recolouring keeps the parcel's
+place in the list, where Mantra Trail moved it to the end.
+
+**The cadastre is kept.** Mantra Trail fetched every cadastre tile each time it was drawn. Now the
+state's own picture is kept (so either ink can be made from it) and the recoloured copy beside it
+(so a revisit costs one file read); the prefetch fills the ground around where the map rests and
+where he walks. Records and folios are kept too, so a sheet opens on a hillside, dated.
+
+**Test 1 moved to the JVM in the cloud.** Kotlin 2.0.21 with the kotlin-jvm plugin from the
+Gradle plugin portal compiled the eleven Android-free files and CoreTest; Maven Central rate-limited
+the first attempts (429) and answered on the third.

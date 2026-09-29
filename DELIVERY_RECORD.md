@@ -1,3 +1,39 @@
+# Delivery record — Mantra ARKOD v1
+
+    artefact   1-mantra-arkod-v1.apk (not yet built: the repository does not exist yet)
+    built      GitHub Actions, from the commit the release names. Never on a desk.
+
+## MEASURED (29.9.2026, in the cloud session)
+
+    Test 1         194 cases, 0 failures (Kotlin 2.0.21 on the JVM + JUnit 4.13.2, the eleven
+                   files that import nothing from Android). 33 cases left with removed features,
+                   11 new: my parcels' encoding, styles, names, order, middle; hues; swatches; the
+                   prefetch tile list; the ink per map; the Croatia download; the Croatian words.
+    harness        9 cases were red first; all nine were expectations still in English or still
+                   naming the old two maps, and were rewritten, not deleted.
+    verify.py      222 checks, 0 failed. Every Mantra Trail check that guarded a removed feature
+                   was replaced by one guarding its absence or its successor, with the reason.
+    VTM 0.25.0     PathLayer(Map, LineStyle), LineStyle's 19-argument constructor, the stipple
+                   colour as the dash and the line colour as the gap, and Tile.zoomLevel as a
+                   byte were read from the real jar with javap before the code was written.
+
+## NOT TESTED
+
+- **Nothing Android has been compiled.** The cloud cannot reach Google's Maven or the SDK. The
+  first CI run is the first compile of Screens.kt, Settings.kt, MainActivity.kt, VtmCanvas.kt,
+  ParcelNet.kt, ArkodCache.kt and MapDownload.kt.
+- **Nothing has run on a phone or an emulator.** Tests 2 and 3 are in TESTING.md for the local
+  Claude Code; their results come back in TEST_RESULTS.md.
+- **The dashed line has never been seen.** The stipple lengths (12 dashed, 3 dotted) are a guess
+  at VTM's units.
+- **The prefetch's load on the state's WMS was not measured.** About 300 tiles per place, three
+  at a time.
+- **Test 4 does not apply to v1.**
+
+---
+
+# Inherited: the Mantra Trail record, up to v94
+
 # Delivery record — v1
 
     artefact   1-mantra-trail-v1.apk

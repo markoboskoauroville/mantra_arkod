@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MantraTrail"
+rootProject.name = "MantraArkod"
 include(":app")

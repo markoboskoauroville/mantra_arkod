@@ -23,20 +23,17 @@ val keystoreProperties = Properties().apply {
 // for a service key: every key arrives on the phone, from a file he picks (Keys.kt).
 
 android {
-    namespace = "com.mantra.trail"
+    namespace = "com.mantra.arkod"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.mantra.trail"
+        applicationId = "com.mantra.arkod"
         minSdk = 26
         targetSdk = 35
         versionCode = appVersion
         versionName = appVersion.toString()
-        // THE KEY IS NEVER IN THE SOURCE. It arrives from a repository secret at build time, and
-        // it is safe in the APK only because it is locked to this package name and to the
-        // fingerprint of the key that signs it: 4A:2A:FC:93:E8:D8:AC:A3:F1:DB:12:0F:25:12:EB:B9:
-        // 25:D0:48:AB. Extracted from the APK it does nothing for anybody.
-        manifestPlaceholders["MAPS_API_KEY"] = System.getenv("MAPS_API_KEY") ?: ""
+        // NO KEY IN THE BUILD (Mantra ARKOD, 29.9.2026): Google's map is drawn from the Map Tiles
+        // API with the key each person makes and enters on the phone; the screen says how.
     }
 
     signingConfigs {
@@ -64,11 +61,6 @@ android {
 
     // G3: Lint blocking from the first build. Narrow it in the session it cries wolf, never carry it.
     lint {
-        // THE VENDORED ENGINE IS NOT OURS TO RESTYLE (btools/, MIT, abrensch/brouter). Lint still
-        // judges every line we wrote; it simply does not fail the build over the house style of a
-        // library that has been routing people around mountains since 2014.
-        // "ignore" is deprecated and is a synonym for "disable"; the vendored engine is excluded
-        // by path instead, which is the part that actually matters: our own code is still judged.
         ignoreTestSources = false
 
         warningsAsErrors = true
@@ -108,9 +100,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-service:2.8.7")
     implementation("androidx.documentfile:documentfile:1.0.1")
-    // play-services-maps drags in a pre-AndroidX-era fragment, and registerForActivityResult is
-    // unsafe against it (InvalidFragmentVersionForActivityResult, build 3). Naming a modern one
-    // here raises the resolved version rather than turning the check off: the check was right.
+    // A modern fragment, so registerForActivityResult is safe whatever a library drags in
+    // (InvalidFragmentVersionForActivityResult, Mantra Trail build 3).
     implementation("androidx.fragment:fragment-ktx:1.8.5")
 
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
@@ -140,11 +131,8 @@ dependencies {
     // comments — "no https, full header parsing or other stuff" — so every raster tile from
     // Google came back as nothing at all while the routing, which uses Android's own HTTP, worked
     // perfectly. This is the engine VTM ships for exactly that, and OkHttp is what it needs.
-    // GOOGLE'S OWN RENDERER (17.9.2026). The Map Tiles API serves pictures of a map; this is the
-    // map — their vector engine, the one their app is built on, with their labels, their roads and
-    // their speed. It is the only way to have what he asked for, and it is why the key has to be
-    // in the APK: the SDK reads it from the manifest and offers no way to hand it one at runtime.
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    // NO MAPS SDK (Mantra ARKOD, 29.9.2026). It reads its key from the manifest, which would put
+    // one key in every APK; this app draws Google's tiles with VTM and the person's own key.
     implementation("org.mapsforge:vtm-http:0.25.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     runtimeOnly("org.mapsforge:vtm-android:0.25.0:natives-arm64-v8a")

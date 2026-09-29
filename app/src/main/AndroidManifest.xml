@@ -23,7 +23,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MantraTrail">
+        android:theme="@style/Theme.MantraArkod">
 
         <activity
             android:name=".MainActivity"
@@ -41,8 +41,5 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
     </application>
 </manifest>

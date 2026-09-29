@@ -8,12 +8,15 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MAIN = ROOT / "app/src/main/java/com/mantra/trail"
-TESTS = ROOT / "app/src/test/java/com/mantra/trail/CoreTest.kt"
+MAIN = ROOT / "app/src/main/java/com/mantra/arkod"
+TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # Lowered once, on 15.9.2026, and only because a FEATURE left: the bubble level and its twelve
 # cases went with it when he asked for the compass alone. A floor drops when the thing it counted
 # is gone, never because tests were dropped (never-back-to-zero.md).
-TEST_FLOOR = 210
+# Mantra ARKOD, 29.9.2026: 33 cases left with the features they tested (routes, BRouter's
+# segments, OpenAndroMaps, kept imagery, Google's polyline), 11 came with my parcels and the
+# cadastre kept ahead. The floor is what is here, and it ratchets from here.
+TEST_FLOOR = 194
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -121,7 +124,7 @@ check("a layer that cannot draw says why instead of going grey",
       "the reason names the key and where to put it")
 check("the way out of the settings face is at the right-hand end of its top row",
       # 27.9.2026: the ✕ is the close icon now, last in the top row of every face
-      screens.count("IconAction(R.drawable.ic_close, null, onClick = onClose") >= 5,
+      screens.count("IconAction(R.drawable.ic_close, null, onClick = onClose") >= 3,
       "the ✕ in the corner it occupies on every face here")
 
 # 8 the test floor ratchets
@@ -150,9 +153,12 @@ check("every overlay of the map sits inside the safe area", pads >= 3,
       "The bare view has no overlay at all, which is why three is the number.")
 check("the window is told we draw edge to edge ourselves",
       "setDecorFitsSystemWindows(window, false)" in activity, "present")
-check("full screen hides the system bars, and coming back shows them",
-      "hide(WindowInsetsCompat.Type.systemBars())" in activity and
-      "show(WindowInsetsCompat.Type.systemBars())" in activity, "both directions present")
+# REVERSED 29.9.2026 (Mantra ARKOD): "the feature when user clicks in the middle and gets in the
+# full screen, that feature goes out. Clicking in the middle, it's like clicking anywhere else."
+check("there is no bare view: the middle of the map is a tap like anywhere else",
+      "hide(WindowInsetsCompat.Type.systemBars())" not in activity and "onBare" not in screens
+      and "bare = !bare" not in screens,
+      "no full screen, and the crosshair takes no touch")
 # v5 clipped because each key carried a word under its glyph. v6 keys are a glyph alone, so five
 # fit where three did; the ceiling is on WORDS in a row, not on keys.
 key_body = screens.split("private fun RowScope.Key")[1].split("\n}\n")[0]
@@ -161,10 +167,12 @@ check("no key carries a word under its glyph any more",
       f"{key_body.count('Label(')} Label call in the key body: the glyph, and nothing under it")
 # Seven bare glyphs at a 4 dp gap is 48 px each on a 390 px phone, which is still a thumb. The
 # ceiling rose because the keys lost their words, not because the phone got wider.
-control_row = screens.split("horizontalArrangement = Arrangement.spacedBy(4.dp),")[1].split("\n                }")[0]
-row_keys = len(re.findall(r"\b(?:Record|Mark)?Key\(", control_row))
-check("the control row holds at most seven keys", row_keys <= 7,
-      f"{row_keys} keys: seven bare glyphs across a 390 px phone is 48 px each")
+# NINE KEYS SINCE 29.9.2026 (Mantra ARKOD): the three maps each have their own, "not as a toggle",
+# and my parcels one. Nine at a 2 dp gap is 41 dp each on a 390 dp phone, still a thumb.
+control_row = screens.split("horizontalArrangement = Arrangement.spacedBy(2.dp),")[1].split("\n            }\n        }")[0]
+row_keys = len(re.findall(r"\b(?:Record|Mark|Map)?Key\(", control_row))
+check("the control row holds at most nine keys", row_keys <= 9,
+      f"{row_keys} keys: nine across a 390 dp phone is 41 dp each")
 
 # CH caches what is on the view, and never Google's tiles
 
@@ -180,8 +188,12 @@ check("a part file only becomes the map when it is whole",
 # Was about the mapsforge download row, which left with that row on 17.9.2026. The rule it stood
 # for is now kept by the maps face, where nothing is fetched before its size has been said.
 check("the size is on the screen before the download starts",
-      "Press again to start" in activity and "sizeLabel" in (MAIN / "OamIndex.kt").read_text(),
-      "named and measured, then a second press")
+      "private fun OfflineOffer" in screens and '"$total MB"' in screens
+      and "Layers.OfflineDownload.BYTES" in screens,
+      "the button that starts it carries the size, from the measured length")
+check("while it runs the middle of the screen shows the percentage and the speed",
+      "progress?.percent" in screens and "bytesPerSecond" in screens and "bytesPerSecond" in download,
+      "percent, megabytes and the speed of the last second")
 
 
 # NO KEY IS BUILT INTO THIS APP (14.9.2026, after a live Maps key went out inside a public APK).
@@ -202,26 +214,28 @@ check("the build takes no service key",
 # Console to this package name and to the fingerprint of the certificate that signs these builds.
 # Proved the same day: that key, used from anywhere else, is answered
 # "Requests from this Android client application are blocked".
-check("the manifest carries one placeholder and no key",
-      "${MAPS_API_KEY}" in mf and "AIza" not in mf,
-      "filled from a secret at build time, never written down here")
-check("the key is restricted to this app, and the gate knows it",
-      "MAPS_API_KEY" in wf and "an unexpected Google key is in the APK" in wf,
-      "one key may be in the APK: that one, and nothing else key-shaped")
+# REVERSED AGAIN 29.9.2026 (Mantra ARKOD): Google's map is drawn from the Map Tiles API with HIS
+# key, entered on the phone, so the manifest carries no key and no placeholder for one, and no
+# Google key may be in the APK at all.
+check("the manifest carries no key and no placeholder",
+      "MAPS_API_KEY" not in mf and "AIza" not in mf and "geo.API_KEY" not in mf,
+      "Google's key arrives on the phone, from him")
+check("the workflow puts no Google key into the build, and the APK scan allows none",
+      "secrets.MAPS_API_KEY" not in wf and "a Google key is in the APK" in wf,
+      "zero key-shaped strings in the artefact")
 sdk_lines = [l for l in gradle_kts.splitlines()
              if ("play-services-maps" in l or "maps-compose" in l) and "implementation" in l]
 # Reversed with the same reason, 17.9.2026: the SDK is back, deliberately, because it is the only
 # way to have Google's own vector map at Google's own speed, which is what he asked for.
-check("Google's own renderer is here for the online half",
-      len(sdk_lines) == 1 and (MAIN / "GoogleCanvas.kt").exists()
-      and "GoogleCanvas(context, store)" in screens,
-      "beside VTM, never over it: the offline file still needs no signal and no key")
+check("one engine draws all three maps: no Maps SDK",
+      len(sdk_lines) == 0 and not (MAIN / "GoogleCanvas.kt").exists(),
+      "VTM draws the file, OpenStreetMap and Google's tiles, with the cadastre over each")
 keys_src = (MAIN / "Keys.kt").read_text()
 check("keys are sorted by shape, not by asking him which is which",
       "fun providerOf" in keys_src, "one function decides the service from the shape")
-check("a key is never written to the screen, only its service",
-      "keyState" in (MAIN / "Store.kt").read_text() and "it.key" not in screens,
-      "the settings row names services, never values")
+check("a key is never written to the screen, only its masked form",
+      "key.value" not in screens and "key.value" not in settings_src and "masked" in (MAIN / "Keyring.kt").read_text(),
+      "the screen shows a key's label and its masked form, never its value")
 workflow = (ROOT / ".github/workflows/build-apk.yml").read_text()
 check("the workflow uses no key secret",
       "GOOGLE_MAPS_API_KEY" not in workflow,
@@ -234,8 +248,8 @@ check("the workflow uses no key secret",
 check("no button pre-fetches anybody's tiles",
       'glyph = "CH"' not in screens and not (MAIN / "Caching.kt").exists(),
       "the key and the arithmetic behind it are both gone")
-check("the credits are gathered in settings, not printed over the map",
-      "creditOnMap: Boolean get() = false" in layers and "© OpenStreetMap contributors" in settings_src,
+check("the credits are gathered in settings",
+      "OpenStreetMap contributors" in settings_src and "Državna geodetska uprava" in settings_src,
       "one block at the bottom of the settings face")
 
 # WHAT THE PHONE SHOWED ON 15.9.2026, TURNED INTO CHECKS.
@@ -247,7 +261,7 @@ check("the credits are gathered in settings, not printed over the map",
 map_screen = screens.split("private fun SettingsFace")[0]
 check("no bar is painted on a column",
       ".background(Paint.Bar)" not in map_screen.split("private fun Panel")[0] or
-      "Column(\n                Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding()" in map_screen,
+      "Column(Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding())" in map_screen,
       "the background belongs to the line and to the key row, not to their container")
 check("an empty line takes no height at all",
       "if (note != null) NoteLine(note)" in screens
@@ -280,12 +294,14 @@ check("the settings face scrolls",
       "verticalScroll(rememberScrollState())" in screens,
       "so the last row is reachable however many rows there are")
 row = control_row
-order = [k for k in ["\u2212", "MarkKey", "RecordKey", "layer.short", "\u2699", '"+"'] if k in row]
-# Six keys with CH gone, so the red circle is third of six: as near the middle as an even row
-# allows, and still the one under the thumb that reaches the phone's home button.
-check("the record circle sits at the middle of the row",
-      abs(order.index("RecordKey") - (len(order) - 1) / 2) <= 0.5,
-      f"{len(order)} keys, red one at position {order.index('RecordKey') + 1}")
+# THE THREE MAPS IN THE MIDDLE (29.9.2026): the keys pressed most, under the thumb that reaches
+# the phone's home button; zoom at both ends, as before.
+calls = re.findall(r"\b(Key|MarkKey|RecordKey|MapKey)\(", row)
+maps_at = [i for i, c in enumerate(calls) if c == "MapKey"]
+check("the three map keys sit together in the middle of the row",
+      len(maps_at) == 3 and maps_at == list(range(maps_at[0], maps_at[0] + 3))
+      and maps_at[1] == (len(calls) - 1) // 2,
+      f"{len(calls)} keys, maps at positions {[i + 1 for i in maps_at]}")
 
 
 # THE OFFLINE MAP WENT BLANK ON THE WAY IN (15.9.2026). Three things could do that and all three
@@ -322,17 +338,17 @@ check("the first draw is triggered by the view existing, not by a bare effect",
 # 17.9.2026: his offline map went black the moment Google's renderer had been shown once. Compose
 # took the Google view out of the tree and nobody told the MapView, so it kept its lifecycle and
 # its GL surface, and VTM drew onto a surface that was still somebody else's.
+# 29.9.2026 (Mantra ARKOD): one engine for all three maps, so one view to release.
 check("a map that leaves the screen lets go of the screen",
-      "onRelease = {" in screens and "GoogleHolder.canvas?.onDestroy()" in screens
-      and "CanvasHolder.canvas?.pause()" in screens,
-      "both engines, or the one that stays draws black")
-check("every key speaks to whichever map is up",
-      (MAIN / "Canvases.kt").exists() and "Canvases.googleIsUp" in screens
-      and "CanvasHolder.canvas?.zoomIn" not in screens,
-      "not to the offline one by name")
+      "onRelease = {" in screens and "CanvasHolder.canvas?.pause()" in screens,
+      "it stops drawing and says where it was looking")
+check("every key speaks through Canvases, never to a canvas by name",
+      (MAIN / "Canvases.kt").exists() and "CanvasHolder.canvas?.zoomIn" not in screens
+      and "Canvases.zoomIn()" in screens,
+      "one place decides which view a press reaches")
 check("a restricted key says which app is asking",
       (MAIN / "AndroidCaller.kt").exists() and "X-Android-Package" in (MAIN / "AndroidCaller.kt").read_text()
-      and "identify(connection)" in (MAIN / "GoogleRoutes.kt").read_text(),
+      and "identify(connection)" in (MAIN / "GoogleTiles.kt").read_text(),
       "without it Google answers: application <empty> are blocked")
 check("a map that cannot be drawn draws nothing",
       "CanvasHolder.canvas?.blank()" in screens and "fun blank()" in canvas_src,
@@ -373,9 +389,12 @@ check("the speed is measured by the phone, not reported by the thing being measu
 check("a negative counter never becomes a negative speed",
       "rx < 0 || tx < 0" in net_src, "UNSUPPORTED is -1 on some devices")
 check("the status line is on the map screen",
-      "StatusLine(net)" in screens, "present above the note line")
-check("the map key skips what cannot draw",
-      "fun nextUsable" in screens, "a press that does nothing is not a press")
+      "StatusLine(moving)" in screens and "listOfNotNull(net, kept)" in screens, "the network and the cadastre kept ahead, above the note line")
+# 29.9.2026 (Mantra ARKOD): the three maps are three keys, and one that cannot draw yet says what
+# it needs in the middle of the screen instead of being skipped.
+check("a map that needs something says what, where the map would be",
+      "OfflineOffer(" in screens and "GoogleKeyHelp(" in screens and "private fun CentrePanel" in screens,
+      "the Croatia download and the way to a Google key")
 check("a blank offline map explains itself at the zoom it goes blank",
       "emptyHere()" in screens, "the file is asked, not the user")
 
@@ -391,9 +410,8 @@ check("the scale bar is gone", "mapScaleBar" not in canvas_src,
 # The reproduction that ended five versions of guessing is kept in the repository, because the
 # next person to see a blank map should run it before touching the app (four-tests.md, Test 1:
 # attack the mechanism where it is cheap to attack).
-probe = ROOT / "tools/RenderProbe.java"
-check("the desk reproduction is kept", probe.exists() and "executeJob" in probe.read_text(),
-      "renders the real file at every zoom and counts ways, points and colours")
+# The desk probes (tools/) stayed with Mantra Trail on 29.9.2026: they read the OpenAndroMaps and
+# BRouter files this app no longer has. Its own desk test is Test 1 and TESTING.md.
 
 
 # THE TRACK, AFTER THE WALK (15.9.2026): a popup that names it, a folder he can see the name of,
@@ -403,7 +421,7 @@ check("cancelling after a walk still saves it",
       "onCancel = {\n                    Trail.dealtWith()" in screens,
       "cancel means do not rename, never throw the walk away")
 check("renaming never writes over another walk",
-      "already exists" in tracks_src, "a name collision refuses rather than overwrites")
+      "već postoji" in tracks_src, "a name collision refuses rather than overwrites")
 # Export became one action on 15.9.2026: Android's own save dialog asks where and what to call it,
 # and the track on the phone takes that name afterwards. Rename in the manager is gone with it.
 # Export went out with the server (15.9.2026): a finished walk is written straight into the folder
@@ -413,7 +431,7 @@ check("the tracks menu is the chosen folder, filtered to GPX",
       'endsWith(".gpx", ignoreCase = true)' in folder_src and "fun list" in folder_src,
       "not a private copy nobody can find")
 check("the folder's name is on the menu",
-      'Opens("Folder", R.drawable.ic_folder, under = folder, onClick = onChooseFolder)' in screens,
+      'Opens("Mapa", R.drawable.ic_folder, under = folder, onClick = onChooseFolder)' in screens,
       "a list of files nobody can find is a list")
 check("renaming keeps the extension and shows it separately",
       "Tracks.safeFileName(newName)" in folder_src and 'Label(".${track.extension}"' in screens,
@@ -422,11 +440,11 @@ check("there is no export left anywhere",
       "CreateDocument" not in activity and "onExport" not in screens,
       "the walk is already where he will look for it")
 check("deleting a track asks twice",
-      'if (confirming?.uri == track.uri) "sure?" else "delete"' in screens, "one thumb on a hillside is not a decision")
+      'if (confirming?.uri == track.uri) "sigurno?" else "obriši"' in screens, "one thumb on a hillside is not a decision")
 check("the settings row names the folder rather than saying chosen",
       "store.exportFolderName" in screens, "Documents/Tracks, not the word chosen")
 check("the saved message says where it went",
-      'Saved to ${Folder.label(this@MainActivity, store)}' in activity,
+      'Spremljeno u ${Folder.label(this@MainActivity, store)}' in activity,
       "the folder is named, so the message can be checked rather than trusted")
 # Both faults of 15.9.2026: the copy ran on the main thread, and the answer went to a line that
 # is behind the manager whenever the manager is what he is looking at.
@@ -475,8 +493,8 @@ check("the entry box has a frame and the cursor is already in it",
       "border(1.5.dp, Paint.Amber" in screens and "focus.requestFocus()" in screens,
       "on a dark panel an unfocused dark field is a label, not a box")
 # 17.9.2026: cancel became discard, because that is what the key now does.
-check("the name box has two answers and they are named OK and discard",
-      'Action("Discard", R.drawable.ic_trash, onClick = onCancel' in screens and 'Action("OK", R.drawable.ic_check' in screens,
+check("the name box has two answers and they are named OK and odbaci",
+      'Action("Odbaci", R.drawable.ic_trash, onClick = onCancel' in screens and 'Action("OK", R.drawable.ic_check' in screens,
       "no third thing to read on a hillside")
 # The reason it was not empty: the file name was being built from a date stamp AND a name that
 # was already a date, so nothing matched the pattern and the box opened full of numbers.
@@ -494,8 +512,8 @@ check("deleting goes the same way",
 # than only to the one that was up when he pressed.
 check("the position can be locked to the middle of the screen",
       "if (follow && fix != null) centreOn(fix)" in (MAIN / "Canvases.kt").read_text()
-      and "Canvases.handOver(points, line, fix, follow)" in screens,
-      "one press holds it, the next lets the map go, on either engine")
+      and "Canvases.handOver(line, fix, follow)" in screens,
+      "one press holds it, the next lets the map go")
 # Refined 15.9.2026: one tap centres, TWO IN A ROW lock. A second tap a minute later is somebody
 # centring again, not somebody asking for a lock.
 check("two taps in a row are what lock it",
@@ -508,42 +526,25 @@ check("two taps in a row are what lock it",
 # were tapped: the old face asked the preferences whether it was ticked while drawing the frame.
 # Reordered 17.9.2026 to his logic: tracks first, then one entry per map, each with a way into
 # its own options and a dropdown of its views.
-check("tracks come first and each map is one entry",
-      # rewritten 27.9.2026 for the visual language: the two maps are two titled groups now
-      settings_src.index('Group("Tracks")') < settings_src.index('Group("Offline maps")') < settings_src.index('Group("Google maps")'),
-      "two entries, both called map; the offline one plural because there are several")
-check("every offline map on the phone is a button in that dropdown",
-      "installedMaps.forEach { file ->" in settings_src and "file.name == drawingMapName" in settings_src and "Pick(" in settings_src,
-      "one drawing at a time, chosen by pressing its row")
-check("the two he named are in the dropdown whether or not they are here",
-      "OFFERED" in (MAIN / "Oam.kt").read_text() and "onFetchOffer" in settings_src,
-      "Balkan and the Croatia one from his own GitHub, so switching is one press or two")
-check("a half-fetched map is shown rather than hidden",
-      "fun unfinished(" in (MAIN / "OamDownload.kt").read_text() and "unfinishedMaps.forEach" in settings_src and "unfinished\"" in settings_src,
-      "he asked where his Balkan map was; half on the phone is an answer")
-# 27.9.2026: the arrow is the chevron of an Opens row, turned down while its list is open.
+# MANTRA ARKOD (29.9.2026): my parcels come first, where Mantra Trail kept its tracks; then the
+# offline map, Google's views and the keys; the cadastre kept on the phone; tracks; about.
+order = ['Group("Moje čestice")', 'Group("Offline karta")', 'Group("Google karta")', 'Group("API ključevi")',
+         'Group("ARKOD na telefonu")', 'Group("Tragovi")', 'Group("Na karti")', 'Group("O aplikaciji")']
+check("my parcels come first and every group is in its place",
+      all(g in settings_src for g in order) and [settings_src.index(g) for g in order] == sorted(settings_src.index(g) for g in order),
+      " · ".join(g[7:-2] for g in order))
 check("a row that opens a list shows whether it is open",
-      "open = state.keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
+      "open = keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
       "the chevron points right when closed and down when open")
-check("choosing a view closes the settings and shows the map",
-      "settings = false\n                    scope.launch { showLayer(store, Layers.OFFLINE) }" in screens,
-      "which is the only reason anybody opened the dropdown")
-# The keys group folded into the Google map's own options on 17.9.2026: a key belongs to the map
-# that needs it, not to a drawer of its own at the bottom of the screen.
-check("the settings are grouped into cards with titles",
-      all(f'Group("{g}")' in settings_src for g in ["Tracks", "On the map", "Offline maps", "Google maps", "API keys", "About"]),
-      "Tracks, On the map, Offline maps, Google maps, API keys, About")
-check("the settings read the store once, not while drawing",
-      "private class SettingsState" in settings_src and "remember(store) { SettingsState(store) }" in settings_src,
-      "a tap moves the holder, the holder redraws the screen, the store is written behind it")
-# 27.9.2026, his rule: one word, and the control shows the state. "Compass on the map, off, press
-# to change" became "Compass" and a switch.
 check("a setting is one word and its control shows the state",
-      'Toggle("Compass"' in settings_src and 'Toggle("Google search bar"' in settings_src
-      and "press to change" not in settings_src and "press to show" not in settings_src,
+      'Toggle("Kompas"' in settings_src and 'Toggle("Spremaj unaprijed"' in settings_src,
       "the switch is the state; no sentence")
-
-
+check("the version opens the latest build",
+      "open.openUri(RELEASES)" in settings_src and "releases/latest" in screens,
+      "the rule for every Mantra app, 29.9.2026")
+check("a key can be pasted, not only picked from a file",
+      "onPasteKey" in settings_src and "onPaste(text)" in screens and "fun addKeyText" in activity,
+      "the Google help and the keys group both take one")
 
 check("a saved walk can be drawn on the map in a chosen colour",
       "showSavedTrack" in canvas_src and "TRACK_COLOURS" in screens,
@@ -556,31 +557,17 @@ check("no part of the map server is left in this app",
       "the layer, the family, the status row and the file are all gone")
 
 
-# A AND B (16.9.2026): two keys either side of the row, a menu behind a long press, and a route
-# saved as an ordinary GPX so nothing downstream has to know what it is.
-# The second key is no longer always called B: it shows the last letter placed, and it takes that
-# point back (16.9.2026). What must hold is that one key adds and the other removes, either side.
-# One key, not two (16.9.2026): it drops the next point where the crosshair is and shows which
-# letter that will be; removing happens in the manager behind a long press.
-check("there is one point key and it shows the letter it will drop next",
-      screens.count("PointKey(") == 2 and "letter = Route.letterFor(points.size)" in screens,
-      "one definition, one use")
-check("the manager is what removes a point",
-      "points = points.filterIndexed { i, _ -> i != index }" in screens, "behind a long press")
-check("a route can hold more than two points",
-      "fun setRoutePoints" in canvas_src and "Route.MAX_POINTS" in screens,
-      "A, B, C and on, walked in the order they were placed")
-check("the menu can add a point where the crosshair is",
-      'Action("Add ${Route.letterFor(points.size)} here", R.drawable.ic_plus' in screens,
-      "the plus he asked for")
-check("the engine is given every point as a waypoint",
-      "points.forEachIndexed { index, at -> waypoints.add(" in (MAIN / "Routing.kt").read_text(),
-      "one route through them all, not legs stitched together")
+# THE ROUTES LEFT ON 29.9.2026 (Mantra ARKOD): "we can remove finding the paths". The checks that
+# guarded the point key, the route menu and BRouter's waypoints went with them; these keep them out.
+check("no route, no point key, no router is left",
+      "PointKey(" not in screens and "RouteMenu(" not in screens and not (MAIN / "Routing.kt").exists()
+      and not (ROOT / "app/src/main/java/btools").exists() and not (ROOT / "app/src/main/assets/brouter").exists(),
+      "the engine, its profiles and the keys that drove it are all gone")
 # The little compass (16.9.2026), as Google has: one tap north up, the next turning with the walk.
 # 17.9.2026: it was written on the 16th and he never saw it, because it was nested inside the
 # 72dp centre target — fillMaxSize inside 72dp is 72dp, so it drew behind the crosshair.
 check("the compass is on the screen, not inside the centre target",
-      screens_src.index("LittleCompass(") < screens_src.index("// THE TAP IN THE MIDDLE"),
+      screens_src.index("LittleCompass(") < screens_src.index("CentreCross()"),
       "top right, where Google keeps it; it used to be nested in the 72dp centre target")
 # 17.9.2026: he sent Google's screenshot twice. Black disc, red north half, white south half, N.
 # Refined 17.9.2026: hollow, and one thing only. No disc behind it, and the tap that used to
@@ -597,10 +584,10 @@ check("a view is chosen from one choice bar",
 check("the chevron appears only where a tap opens something",
       "fun Opens(" in (MAIN / "Look.kt").read_text() and "ic_chevron" not in settings_src.replace("Opens(", ""),
       "only Opens rows draw it")
-check("the map key turns between the two maps and nothing else",
-      "if (current.family == MapLayer.Family.OFFLINE)" in screens
-      and "return Layers.OFFLINE" in screens,
-      "which Google view it shows is chosen in the settings")
+check("each of the three maps has its own key",
+      screens.count("MapKey(") == 4 and "choose(Layers.OFFLINE)" in screens and "choose(Layers.OSM)" in screens
+      and "choose(Layers.byId(store.googleViewId))" in screens,
+      "one definition and three uses; which Google view is chosen in the settings")
 check("the offline map has views of its own",
       "OFFLINE_VIEWS" in layers and "onOfflineView" in settings_src,
       "the same file drawn four ways, because Google's entry had four and this one had none")
@@ -608,10 +595,10 @@ check("nothing on the compass is outlined",
       "drawCircle(Color(0xFF0B0D10), radius = r" not in screens
       and "drawCircle(Color.White, radius = r, center = c, style = Stroke(1.dp.toPx()))" in screens,
       "one white ring at one pixel")
-check("nothing on the route marks is outlined either",
+check("nothing on the marks is outlined",
       "argb(190, 11, 13, 16)" not in (MAIN / "Marks.kt").read_text()
       and "setShadowLayer" not in (MAIN / "Marks.kt").read_text(),
-      "one hairline cross, one red letter, nothing behind either")
+      "nothing drawn behind a mark")
 check("the compass is one white ring and a needle inside it",
       "drawCircle(Color.White" in screens and 'Label("N"' not in screens
       and "* 0.58f" in screens,
@@ -649,7 +636,7 @@ check("the light turns with the map as well as with the phone",
 check("the map's diagnosis is not a row in the settings",
       "diagnose()" not in settings_src, "he does not need it in front of him")
 check("the engine names itself in its answer",
-      "VTM (GPU)" in canvas_src, "so a screenshot of it says which code was running")
+      "\"VTM · " in canvas_src, "so a screenshot of it says which code was running")
 # The choice is gone with the CPU renderer (16.9.2026): there is one engine, so there is nothing
 # to choose and nothing to restart for.
 check("no setting offers the renderer that was removed",
@@ -664,35 +651,7 @@ check("the engine reads the offline files he already has",
 check("accuracy is drawn as a ring",
       "accuracyRing = ring" in canvas_src and "PathLayer(map, 0x553B82F6" in canvas_src,
       "filled, three metres of accuracy swallowed the map at z22")
-check("a long press on the point key opens the manager",
-      screens.count("onLongPress = { routeMenu = true }") == 1,
-      "one key, one long press, one menu")
-check("removing a point takes it off the map",
-      "points = points.filterIndexed { i, _ -> i != index }" in screens
-      and "Canvases.setRoutePoints(points)" in screens,
-      "the row's own way out, one per point")
-check("a saved route is an ordinary track named for the letters it ran through",
-      "Route.nameFor(now, points.size)" in activity and "Gpx.whole(name, fixes, now)" in activity,
-      "(AB), (AD), and the manager treats it like any other GPX")
-# It is built now (16.9.2026): BRouter, MIT, vendored under btools/ and proved on a desk first.
-routing_src = (MAIN / "Routing.kt").read_text()
-check("the routing engine is in the APK and runs offline",
-      (ROOT / "app/src/main/java/btools/router/RoutingEngine.java").exists()
-      and "import btools.router.RoutingEngine" in routing_src,
-      "no second app to install, no server to reach")
-check("BRouter's licence travels with its code",
-      (ROOT / "LICENSE-BROUTER").exists() and "abrensch/brouter" in routing_src,
-      "MIT, and the notice is at the root of this repository")
-check("the desk run that proved it is kept",
-      (ROOT / "tools/RouteProbe.java").exists(), "3.8 km over Medvednica in 400 ms")
-check("every wait in the router is bounded",
-      "doRun(25_000L)" in routing_src, "a route that cannot be found gives up")
-check("a 130 MB download is never started behind his back",
-      "Press again to fetch it" in activity and "sizeHint" in (MAIN / "Segments.kt").read_text(),
-      "the file is named and its size said first")
-check("identical alternatives are dropped rather than coloured differently",
-      "if (!seen.add(fingerprint)) continue" in routing_src,
-      "two identical lines in two colours is a lie about there being a choice")
+# BRouter left with the routes on 29.9.2026 (Mantra ARKOD); its checks went with it.
 
 
 # ONE ENGINE (16.9.2026). The CPU renderer and the interface that let the two sit side by side
@@ -707,55 +666,18 @@ vtm_src = canvas_src
 # MOTORIDER — a motorcycle theme, where a filling station is the point.
 # 16.9.2026: Thunderforest and OpenStreetMap removed at his word, OpenAndroMaps added in their
 # place — the same file format the engine already reads, with contours in the data.
-check("the raster map services are gone from the code",
-      "thunderforest.com" not in code_only(layers_src).lower()
-      and "tile.openstreetmap.org" not in code_only(layers_src),
-      "the point of this app is the file on the phone; the comments keep the history")
-check("OpenAndroMaps can be fetched from inside the app",
-      (MAIN / "OamIndex.kt").exists() and (MAIN / "OamDownload.kt").exists()
-      and "onFetchRegion" in screens,
-      "every region the mirror keeps, read from its own listing")
 # 16.9.2026: he started a 1.2 GB download and could not tell it was running, where it went, or
 # which map was being drawn afterwards.
 # His screenshot said "0 here" while a map was plainly drawing: the list only counted files this
 # feature had fetched itself.
-check("the maps list counts every map file, not only its own downloads",
-      'endsWith(".map", ignoreCase = true)' in (MAIN / "OamDownload.kt").read_text(),
-      "a list of maps that omits a map is worse than no list")
-check("a download in progress is visible from the maps face",
-      "OamDownload.state.collectAsState()" in screens and "fun line(" in (MAIN / "OamDownload.kt").read_text(),
-      "percent, megabytes, speed and time left")
-check("the folder the maps live in is written down",
-      "folderLabel" in (MAIN / "OamDownload.kt").read_text() and "kept in $folder" in screens,
-      "a file nobody can find is a file nobody has")
 # 17.9.2026, his question: can the app cut Croatia out of the 1.2 GB Balkan file? It cannot — a
 # .map is compiled, index and all — so a smaller map is offered instead of a promise.
 # 17.9.2026, his instruction: this is a dark application. Nothing is filled in a light colour and
 # black is never written on amber; state is an outline.
 check("nothing on a face is filled in the light colour",
-      "Paint.Amber else Paint.Veil" not in screens and "background(Paint.Amber)" not in screens,
-      "state is an amber outline round a dark row")
-check("the Croatia map is mirrored where it can be fetched",
-      "MANTRA_MAPS/releases/download/" in (MAIN / "OamIndex.kt").read_text(),
-      "the original server answered 500 on his phone and 200 from a desk")
-check("a file that is already a map is not unpacked",
-      'if (!url.endsWith(".zip"' in (MAIN / "OamDownload.kt").read_text(),
-      "only an archive is opened")
-check("a download counts against the size he was told",
-      "expectedBytes" in (MAIN / "OamDownload.kt").read_text(),
-      "so percent, speed and time left exist even when the server sends no length")
-check("a smaller map is offered where cropping is impossible",
-      "ELSEWHERE" in (MAIN / "OamIndex.kt").read_text() and "Croatia, for walking" in screens,
-      "382 MB against 1.19 GB, and made for walking too")
-check("which map is drawn is his to choose",
-      "store.offlineMapName" in canvas_src and "onUse" in screens,
-      "with several regions on the phone, the app draws the one he ticked")
-check("the size said includes the room unpacking needs",
-      "twice that free while it unpacks" in (MAIN / "Oam.kt").read_text(),
-      "1.2 GB of zip becomes 1.4 GB of map, and both are on the phone at once")
-check("only the map comes out of the archive",
-      "fun isTheMap" in (MAIN / "Oam.kt").read_text(),
-      "the .poi database is not ours to want")
+      "Paint.Amber else Paint.Veil" not in screens
+      and screens.replace(".height(8.dp).clip(RoundedCornerShape(4.dp)).background(Paint.Amber))", "").count("background(Paint.Amber)") == 0,
+      "state is an amber outline round a dark row; the download's progress bar is the one fill, because it is a measurement")
 # OUR OWN THEME FOR OPENANDROMAPS (16.9.2026). Every tag in it was read out of a real
 # OpenAndroMaps file with tools, not remembered, and the file is validated against VTM's own
 # schema before it ships — which caught two errors that would have been a blank map on a hill.
@@ -775,14 +697,16 @@ check("the contour lines are hairlines, not cables",
 check("it draws what makes these maps worth having",
       all(tag in theme_src for tag in ["contour_ext", "sac_scale", "hknetwork", "natural\" v=\"peak"]),
       "contour lines, path difficulty, waymarked routes, summits")
-check("it is the theme the app opens with",
-      'KEY_THEME, "MANTRA"' in (MAIN / "Store.kt").read_text() and '"MANTRA"' in screens,
-      "the maps it is for are the ones the app fetches")
+# 29.9.2026 (Mantra ARKOD): the offline file is mapsforge's Croatia, which carries none of
+# OpenAndroMaps' own tags, so the plain theme opens and the walking one is a choice.
+check("the plain theme is the one the app opens with",
+      'KEY_THEME, "DEFAULT"' in (MAIN / "Store.kt").read_text() and '"MANTRA"' in layers,
+      "the walking theme is still one of the four views")
 check("a theme that will not load says so rather than drawing nothing",
-      "The walking theme would not load" in canvas_src, "and the plain one is used meanwhile")
+      "Planinarska tema se nije učitala" in canvas_src, "and the plain one is used meanwhile")
 check("the theme is chosen, not fixed at a motorcycle one",
-      "applyTheme(store.themeName)" in canvas_src and "THEMES" in screens,
-      "ours leads the list, and five of VTM's are behind it")
+      "applyTheme(store.themeName)" in canvas_src and "OFFLINE_VIEWS" in settings_src,
+      "four views, chosen in the settings")
 # 17.9.2026, tested against his real key on this desk: the key was valid and Google's refusal
 # named the project and the exact console link. My own sentence said "enable the Map Tiles API"
 # without saying for WHICH project, and he spent half a day making a second key for nothing.
@@ -795,23 +719,10 @@ ring_src = (MAIN / "Keyring.kt").read_text()
 # that it does not do https, and every tile service is https.
 # 17.9.2026: half his walking is in signal and half is not, so the signal half should be worth
 # having. Heights along a route, and the turns Google was already sending and I was discarding.
-check("the ground under a route can be asked for",
-      (MAIN / "Elevation.kt").exists() and "onHeights" in screens,
-      "one billed request, forty samples spaced by ground")
-check("the heights are sampled by ground, not by index",
-      "fun sample(" in (MAIN / "Route.kt").read_text() and "Route.sample(points, samples)" in (MAIN / "Elevation.kt").read_text(),
-      "a hairpin must not eat the budget a ridge needs")
 # 17.9.2026, reversed at his word and asked five times: he does not want turn-by-turn in this
 # menu. This is a walking app; he wants the way drawn on the map, not streets to read. They are
 # still fetched, because they arrive in the same answer, and simply not shown.
-check("the turns are fetched and not shown",
-      "fun turnsOf(" in (MAIN / "GoogleRoutes.kt").read_text() and "option.turns.take" not in screens,
-      "the way is on the map, which is where he is looking")
 # 27.9.2026: close is the cross at the top of the route menu, save a quiet action among the others.
-check("save is not beside close",
-      "IconAction(R.drawable.ic_close, null, onClick = onClose" in screens
-      and screens.index("IconAction(R.drawable.ic_close, null, onClick = onClose") < screens.index('Action("Save as track"'),
-      "they were the same size in the same corner and one of them threw work away")
 # 17.9.2026: Google's map arrives some frames after its view, and every method began by returning
 # when it was not there yet — so a centring, a point or a route asked for in those frames was
 # dropped in silence. Both bugs he reported were that.
@@ -828,59 +739,27 @@ check("a new map inherits everything that was on the old one",
       "fun handOver(" in (MAIN / "Canvases.kt").read_text()
       and "LaunchedEffect(generation, line.size" in screens,
       "points, route, saved track, the walk being recorded, the position and the lock")
-check("the walk being recorded has its own line on both engines",
-      "fun showLive(" in (MAIN / "GoogleCanvas.kt").read_text()
-      and "google?.showLive(points)" in (MAIN / "Canvases.kt").read_text(),
-      "all three shared one polyline, so the last drawn erased the others")
-check("where he was looking goes with him",
-      "fun rememberCamera(" in (MAIN / "Canvases.kt").read_text()
-      and "Canvases.rememberCamera(store)" in screens,
-      "the arriving engine starts where the leaving one stopped")
-check("the kept satellite can be chosen",
-      'title = "Satellite"' in settings_src and "onPick(Layers.IMAGERY)" in settings_src,
-      "in the offline maps dropdown, where it belongs")
-check("a Google view is drawn by Google's canvas",
-      "if (layer.family == MapLayer.Family.GOOGLE) {\n        val google = GoogleHolder.canvas" in screens,
-      "and the offline canvas is not asked about a map it is not drawing")
+# 29.9.2026 (Mantra ARKOD): "otherwise it remembers the states when it was left".
+check("the next run opens where this one was left: map, place, zoom and turn",
+      "store.lastBearing = position.bearing" in canvas_src and "start.bearing = store.lastBearing" in canvas_src
+      and "store.layerId = picked.id" in screens and "Layers.FIRST.id" in (MAIN / "Store.kt").read_text(),
+      "and the first run opens OpenStreetMap over the whole of Croatia")
 # 17.9.2026: he asked for Google's "select an area and keep it". Google forbid it — their Map
 # Tiles policy lists offline use among the prohibited uses of their content — so the imagery comes
 # from Sentinel-2 cloudless (EOX, CC BY 4.0), which may be kept, and the attribution travels with
 # it because that licence asks for it.
-check("imagery can be kept for offline use",
-      (MAIN / "Imagery.kt").exists() and (MAIN / "ImageryStore.kt").exists()
-      and 'Action("Keep the screen", R.drawable.ic_satellite, onClick = onFetchImagery' in screens,
-      "the area is what is on the screen, at the depth he chose")
 check("nothing of Google's is stored",
-      "tiles.maps.eox.at" in (MAIN / "Imagery.kt").read_text()
-      and "googleapis" not in (MAIN / "ImageryStore.kt").read_text(),
-      "their terms forbid it and their key would be at risk")
-check("the licence that allows it is carried with it",
-      "CC BY 4.0" in (MAIN / "Imagery.kt").read_text()
-      and "Imagery.ATTRIBUTION" in screens,
-      "attribution is the whole of what CC BY asks")
-check("a tile already kept is never fetched twice",
-      "if (file.exists() && file.length() > 0)" in (MAIN / "ImageryStore.kt").read_text(),
-      "so an overlapping area costs only what is new, and a stopped download carries on")
+      "googleapis" not in (MAIN / "ArkodCache.kt").read_text() and "Parcels.isCadastre(url)" in (MAIN / "TileHttp.kt").read_text(),
+      "only the state's cadastre is kept; Google's terms forbid keeping theirs")
 check("discard discards",
-      "onDiscardRecording(file)" in screens and 'Action("Discard", R.drawable.ic_trash, onClick = onCancel, quiet = true, danger = true' in screens
+      "onDiscardRecording(file)" in screens and 'Action("Odbaci", R.drawable.ic_trash, onClick = onCancel, quiet = true, danger = true' in screens
       and "fun discardRecording" in (MAIN / "MainActivity.kt").read_text(),
       "a key that does the opposite of its word teaches him to trust none of them")
 check("the centre key centres whichever map is on the screen",
       "Canvases.centreOn(fix)" in (MAIN / "MainActivity.kt").read_text(),
       "not the offline canvas by name")
-check("nothing asked of Google's map before it exists is dropped",
-      "pendingCentre" in (MAIN / "GoogleCanvas.kt").read_text()
-      and "made.onReady = { onReady() }" in screens,
-      "it waits and is applied when the map arrives")
 # 18.9.2026: the hand-over sat AFTER the Google branch's own return, so it ran for VTM and never
 # once for Google — the walk he was recording was handed to an engine that was not on the screen.
-check("the hand-over runs before the engine is chosen",
-      screens.index("Canvases.handOver(points, line, fix, follow)")
-      < screens.index("if (layer.family == MapLayer.Family.GOOGLE) {"),
-      "or it reaches only the engine whose branch it happens to sit in")
-check("a line drawn survives a change of engine",
-      "object Shown" in (MAIN / "Canvases.kt").read_text() and "Shown.route?.let" in screens,
-      "the routers never cared which map was up; the answer was being lost with the canvas")
 # 17.9.2026: the URL the app builds was proved right on a desk, byte for byte, and still nothing
 # drew. VTM's own client cannot do https and its OkHttp engine drew nothing either, so tiles now
 # go through java.net — the stack that fetches the session, the routes and the maps.
@@ -890,46 +769,27 @@ check("tiles are fetched with the stack that is known to work",
 check("the tile fetcher says what came back",
       "Report.tiles(" in (MAIN / "TileHttp.kt").read_text() and "Report.tileReport()" in canvas_src,
       "a white map is not debuggable; 403 on tile 16/35762/23697 is")
-check("one visual language: the marks are the screen's crosshair",
-      "fun routePoint" in (MAIN / "Marks.kt").read_text()
-      and "setShadowLayer" not in (MAIN / "Marks.kt").read_text(),
-      "four hairlines with the letter in the middle, red, and no blur anywhere")
-check("a place can be found by name and made a route point",
-      (MAIN / "Places.kt").exists() and "PlacesFace" in screens
-      and "points = points + (place.lat to place.lon)" in screens,
-      "instead of panning the map until the hut is under the crosshair")
-check("nothing is searched while he types",
-      "onSearch = { go() }" in screens and "fun go()" in screens,
-      "each search is a billed request, so it happens when he presses")
+check("one visual language: no blur on any mark",
+      "setShadowLayer" not in (MAIN / "Marks.kt").read_text() and "fun routePoint" not in (MAIN / "Marks.kt").read_text(),
+      "the route letters left with the routes (29.9.2026)")
 check("what is left to do is written down",
       (ROOT / "TODO.md").exists(), "he asked to be told after every build")
-check("both routers are offered and the choice is his",
-      "useGoogleRouting" in (MAIN / "Store.kt").read_text()
-      and 'false to "BRouter"' in screens and 'true to "Google"' in screens and "flip = true" in screens,
-      "one control, the one or the other; he knows which is online")
-check("Google is never asked for a route on its own",
-      "GoogleRoutes.between(points, store, wanted)" in (MAIN / "MainActivity.kt").read_text()
-      and "store.useGoogleRouting" in (MAIN / "MainActivity.kt").read_text(),
-      "every request is one he pressed for")
-check("their polyline is decoded where it can be tested",
-      (MAIN / "Polyline.kt").exists() and "fun decode(encoded: String)" in (MAIN / "Polyline.kt").read_text(),
-      "a route that drifts into the sea two kilometres along is a decoder bug")
 check("the keys are a ring, not one key",
       "fun order(" in ring_src and "sessionFromRing" in (MAIN / "GoogleTiles.kt").read_text(),
       "the one that worked last is tried first, the refused one last")
 # 17.9.2026: the keys left the Google row for a group of their own at the bottom — one ring serves
 # whatever asks — and a dropdown he opens stays open until he closes it.
 check("the keys are a group of their own at the bottom",
-      settings_src.index('Group("Google maps")') < settings_src.index('Group("API keys")'),
+      settings_src.index('Group("Google karta")') < settings_src.index('Group("API ključevi")'),
       "under the Google row they were two lines he passed on the way to a view")
 check("a dropdown he opened stays open",
       "store.opened(" in settings_src and "fun setOpened(" in (MAIN / "Store.kt").read_text(),
       "between sessions, as he asked")
 check("the version rides on the credits and the app's name is not a row",
-      '"v$version"' in settings_src and '"Mantra Trail"' not in settings_src,
+      '"Mantra ARKOD · verzija $version"' in settings_src,
       "the launcher already says what the app is called")
 check("each key can be tested from its own row",
-      'IconAction(R.drawable.ic_play, "test"' in settings_src and "onTestKey" in settings_src,
+      'IconAction(R.drawable.ic_play, "provjeri"' in settings_src and "onTestKey" in settings_src,
       "and what Google said sits under that key, not somewhere else")
 check("a key is shown masked and kept whole",
       "val masked: String" in ring_src and "value.take(8)" in ring_src,
@@ -968,62 +828,70 @@ check("the engine is built once, where the view is",
 parcels_src = (MAIN / "Parcels.kt").read_text()
 check("the cadastre's tiles are resolved and recoloured in the tile fetcher",
       "Parcels.resolve(source.getTileUrl(tile))" in (MAIN / "TileHttp.kt").read_text()
-      and "ParcelNet.tile(url, ParcelsShown.ink)" in (MAIN / "TileHttp.kt").read_text(),
+      and "ParcelNet.tile(tile.zoomLevel.toInt(), tile.tileX, tile.tileY, ParcelsShown.ink)" in (MAIN / "TileHttp.kt").read_text(),
       "TileHttp.kt examined")
-check("a tap on either engine reaches the cadastre",
+check("a tap anywhere reaches the cadastre, the middle included",
       "ParcelsShown.tap(at.latitude, at.longitude)" in canvas_src and "onSingleTapConfirmed" in canvas_src
-      and "ParcelsShown.tap(at.latitude, at.longitude)" in (MAIN / "GoogleCanvas.kt").read_text(),
-      "VtmCanvas.kt and GoogleCanvas.kt examined")
-check("the parcel card has the highlight tick and the trail colours",
-      "ParcelCardView(" in screens_src and "TRACK_COLOURS.forEach" in screens_src.split("private fun ParcelCardView")[1],
-      "Screens.kt examined")
-check("a highlight keeps its shape, so it draws with no signal",
-      "val rings" in parcels_src.split("data class Mark")[1].split(")")[0] + parcels_src.split("data class Mark")[1][:400],
+      and ".size(72.dp)\n                .clickable" not in screens_src,
+      "VtmCanvas.kt and Screens.kt examined: nothing over the middle takes the touch")
+check("a parcel I keep keeps its shape, colour and line, so it draws with no signal",
+      all(f in parcels_src.split("data class Mark")[1][:500] for f in ["val rings", "val colour", "val style", "val name"]),
       "Parcels.Mark examined")
-check("the cadastre is on by default", 'prefs.getBoolean(KEY_CADASTRE, true)' in (MAIN / "Store.kt").read_text(),
-      "Store.kt examined")
-
-check("K sits in the key row where T was, and the compass is chosen in the settings",
-      'glyph = "K"' in screens_src and 'glyph = "T"' not in screens_src
-      and 'Toggle("Compass"' in (MAIN / "Settings.kt").read_text(),
-      "Screens.kt and Settings.kt examined")
-check("a first tap highlights, a tap on a highlighted parcel opens its sheet",
-      "ParcelNet.outline(lat, lon)" in screens_src and "tap it again for its sheet" in screens_src,
+check("the cadastre is always on, and there is no key to turn it off",
+      "ParcelsShown.on = true" in screens_src and 'glyph = "K"' not in screens_src and "cadastreOn" not in (MAIN / "Store.kt").read_text(),
+      "Screens.kt and Store.kt examined")
+check("a first tap selects, a tap on the selection opens its sheet",
+      "ParcelNet.outline(lat, lon)" in screens_src and "dodirnite ponovno za list" in screens_src,
       "Screens.kt examined")
 check("the sheet has TXT", 'IconAction(R.drawable.ic_text, "TXT"' in screens_src and "Folder.saveText(" in screens_src,
       "Screens.kt examined")
-
-check("a tap selects one parcel and forgets the last; only the sheet keeps a highlight",
-      "fun select(parcel: Parcels.Parcel?)" in screens_src and "ParcelsShown.selection" in screens_src
-      and "Parcels.markOf(parcel.copy(rings = rings.orEmpty()), parcelColour)" not in screens_src,
+check("a tap selects one parcel and forgets the last; only the sheet keeps a parcel",
+      "fun select(parcel: Parcels.Parcel?)" in screens_src and "ParcelsShown.selection" in screens_src,
       "Screens.kt examined")
 check("the sheet has CPY beside TXT", 'IconAction(R.drawable.ic_copy, "CPY"' in screens_src and "clipboard.setText(" in screens_src,
       "Screens.kt examined")
-check("Google's map has the round search field, and the settings hide it",
-      "private fun GoogleSearchBar" in screens_src and "searchBar && layer.family == MapLayer.Family.GOOGLE" in screens_src
-      and 'Toggle("Google search bar"' in (MAIN / "Settings.kt").read_text(),
-      "Screens.kt and Settings.kt examined")
-
-check("the sheet and the K panel hold their touches, nothing reaches the map beneath",
-      screens_src.count(".swallowTouches()") >= 2 and "private fun Modifier.swallowTouches()" in screens_src,
+check("the sheets and panels hold their touches, nothing reaches the map beneath",
+      screens_src.count(".swallowTouches()") >= 3 and "private fun Modifier.swallowTouches()" in screens_src,
       "Screens.kt examined")
-
 check("the sheet is the whole screen, with a filter",
       "Parcels.filterRows(inTab, filter)" in screens_src and "R.drawable.ic_filter" in screens_src,
       "Screens.kt examined")
-# THE OWNER SHEET (29.9.2026): three tabs, and the land registry's folio, linked or found by hand.
 check("the sheet has three tabs: land use, possession, owner (vlasnički list)",
       "Parcels.Tab.values()" in screens_src and "Parcels.folioRows(" in screens_src
       and "ParcelNet.ownerSheets(" in screens_src and "ParcelNet.findOwnerSheets(" in screens_src
       and "fun FolioFinder(" in screens_src and "store.folioLinks" in screens_src,
       "Screens.kt examined")
-check("the K search has its dropdown: number, owner's sheet, street",
+# MOJE ČESTICE (29.9.2026).
+check("my parcels have a screen of their own, one press from the map and first in the settings",
+      "private fun MyParcelsFace" in screens_src and "myParcels = true" in screens_src and "onMyParcels" in settings_src,
+      "the ★ key and the first settings group")
+check("the sheet keeps a parcel, in any colour and a line style, dashed by default",
+      "private fun MineControls" in screens_src and "private fun HueBar" in screens_src
+      and "Parcels.SWATCHES.forEach" in screens_src and "LineStyle.DASHED" in (MAIN / "Store.kt").read_text(),
+      "ten swatches, a hue bar, dashed / solid / dotted")
+check("my parcels are drawn dashed on the map by the engine's own stipple",
+      "fun lineFor(mark: Parcels.Mark)" in canvas_src and "stippled(12)" in canvas_src and "PathLayer(map, lineFor(mark))" in canvas_src,
+      "VTM draws the dashes; the gaps are the map")
+check("the parcel search lives in my parcels: number, possession sheet, street",
       "enum class SearchBy" in screens_src and "DropdownMenu(" in screens_src and "ParcelNet.ossSearch(" in screens_src,
       "Screens.kt examined")
-check("Google's field lists as Google Maps does: autocomplete, merged, nearest first, pinned",
-      "places:autocomplete" in (MAIN / "PlaceSearch.kt").read_text() and "Finding.merge(" in (MAIN / "PlaceSearch.kt").read_text()
-      and "ParcelsShown.pin" in screens_src,
-      "PlaceSearch.kt and Screens.kt examined")
+# THE CADASTRE KEPT ON THE PHONE (29.9.2026).
+cache_src = (MAIN / "ArkodCache.kt").read_text()
+net_parcels = (MAIN / "ParcelNet.kt").read_text()
+check("every cadastre tile drawn is kept, and read off the phone first",
+      "ArkodCache.raw(z, x, y)" in net_parcels and "ArkodCache.keepRaw(" in net_parcels and "ArkodCache.inked(" in net_parcels,
+      "the state's picture and the recoloured copy")
+check("the cadastre is fetched ahead where he looks and where he is, and can be turned off",
+      "fun viewSettled(" in cache_src and "fun positionKnown(" in cache_src
+      and "ArkodPrefetch.viewSettled(" in screens_src and "ArkodPrefetch.positionKnown(" in screens_src
+      and "if (store.prefetch)" in screens_src,
+      "Parcels.prefetchTiles decides which; ArkodPrefetch fetches three at a time")
+check("the kept cadastre has a ceiling",
+      "fun prune(" in cache_src and "LIMIT_BYTES" in cache_src and "ArkodCache.prune()" in activity,
+      "the tiles touched longest ago go first")
+check("a sheet opens with no signal from what was read before, and says so",
+      "ArkodCache.keepAnswer(" in net_parcels and "getKept(Parcels.recordUrl" in net_parcels and "keptSince" in screens_src,
+      "the record and the folios are kept as they arrive")
 
 # THE VISUAL LANGUAGE (27.9.2026): the icons are drawn from design/icons/*.svg by
 # design/make_icons.py, and every control is one of Look.kt's kinds.
