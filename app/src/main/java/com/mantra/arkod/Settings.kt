@@ -398,7 +398,7 @@ fun ParcelViewFace(
                     Toggle("Only Moje čestice", R.drawable.ic_pin, on = onlyMine, onChange = onOnlyMine)
                     Hint("Always, whatever the parcels key says: your parcels are drawn and every other parcel is hidden.")
                     Hairline()
-                    Toggle("Parcel search on the map", R.drawable.ic_search, on = parcelSearchOn, onChange = onParcelSearch)
+                    Toggle("Parcel search", R.drawable.ic_search, on = parcelSearchOn, onChange = onParcelSearch)
                     Hint("The čestica field under Google's search: a number, \"pl 1984\" or a name.")
                 }
                 Group("Moje čestice") {

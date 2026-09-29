@@ -150,4 +150,11 @@ Worked by the local Claude Code on the Mac, on top of the cloud's v2 (dc44042).
 8. Settings in English; everything ARKOD (sheets, parcels, their terms) in Croatian.
    **Status:** written in v3.
 9. Test everything on the emulator before calling it done; then the message to his friend in
-   Croatian. **Status:** verify.py 220/220 and 6 new unit tests (200); emulator after CI.
+   Croatian. **Status:** v3 green on CI first time (200 unit tests, 220 checks). Pixel 7 emulator,
+   portrait, 30.9.2026: the top line follows the middle; where-am-I snaps and shows ±5m; a tap on
+   the parcels key hides the cadastre completely; a long press opens Parcel view; "2450" offers
+   2450 k.o. KUKLJICA as typed and opens its sheet (p.l. 657, OPĆINA KUKLJICA); "opcina" finds that
+   holder in Imenik; "Only Moje čestice" hides every state parcel. No compass. Not tested: the
+   Google field (no key on the emulator). v4 fixes the two things seen: "Parcel search on the m…"
+   was cut, and the "Čestice skrivene" line stayed after Parcel view turned them back on.
+   The friend's message: in the chat, 30.9.2026.

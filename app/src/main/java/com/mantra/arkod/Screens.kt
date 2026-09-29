@@ -696,9 +696,10 @@ fun ArkodApp(
         if (parcelView) {
             ParcelViewFace(
                 cadastreOn = cadastreOn,
-                onCadastre = { cadastreOn = it; store.cadastreOn = it },
+                // A switch here makes the key's last line stale ("Čestice skrivene"): it goes.
+                onCadastre = { cadastreOn = it; store.cadastreOn = it; Trail.say(null) },
                 onlyMine = onlyMine,
-                onOnlyMine = { onlyMine = it; store.onlyMine = it },
+                onOnlyMine = { onlyMine = it; store.onlyMine = it; Trail.say(null) },
                 parcelSearchOn = parcelSearchOn,
                 onParcelSearch = { parcelSearchOn = it; store.parcelSearchOn = it },
                 myParcelCount = marks.size,

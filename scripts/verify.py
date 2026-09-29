@@ -534,7 +534,7 @@ check("a row that opens a list shows whether it is open",
       "the chevron points right when closed and down when open")
 check("a setting is one word and its control shows the state",
       'Toggle("Fetch ahead"' in settings_src and 'Toggle("Parcels on the map"' in settings_src
-      and 'Toggle("Only Moje čestice"' in settings_src and 'Toggle("Parcel search on the map"' in settings_src,
+      and 'Toggle("Only Moje čestice"' in settings_src and 'Toggle("Parcel search"' in settings_src,
       "the switch is the state; no sentence")
 check("the version opens the latest build",
       "open.openUri(RELEASES)" in settings_src and "releases/latest" in screens,
