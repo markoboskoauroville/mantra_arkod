@@ -89,3 +89,61 @@ Asked, answered: the repository name is **manra_arkod** (typed), read as `mantra
 
 1. MANTRA_MANIFEST `modules/mantra-testing.md`, pointed to from START_HERE and four-tests. **Status:**
    written on the manifest branch `claude/gifted-curie-nbt328`, to be merged by the local Claude Code.
+
+## 29.9.2026 (evening), v3: the parcels key, two search fields, the centre in the top line, no compass, English settings
+
+> Please fix action icon for parcels. Now it's just bringing up the search field for parcels. It
+> should hide parcels overlay completely from the map. And long press on it, add, open the settings
+> dialog. And that settings dialog, we can turn on or off some things. It's basically viewing
+> settings. So when I press on it, I— what I can have option to all the time, no matter on or off,
+> only my parcels drawn and everything else is out. Second option is to show or hide the search field
+> for parcels right inside the map under the Google search field. And Google search field is not
+> present, should be present. When there is a Google key. And the same search field should be on all,
+> all 3 maps. So if I search some street, Google give result, but this map, current map which is not
+> Google, can show result, show the point. Second fixing is that at the top, latitude longitude
+> numbers are showing always where, what, what is the center of the map, not where I am now. What is
+> the center. So when I'm scrolling through the map, it's updating. Of course, if I press my current
+> location button, it snaps there and it shows current location longitude and latitude. So these are
+> my updates. Two search fields in the map area, uh, in the pop-up for setting of the parcels, there
+> will be a toggle to show or hide search for a parcel number. If possible, can you also
+> autocomplete? And can you also— or when I mean autocomplete, I mean when I search the immediately,
+> like in Google Places, I have immediately the response down there. And can I search by owner? Can I
+> write first name, last name, and then to the whole Croatia, anything who is in possession or is
+> owner of the parcel, it will be listed? It's like a dictionary, like a phone dictionary kind of
+> thing. Anyway, fix these things and let's build a new— before that, you need to test everything.
+> Also language, we need to mix languages. Write all the settings in the English language and all
+> terminology from R code in Croatian language.
+>
+> After you create new app, write a message in croatian language to my friend. I want to share this
+> app with him. Say, you can say that you inspired me to create this app because you asked to also
+> add the owner's sheet. Now there is owner sheet, but I also create new app which is focused only on
+> barcode and it has a few more features. And then list all the features this app has for him, and I
+> will share that with my friend.
+>
+> And one more thing from the application I forget to tell you, remove the compass. We don't want
+> compass there. Compass is extra, no needed.
+>
+> Also language, we need to mix languages in app. Write all the settings in the English language and
+> all terminology from arkod in Croatian language. so anything related to naming the sheets or
+> anything, everything in these sheets should be in croatian, but in, in the settings, terms should
+> be in english
+>
+> Is everything clear with the new features? I use my GitHub to update the repository and
+> automatically compile my APK. Please confirm.
+
+Worked by the local Claude Code on the Mac, on top of the cloud's v2 (dc44042).
+
+1. Parcels key: a tap hides / shows the whole cadastre overlay; a long press opens the parcels view
+   settings. **Status:** pending.
+2. Parcels view settings: "only my parcels" (always, whatever the overlay key says), "parcel search
+   on the map", and the way to Moje čestice. **Status:** pending.
+3. Google search field on the map, on all three maps, when a Google key exists; the result is a
+   point on whichever map is up; suggestions as he types. **Status:** pending.
+4. Parcel-number search field under it (toggle), answers as he types. **Status:** pending.
+5. Owner search over the whole of Croatia. **Status:** pending: checking what the public registry allows.
+6. Top line: the coordinates of the map centre, updating while he pans; where-am-I snaps there.
+   **Status:** pending.
+7. Compass removed. **Status:** pending.
+8. Settings in English; everything ARKOD (sheets, parcels, their terms) in Croatian. **Status:** pending.
+9. Test everything on the emulator before calling it done; then the message to his friend in
+   Croatian. **Status:** pending.
