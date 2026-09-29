@@ -127,6 +127,15 @@ object ParcelNet {
             }
         }
 
+    /**
+     * AS HE TYPES (29.9.2026, v3): every parcel number in the municipality that begins with what
+     * is in the field, a quarter of a second each (measured: 0.28 s for "245" in Kukljica).
+     */
+    suspend fun suggest(municipalityReg: String, municipalityName: String, prefix: String): List<Finding.Hit> =
+        withContext(Dispatchers.IO) {
+            Parcels.parseSuggestions(get(Parcels.searchUrl(prefix, municipalityReg), readMs = 10_000), municipalityReg, municipalityName)
+        }
+
     /** Parcels by number in one municipality, through OSS's search: one quick request each. */
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
@@ -244,9 +253,13 @@ object ParcelNet {
  * way [Shown] keeps the route: the switch, the ink, the marked parcels, and what a tap does.
  */
 object ParcelsShown {
-    /** Always on in this app: the cadastre is what it is for (29.9.2026). */
+    /** The state's parcels, the WMS layer: off when the parcels key hides them (v3). */
     @Volatile
     var on: Boolean = true
+
+    /** His own parcels and the selection: off only when the parcels key hides everything (v3). */
+    @Volatile
+    var mineOn: Boolean = true
 
     @Volatile
     var ink: Long = Parcels.INK_DARK
@@ -267,7 +280,7 @@ object ParcelsShown {
     var pin: Pair<Double, Double>? = null
 
     /** Everything the engines draw: his marks, and the selection on top. */
-    fun drawn(): List<Parcels.Mark> = marks + listOfNotNull(selection)
+    fun drawn(): List<Parcels.Mark> = if (mineOn) marks + listOfNotNull(selection) else emptyList()
 
     /** Set by the screen; called by either engine with where the finger landed. */
     @Volatile

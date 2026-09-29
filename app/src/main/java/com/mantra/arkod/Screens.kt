@@ -90,10 +90,6 @@ private val MARK = 22.dp
 /** The crosshair over the map: bigger than the key's mark, and far quieter. */
 private val CROSS = 34.dp
 
-/** The compass's states: on (dark ink or light, chosen by the map) or off. */
-private const val COMPASS_DARK = 0
-private const val COMPASS_OFF = 2
-
 private val TRACK_COLOURS = listOf(0xFF34D399L, 0xFFE8A64BL, 0xFFEF4444L, 0xFF60A5FAL, 0xFFF2DDB4L)
 
 /** Where a build of this app can be downloaded: the version in settings opens it. */
@@ -134,14 +130,22 @@ fun ArkodApp(
 ) {
     var layer by remember { mutableStateOf(Layers.byId(store.layerId)) }
     var settings by remember { mutableStateOf(false) }
-    var compass by remember { mutableIntStateOf(store.compassMode) }
     var zoom by remember { mutableIntStateOf(store.lastZoom) }
     // A counter, not a flag: every canvas that appears is told to draw (17.9.2026).
     var ready by remember { mutableIntStateOf(0) }
     // LOCKED TO THE MIDDLE (15.9.2026). One press centres; two in a second hold it there.
     var follow by remember { mutableStateOf(false) }
     var lastCentreTap by remember { mutableLongStateOf(0L) }
-    var mapTurn by remember { mutableFloatStateOf(0f) }
+    // THE PARCELS KEY AND ITS VIEW (29.9.2026, v3): a tap hides or shows the cadastre, a long
+    // press opens Parcel view, where "only my parcels" and the parcel field are chosen.
+    var cadastreOn by remember { mutableStateOf(store.cadastreOn) }
+    var onlyMine by remember { mutableStateOf(store.onlyMine) }
+    var parcelSearchOn by remember { mutableStateOf(store.parcelSearchOn) }
+    var parcelView by remember { mutableStateOf(false) }
+    // THE MIDDLE OF THE MAP, which the top line shows (v3): where he looks, not where he is.
+    var centre by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    // IMENIK (v3): the holders and owners of every sheet opened on this phone.
+    var book by remember { mutableStateOf(store.ownerBook) }
 
     val fix by Trail.fix.collectAsState()
     val stats by Trail.stats.collectAsState()
@@ -202,6 +206,14 @@ fun ArkodApp(
         setMarks(Parcels.withShapes(marks, found))
     }
 
+    /** Every name on a sheet that opened goes into Imenik, replacing what that parcel said before. */
+    fun enterInBook(parcel: Parcels.Parcel, record: Parcels.Record?, folios: List<Parcels.Folio>) {
+        val entries = OwnerBook.entriesOf(parcel, record, folios)
+        if (entries.isEmpty()) return
+        book = OwnerBook.add(book, entries)
+        store.ownerBook = book
+    }
+
     suspend fun openCard(parcel: Parcels.Parcel) {
         card = ParcelCard(parcel)
         val answer = runCatching { ParcelNet.record(parcel.id) }
@@ -226,6 +238,7 @@ fun ArkodApp(
             folios = folios.getOrNull() ?: emptyList(),
             folioProblem = folios.exceptionOrNull()?.let { "zemljišna knjiga se nije mogla pročitati: ${it.message ?: it.javaClass.simpleName}" },
         )
+        enterInBook(parcel, record, folios.getOrNull().orEmpty())
     }
 
     /** He typed a land-book parcel number or a folio number where the state has no link. */
@@ -240,6 +253,7 @@ fun ArkodApp(
                 ?: if (found.isEmpty()) "zemljišna knjiga $municipality nema ${if (isFolio) "uložak" else "česticu"} $number" else null,
         )
         found.firstOrNull()?.let { f -> store.folioLinks = store.folioLinks + (parcel.reference to (f.bookId to f.unit)) }
+        if (found.isNotEmpty()) enterInBook(parcel, card?.record, found)
     }
 
     /**
@@ -299,6 +313,11 @@ fun ArkodApp(
     }
 
     suspend fun tapped(lat: Double, lon: Double) {
+        val (stateShown, mineShown) = Parcels.visibility(cadastreOn, onlyMine)
+        if (!mineShown) {
+            Trail.say("Čestice su skrivene · tipka čestica ih vraća")
+            return
+        }
         val current = selected
         if (current != null && current.rings.any { Parcels.contains(it, lat, lon) }) {
             Trail.say(null)
@@ -309,6 +328,11 @@ fun ArkodApp(
             card = null
             select(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
             Trail.say("${m.number}${if (m.name.isNotBlank()) " · ${m.name}" else ""} · dodirnite ponovno za list")
+            return
+        }
+        // ONLY MY PARCELS: a tap anywhere else picks nothing, because nothing else is drawn.
+        if (!stateShown) {
+            select(null)
             return
         }
         if (Canvases.currentZoom() < Parcels.TAP_ZOOM) {
@@ -345,13 +369,24 @@ fun ArkodApp(
     }
 
     LaunchedEffect(Unit) {
-        ParcelsShown.on = true
+        Parcels.visibility(store.cadastreOn, store.onlyMine).let { (state, mine) ->
+            ParcelsShown.on = state
+            ParcelsShown.mineOn = mine
+        }
         ParcelsShown.marks = store.parcelMarks
         ParcelsShown.onTap = { lat, lon -> scope.launch { tapped(lat, lon) } }
         fillShapes()
     }
 
     LaunchedEffect(myParcels) { if (myParcels) fillShapes() }
+
+    // WHAT THE PARCELS KEY AND PARCEL VIEW SAY IS DRAWN, told to the map whenever either changes.
+    LaunchedEffect(cadastreOn, onlyMine, ready) {
+        val (state, mine) = Parcels.visibility(cadastreOn, onlyMine)
+        ParcelsShown.on = state
+        ParcelsShown.mineOn = mine
+        Canvases.refreshParcels()
+    }
 
     // The ink follows the ground: dark on the pale maps, sand on the photographs and the night theme.
     LaunchedEffect(ready, layer.id, settings, UiTick.n) {
@@ -381,7 +416,7 @@ fun ArkodApp(
         }
     }
 
-    // THE ZOOM, AND WHERE THE MAP HAS SETTLED, twice a second. A place where the map rests is
+    // THE ZOOM, THE MIDDLE, AND WHERE THE MAP HAS SETTLED, four times a second. A place where the map rests is
     // where the cadastre is fetched ahead (29.9.2026). Bounded by the composition.
     LaunchedEffect(Unit) {
         var restingAt: Pair<Double, Double>? = null
@@ -390,14 +425,15 @@ fun ArkodApp(
             val now = Canvases.currentZoom()
             if (now != zoom && now > 0) zoom = now
             val here = Canvases.centre()
+            if (here != null && here != centre) centre = here
             if (here != null && here == restingAt) {
                 restingFor += 1
-                if (restingFor == 2 && store.prefetch) ArkodPrefetch.viewSettled(here.first, here.second, now)
+                if (restingFor == 4 && store.prefetch) ArkodPrefetch.viewSettled(here.first, here.second, now)
             } else {
                 restingAt = here
                 restingFor = 0
             }
-            delay(500)
+            delay(250)
         }
     }
 
@@ -412,15 +448,6 @@ fun ArkodApp(
             onCanvas = onCanvas,
             onReady = { ready += 1 },
         )
-
-        // THE LITTLE COMPASS, at the top right where Google keeps it. A tap puts north up.
-        Box(Modifier.fillMaxSize().safeDrawingPadding().padding(top = 52.dp, end = 10.dp)) {
-            LittleCompass(
-                turn = mapTurn,
-                modifier = Modifier.align(Alignment.TopEnd),
-                onTap = { Canvases.setMapRotation(0f) },
-            )
-        }
 
         // THE CROSSHAIR, drawn and nothing more: it takes no touch, so a tap in the middle of the
         // map reaches the map and picks the parcel there, like a tap anywhere else (29.9.2026).
@@ -444,8 +471,15 @@ fun ArkodApp(
             )
         }
 
-        Column(Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding()) {
-            FixLine(fix, zoom, layer)
+        Column(
+            Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            FixLine(centre, fix, zoom, layer)
+            // TWO FIELDS ON THE MAP (29.9.2026, v3): Google's on all three maps when there is a
+            // key, the answer pinned on whichever map is up; the parcel field under it.
+            if (googleUsable) PlaceField(store) { hit -> showPlace(hit) }
+            if (parcelSearchOn) ParcelField(book) { hit -> scope.launch { showFoundParcel(hit) } }
         }
 
         Column(
@@ -457,7 +491,7 @@ fun ArkodApp(
             if (moving != null) StatusLine(moving)
             // The download goes on while he looks at another map; its line stays with him.
             if (download?.running == true && layer.kind != LayerKind.VECTOR_FILE) {
-                StatusLine("offline karta: " + (download?.progress?.let { MapDownload.line(it) } ?: "počinje…"))
+                StatusLine("offline map: " + (download?.progress?.let { MapDownload.line(it) } ?: "starting…"))
             }
             if (note != null) NoteLine(note)
             if (recording) TrackLine(stats, recording = !paused)
@@ -505,9 +539,26 @@ fun ArkodApp(
                     up = layer.family == MapLayer.Family.OSM,
                     onClick = { choose(Layers.OSM) },
                 )
-                // MY PARCELS, ONE PRESS AWAY (29.9.2026): *"there should be somehow quick
-                // navigation to my parcels ... inside this app."* Lit while he has any.
-                Key(glyph = "★", lit = marks.isNotEmpty(), onClick = { myParcels = true }, icon = R.drawable.ic_parcels)
+                // THE PARCELS KEY (29.9.2026, v3): *"It should hide parcels overlay completely from
+                // the map. And long press on it ... open the settings dialog."* Lit while anything of
+                // the cadastre is drawn; Moje čestice are reached from Parcel view and the settings.
+                Key(
+                    glyph = "▦",
+                    lit = Parcels.visibility(cadastreOn, onlyMine).second,
+                    onClick = {
+                        cadastreOn = !cadastreOn
+                        store.cadastreOn = cadastreOn
+                        Trail.say(
+                            when {
+                                onlyMine -> "Samo moje čestice · dugi pritisak: Parcel view"
+                                cadastreOn -> "Čestice na karti"
+                                else -> "Čestice skrivene · dugi pritisak: Parcel view"
+                            }
+                        )
+                    },
+                    onLongClick = { parcelView = true },
+                    icon = R.drawable.ic_parcels,
+                )
                 Key("⚙", lit = false, onClick = { settings = true }, icon = R.drawable.ic_settings)
                 Key(glyph = "+", lit = false, onClick = { Canvases.zoomIn() }, icon = R.drawable.ic_plus)
             }
@@ -604,22 +655,12 @@ fun ArkodApp(
         }
 
         // THE LIGHT IN FRONT OF THE DOT NEEDS THE HEADING, five times a second (bounded by the
-        // composition), and the compass reports the map's own turn.
+        // composition). The compass is gone (v3: "Compass is extra, no needed").
         LaunchedEffect(ready) {
             while (true) {
-                if (ready > 0) {
-                    Canvases.setHeading(sensors.heading())
-                    mapTurn = Canvases.mapRotationDeg()
-                }
+                if (ready > 0) Canvases.setHeading(sensors.heading())
                 delay(200)
             }
-        }
-
-        if (compass != COMPASS_OFF) {
-            CompassOverlay(
-                sensors = sensors,
-                night = Parcels.inkFor(layer.id, store.themeName, layer.googleView?.mapType) == Parcels.INK_LIGHT,
-            )
         }
 
         if (showTracks) {
@@ -652,6 +693,22 @@ fun ArkodApp(
             )
         }
 
+        if (parcelView) {
+            ParcelViewFace(
+                cadastreOn = cadastreOn,
+                onCadastre = { cadastreOn = it; store.cadastreOn = it },
+                onlyMine = onlyMine,
+                onOnlyMine = { onlyMine = it; store.onlyMine = it },
+                parcelSearchOn = parcelSearchOn,
+                onParcelSearch = { parcelSearchOn = it; store.parcelSearchOn = it },
+                myParcelCount = marks.size,
+                onMyParcels = { parcelView = false; myParcels = true },
+                bookSize = book.size,
+                onClearBook = { book = emptyList(); store.ownerBook = emptyList() },
+                onClose = { parcelView = false },
+            )
+        }
+
         if (settings) {
             SettingsFace(
                 store = store,
@@ -662,10 +719,9 @@ fun ArkodApp(
                     settings = false
                     myParcels = true
                 },
-                compassOn = compass != COMPASS_OFF,
-                onCompass = {
-                    compass = if (compass == COMPASS_OFF) COMPASS_DARK else COMPASS_OFF
-                    store.compassMode = compass
+                onParcelView = {
+                    settings = false
+                    parcelView = true
                 },
                 hasOffline = hasOffline,
                 download = download,
@@ -696,7 +752,7 @@ fun ArkodApp(
                 },
                 trackCount = remember(UiTick.n, settings) { tracks().size },
                 onChooseExportFolder = onChooseExportFolder,
-                folderName = store.exportFolderName ?: "još nije odabrana",
+                folderName = store.exportFolderName ?: "not chosen yet",
                 onClose = { settings = false },
             )
         }
@@ -828,7 +884,7 @@ private fun OfflineOffer(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Glyph(R.drawable.ic_mountain, Paint.Sand)
             Spacer(Modifier.width(10.dp))
-            Label("Offline karta Hrvatske", Paint.Sand, size = 17, align = TextAlign.Start)
+            Label("Offline map of Croatia", Paint.Sand, size = 17, align = TextAlign.Start)
         }
         val progress = live?.progress
         if (live?.running == true) {
@@ -838,25 +894,25 @@ private fun OfflineOffer(
                 Box(Modifier.fillMaxWidth(percent / 100f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Paint.Amber))
             }
             Label(
-                progress?.let { "${it.done / 1_000_000} od ${it.total / 1_000_000} MB · ${Geo.formatRate(it.bytesPerSecond)}" } ?: "povezujem se…",
+                progress?.let { "${it.done / 1_000_000} of ${it.total / 1_000_000} MB · ${Geo.formatRate(it.bytesPerSecond)}" } ?: "connecting…",
                 Paint.Sand, size = 14,
             )
-            Label("Preuzimanje se nastavlja i dok gledate drugu kartu.", Paint.Dim, size = 12, lines = 3)
+            Label("The download goes on while you look at another map.", Paint.Dim, size = 12, lines = 3)
         } else {
             Label(
-                "Karta cijele Hrvatske za rad bez signala: ceste, mjesta, staze. Preuzima se jednom " +
-                    "i ostaje na telefonu. Najbolje preko Wi-Fi mreže.",
+                "The whole of Croatia for working with no signal: roads, places, paths. Downloaded " +
+                    "once, it stays on the phone. Best over Wi-Fi.",
                 Paint.Sand, size = 13, align = TextAlign.Start, lines = 6,
             )
             live?.problem?.let { Label(it, Paint.Red, size = 13, align = TextAlign.Start, lines = 4) }
             Action(
-                verb = if (partMb > 0) "Nastavi preuzimanje" else "Preuzmi offline kartu",
+                verb = if (partMb > 0) "Resume download" else "Download offline map",
                 icon = R.drawable.ic_save,
                 onClick = onFetch,
-                trailing = if (partMb > 0) "$partMb od $total MB" else "$total MB",
+                trailing = if (partMb > 0) "$partMb of $total MB" else "$total MB",
                 modifier = Modifier.fillMaxWidth(),
             )
-            Action("Imam .map datoteku", R.drawable.ic_folder, onClick = onChooseFile, quiet = true, modifier = Modifier.fillMaxWidth())
+            Action("I have a .map file", R.drawable.ic_folder, onClick = onChooseFile, quiet = true, modifier = Modifier.fillMaxWidth())
         }
         Label("© OpenStreetMap contributors · mapsforge.org", Paint.Dim, size = 10)
     }
@@ -883,18 +939,18 @@ private fun GoogleKeyHelp(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Glyph(R.drawable.ic_key, Paint.Sand)
             Spacer(Modifier.width(10.dp))
-            Label("Google karta treba API ključ", Paint.Sand, size = 16, align = TextAlign.Start, modifier = Modifier.weight(1f))
+            Label("Google map needs an API key", Paint.Sand, size = 16, align = TextAlign.Start, modifier = Modifier.weight(1f))
         }
         keyring.forEach { key ->
             // A key he gave that Google refused: Google's own words, and a way to try again.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Label("${key.label}: ${key.said.ifBlank { Keyring.describe(key) }}", Paint.Red, size = 12, align = TextAlign.Start, lines = 5, modifier = Modifier.weight(1f))
-                IconAction(R.drawable.ic_play, "ponovno", onClick = { onTest(key) })
+                IconAction(R.drawable.ic_play, "again", onClick = { onTest(key) })
             }
         }
         Label(
-            "Ključ nije ugrađen u aplikaciju: svatko koristi svoj. Google daje besplatnu mjesečnu " +
-                "kvotu koja je dovoljna za osobnu upotrebu. Koraci:",
+            "No key is built into the app: everyone uses their own. Google gives a free monthly " +
+                "quota that is enough for personal use. The steps:",
             Paint.Sand, size = 13, align = TextAlign.Start, lines = 5,
         )
         GOOGLE_STEPS.forEachIndexed { i, (words, link) ->
@@ -914,7 +970,7 @@ private fun GoogleKeyHelp(
         }
         if (caller.isNotEmpty()) {
             Label(
-                "Ograničenje po želji: Android aplikacije, paket ${caller["X-Android-Package"]}, " +
+                "Optional restriction: Android apps, package ${caller["X-Android-Package"]}, " +
                     "SHA-1 ${caller["X-Android-Cert"]?.chunked(2)?.joinToString(":")}",
                 Paint.Dim, size = 11, align = TextAlign.Start, lines = 5,
             )
@@ -924,7 +980,7 @@ private fun GoogleKeyHelp(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(Modifier.weight(1f)) {
-                if (text.isEmpty()) Label("zalijepite ključ (AIza…)", Paint.Dim, size = 14, align = TextAlign.Start)
+                if (text.isEmpty()) Label("paste the key (AIza…)", Paint.Dim, size = 14, align = TextAlign.Start)
                 BasicTextField(
                     value = text,
                     onValueChange = { text = it.trim() },
@@ -938,7 +994,7 @@ private fun GoogleKeyHelp(
             }
         }
         Action(
-            "Dodaj ključ", R.drawable.ic_check,
+            "Add key", R.drawable.ic_check,
             onClick = {
                 onPaste(text)
                 text = ""
@@ -946,19 +1002,19 @@ private fun GoogleKeyHelp(
             enabled = text.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         )
-        Action("Ključ iz datoteke", R.drawable.ic_folder, onClick = onImport, quiet = true, modifier = Modifier.fillMaxWidth())
+        Action("Key from a file", R.drawable.ic_folder, onClick = onImport, quiet = true, modifier = Modifier.fillMaxWidth())
     }
 }
 
 /** The way to a Google key, a step a line, each with the page it happens on. */
 private val GOOGLE_STEPS: List<Pair<String, String?>> = listOf(
-    "Otvorite Google Cloud Console i prijavite se svojim Google računom." to "https://console.cloud.google.com/",
-    "Napravite novi projekt (gore lijevo: odabir projekta → Novi projekt), npr. \"mantra-arkod\"." to "https://console.cloud.google.com/projectcreate",
-    "Uključite naplatu (Billing) za taj projekt. Google traži karticu, ali do mjesečne besplatne kvote ništa ne naplaćuje." to "https://console.cloud.google.com/billing",
-    "U tom projektu uključite \"Map Tiles API\" (gumb Enable)." to "https://console.cloud.google.com/apis/library/tile.googleapis.com",
-    "Po želji uključite i \"Places API (New)\" za traženje ulica i kućnih brojeva." to "https://console.cloud.google.com/apis/library/places.googleapis.com",
-    "APIs & Services → Credentials → Create credentials → API key. Kopirajte ključ." to "https://console.cloud.google.com/apis/credentials",
-    "Zalijepite ključ ovdje i pritisnite Dodaj ključ. Aplikacija ga odmah provjerava." to null,
+    "Open Google Cloud Console and sign in with your Google account." to "https://console.cloud.google.com/",
+    "Create a new project (top left: project picker → New project), e.g. \"mantra-arkod\"." to "https://console.cloud.google.com/projectcreate",
+    "Turn on Billing for that project. Google asks for a card but charges nothing within the free monthly quota." to "https://console.cloud.google.com/billing",
+    "In that project, enable \"Map Tiles API\" (the Enable button)." to "https://console.cloud.google.com/apis/library/tile.googleapis.com",
+    "Also enable \"Places API (New)\" for the search field on the map (streets, house numbers, places)." to "https://console.cloud.google.com/apis/library/places.googleapis.com",
+    "APIs & Services → Credentials → Create credentials → API key. Copy the key." to "https://console.cloud.google.com/apis/credentials",
+    "Paste the key here and press Add key. The app tests it at once." to null,
 )
 
 /**
@@ -1036,74 +1092,6 @@ object CanvasHolder {
  */
 
 /**
- * THE LITTLE COMPASS. A needle in a dark disc: red half to the north, pale half the other way,
- * turned by however much the map has been turned. When it is following the walk it gains an amber
- * ring, so the two states are a colour and not a word.
- *
- * It is 44dp, which is a thumb, and it sits under the top bar at the right-hand edge.
- */
-/**
- * THE COMPASS (17.9.2026, third attempt, to his description and no further).
- *
- * One white ring. One needle, wholly inside it, red to the north and pale to the south. Nothing
- * else: no letter, no disc, no second stroke under anything.
- *
- * What was wrong before, in his words and mine: the needle reached past the ring; the ring and
- * the needle were each drawn twice, near-black under colour, and the two passes did not meet
- * cleanly at the point — which is the "double sword" on the edges; and the N carried a shadow
- * because it too was drawn twice. Drawing a thing twice to make it readable is a trick for a
- * hairline over a map, and a filled needle is not a hairline. It needs none of it.
- *
- * The needle ends at 0.58 of the radius, so there is air between its point and the ring.
- */
-@Composable
-private fun LittleCompass(turn: Float, onTap: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier.size(55.dp).clip(CircleShape).clickable(onClick = onTap),
-        contentAlignment = Alignment.Center,
-    ) {
-        // A QUARTER LARGER (17.9.2026), with a black ring OUTSIDE the white one — concentric, not
-        // one drawn under the other, so there is no double edge anywhere on it.
-        Canvas(Modifier.size(38.dp)) {
-            val c = Offset(size.width / 2f, size.height / 2f)
-            val r = size.minDimension / 2f - 1.dp.toPx()
-
-            // ONE LINE, ONE PIXEL, NO OUTLINE (17.9.2026, his rule three). The black ring around
-            // this was me outlining by reflex; it is gone, and so is every other outline I added.
-            drawCircle(Color.White, radius = r, center = c, style = Stroke(1.dp.toPx()))
-
-            // The needle turns against the map: the map turned east puts north to the left.
-            val along = Math.toRadians(-turn.toDouble() - 90.0)
-            val across = Math.toRadians(-turn.toDouble())
-            fun at(distance: Float, radians: Double) = Offset(
-                c.x + (distance * Math.cos(radians)).toFloat(),
-                c.y + (distance * Math.sin(radians)).toFloat(),
-            )
-            val reach = r * 0.58f
-            val waist = r * 0.13f
-            val tip = at(reach, along)
-            val tail = at(-reach, along)
-            val left = at(waist, across)
-            val right = at(-waist, across)
-
-            fun half(point: Offset, colour: Color) {
-                drawPath(
-                    androidx.compose.ui.graphics.Path().apply {
-                        moveTo(point.x, point.y)
-                        lineTo(left.x, left.y)
-                        lineTo(right.x, right.y)
-                        close()
-                    },
-                    colour,
-                )
-            }
-            half(tip, Color(0xFFE53935))
-            half(tail, Color.White)
-        }
-    }
-}
-
-/**
  * THE CROSSHAIR IN THE MIDDLE OF THE MAP: four black hairlines, half transparent, and nothing in
  * the middle. Baba, 15.9.2026, and it is the whole specification.
  *
@@ -1147,9 +1135,15 @@ private fun PositionMark(hasFix: Boolean, locked: Boolean = false) {
     }
 }
 
-/** One line of numbers, and only the ones that decide something. */
+/**
+ * One line of numbers, and only the ones that decide something. THE COORDINATES ARE THE MIDDLE OF
+ * THE MAP (29.9.2026, v3): *"showing always ... what is the center of the map, not where I am
+ * now ... when I'm scrolling through the map, it's updating."* Where-am-I puts the middle on him,
+ * and then they are his. The accuracy is shown only while the middle is on his fix.
+ */
 @Composable
-private fun FixLine(fix: Fix?, zoom: Int, layer: MapLayer) {
+private fun FixLine(centre: Pair<Double, Double>?, fix: Fix?, zoom: Int, layer: MapLayer) {
+    val onHim = fix != null && centre != null && Geo.distance(fix.lat, fix.lon, centre.first, centre.second) <= maxOf(fix.accuracyM ?: 0f, 5f)
     Panel {
         Row(
             Modifier.fillMaxWidth().background(Paint.Bar).padding(horizontal = GAP, vertical = 2.dp),
@@ -1159,9 +1153,13 @@ private fun FixLine(fix: Fix?, zoom: Int, layer: MapLayer) {
             // make the room rather than anything being dropped: about 55 monospace characters fit
             // across a 390 px phone, and this is fifty. The name carries no family — the key just
             // below says THU or GOO — so "Thunderforest Landscape" reads "Landscape" here.
-            Label(fix?.let { Geo.formatLat(it.lat) } ?: "N -- --.---", ink(fix != null), size = 11)
-            Label(fix?.let { Geo.formatLon(it.lon) } ?: "E -- --.---", ink(fix != null), size = 11)
-            Label(fix?.accuracyM?.let { "±${it.toInt()}m" } ?: "±-", accuracyInk(fix?.accuracyM), size = 11)
+            Label(centre?.let { Geo.formatLat(it.first) } ?: "N -- --.---", ink(centre != null), size = 11)
+            Label(centre?.let { Geo.formatLon(it.second) } ?: "E -- --.---", ink(centre != null), size = 11)
+            Label(
+                if (onHim) fix?.accuracyM?.let { "±${it.toInt()}m" } ?: "±-" else "±-",
+                if (onHim) accuracyInk(fix?.accuracyM) else Paint.Dim,
+                size = 11,
+            )
             // Speed, because a walking pace is the one number that says whether the fix is
             // moving with him or wandering on its own (15.9.2026).
             Label(Geo.formatSpeed(fix?.speedMs), ink(fix?.speedMs != null), size = 11)
@@ -1237,9 +1235,16 @@ private fun RowScope.Key(
     onClick: () -> Unit,
     // THE ICON (27.9.2026): the key row speaks in symbols; the glyph stays as its name.
     @androidx.annotation.DrawableRes icon: Int? = null,
+    // A LONG PRESS (v3), for the parcels key: its view settings.
+    onLongClick: (() -> Unit)? = null,
 ) {
+    val tap by androidx.compose.runtime.rememberUpdatedState(onClick)
+    val hold by androidx.compose.runtime.rememberUpdatedState(onLongClick)
     Box(
-        Modifier.weight(1f).height(KEY).clickable(onClick = onClick),
+        Modifier.weight(1f).height(KEY).then(
+            if (onLongClick == null) Modifier.clickable(onClick = onClick)
+            else Modifier.pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold?.invoke() }) }
+        ),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) Glyph(icon, if (lit) Paint.AmberBright else Paint.Sand, size = 26.dp)
@@ -1484,81 +1489,6 @@ private fun TracksFace(
         }
     }
 }
-
-/**
- * THE TOOLS, IN A WINDOW OF THEIR OWN, over the map.
- *
- * Baba, 15.9.2026: the compass and the level are not settings and should not be in the settings.
- * They are instruments somebody reaches for on a hillside, so they are one key away — T — and
- * they cover the map while they are open, because reading a level is the whole of what you are
- * doing while you are doing it.
- */
-/**
- * THE COMPASS, OVER THE MAP, EDGE TO EDGE. That is the whole window.
- *
- * Baba, 15.9.2026, twice: *"overlay the compass over the map from edge to the edge... and this
- * bubble thing is going away, please. I'm persistent."* So there is no ground drawn behind it, no
- * second mode to choose between, and no bubble anywhere in the app. The map shows through the
- * dial; the heading is the one number; the way out is where it always is.
- */
-@Composable
-private fun CompassOverlay(sensors: Sensors, night: Boolean) {
-    var heading by remember { mutableStateOf(0.0) }
-
-    // Bounded by the composition: it dies with the overlay.
-    LaunchedEffect(Unit) {
-        while (true) {
-            heading = sensors.heading()
-            delay(50)
-        }
-    }
-
-    // TWO INKS, BECAUSE THERE ARE TWO KINDS OF MAP (15.9.2026). A dark compass disappears on a
-    // satellite photograph and a light one disappears on a street map, so the same dial is drawn
-    // in near-black for the pale maps and in sand for the dark ones, and T turns from one to the
-    // other. Both are half transparent: the map underneath is the thing being read.
-    val ink = if (night) Paint.Sand.copy(alpha = 0.75f) else Color(0xB3000000)
-
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier.fillMaxSize().safeDrawingPadding(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CompassDial(heading, full = true, ink = ink)
-            Label("${heading.toInt()}° ${Geo.cardinal(heading)}", ink, size = 16)
-        }
-    }
-}
-
-
-@Composable
-private fun CompassDial(heading: Double, full: Boolean = false, ink: Color = Paint.Sand) {
-    Canvas(if (full) Modifier.fillMaxWidth().aspectRatio(1f) else Modifier.size(140.dp)) {
-        val c = Offset(size.width / 2f, size.height / 2f)
-        val r = size.minDimension / 2f - 6f
-        drawCircle(ink.copy(alpha = 0.45f), radius = r, center = c, style = Stroke(2f))
-        for (tick in 0 until 72) {
-            val angle = Math.toRadians(tick * 5.0 - heading - 90.0)
-            val long = tick % 6 == 0
-            val inner = r * if (long) 0.84f else 0.92f
-            val colour = when {
-                tick == 0 -> Paint.Red
-                long -> ink
-                else -> ink.copy(alpha = 0.45f)
-            }
-            drawLine(
-                color = colour,
-                start = Offset(c.x + (inner * Math.cos(angle)).toFloat(), c.y + (inner * Math.sin(angle)).toFloat()),
-                end = Offset(c.x + (r * Math.cos(angle)).toFloat(), c.y + (r * Math.sin(angle)).toFloat()),
-                strokeWidth = if (long) 3f else 1.5f,
-            )
-        }
-        drawLine(ink, Offset(c.x, c.y - r * 0.8f), Offset(c.x, c.y + r * 0.2f), 4f)
-        drawCircle(ink, radius = 5f, center = c)
-    }
-}
-
 
 /**
  * A BAR THE HEIGHT OF ITS OWN TEXT. Baba, 15.9.2026: *"only height of this bar is height of the
@@ -2196,6 +2126,187 @@ private fun MyParcelsFace(
                     onRename(mark, name)
                 },
             )
+        }
+    }
+}
+
+/**
+ * A FIELD ON THE MAP (29.9.2026, v3): Google's is white as Google's own is; the parcel field is the
+ * app's dark card. A clear cross while there is text; the search key on the keyboard asks at once.
+ */
+@Composable
+private fun MapField(
+    text: String,
+    onText: (String) -> Unit,
+    hint: String,
+    @androidx.annotation.DrawableRes icon: Int,
+    light: Boolean,
+    onSearch: () -> Unit,
+) {
+    val ink = if (light) Color(0xFF202124) else Paint.Sand
+    val dim = if (light) Color(0xFF70757A) else Paint.Dim
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GAP)
+            .height(46.dp)
+            .clip(RoundedCornerShape(23.dp))
+            .background(if (light) Color.White else Paint.Card.copy(alpha = 0.96f))
+            .border(1.dp, if (light) Color(0x33000000) else Look.Outline, RoundedCornerShape(23.dp))
+            .padding(start = 14.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Glyph(icon, dim, size = 20.dp)
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f)) {
+            if (text.isEmpty()) Text(hint, color = dim, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            BasicTextField(
+                value = text,
+                onValueChange = onText,
+                singleLine = true,
+                textStyle = TextStyle(color = ink, fontSize = 15.sp),
+                cursorBrush = SolidColor(if (light) Color(0xFF1A73E8) else Paint.AmberBright),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch() }),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (text.isNotEmpty()) IconAction(R.drawable.ic_close, null, onClick = { onText("") }, tint = dim)
+    }
+}
+
+/**
+ * GOOGLE'S SEARCH ON EVERY MAP (29.9.2026, v3): *"Google search field is not present, should be
+ * present. When there is a Google key. And the same search field should be on all 3 maps. So if I
+ * search some street, Google give result, but this map, current map which is not Google, can show
+ * result, show the point."* Answers come as he types, as in Google Maps (autocomplete, billed
+ * once per session); the search key also asks Text Search. A tap pins the place on the map up.
+ */
+@Composable
+private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
+    var line by remember { mutableStateOf<String?>(null) }
+    var session by remember { mutableStateOf(java.util.UUID.randomUUID().toString()) }
+    val scope = rememberCoroutineScope()
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+
+    suspend fun ask(full: Boolean) {
+        val words = text.trim()
+        if (words.length < 3) { hits = emptyList(); line = null; return }
+        val near = Canvases.centre()?.let { Fix(it.first, it.second, null, 0L, null) }
+        val (found, problem) = PlaceSearch.find(words, near, store, session, full = full)
+        if (text.trim() != words) return
+        hits = found
+        line = problem
+    }
+
+    // AS HE TYPES: a third of a second after the last letter, so a word is one question.
+    LaunchedEffect(text) {
+        delay(350)
+        ask(full = false)
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        MapField(
+            text = text,
+            onText = { text = it; if (it.isEmpty()) { hits = emptyList(); line = null } },
+            hint = "Search Google Maps",
+            icon = R.drawable.ic_search,
+            light = true,
+            onSearch = { scope.launch { ask(full = true) } },
+        )
+        line?.let { Box(Modifier.padding(horizontal = GAP)) { NoteLine(it) } }
+        if (hits.isNotEmpty()) {
+            Box(Modifier.padding(horizontal = GAP)) {
+                ResultsList(hits, light = true) { hit ->
+                    hits = emptyList()
+                    focus.clearFocus()
+                    scope.launch {
+                        val placed = PlaceSearch.locate(hit, store, session)
+                        // One session is one search: the tap closes it, the next word opens another.
+                        session = java.util.UUID.randomUUID().toString()
+                        if (placed == null) line = "Google did not say where ${hit.title} is" else onPlace(placed)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * THE PARCEL FIELD (29.9.2026, v3), under Google's, hidden or shown in Parcel view. What he types
+ * decides what it asks, and it answers as he types:
+ *  - a number, "245", "2449/3": every parcel number that begins with it in the k.o. under the
+ *    middle of the map (OSS, a quarter of a second);
+ *  - "pl 1984": that possession sheet's parcels in the same k.o.;
+ *  - a name, "jaša anica": Imenik, the holders and owners of every sheet opened on this phone.
+ */
+@Composable
+private fun ParcelField(book: List<OwnerBook.Entry>, onParcel: (Finding.Hit) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
+    var line by remember { mutableStateOf<String?>(null) }
+    // The k.o. under the middle, asked again only when the middle has moved (a tenth of a degree).
+    var ko by remember { mutableStateOf<Pair<Pair<Double, Double>, Triple<String, String, String>>?>(null) }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+
+    suspend fun municipality(): Triple<String, String, String>? {
+        val (lat, lon) = Canvases.centre() ?: return null
+        val known = ko
+        if (known != null && Geo.distance(known.first.first, known.first.second, lat, lon) < 1_000) return known.second
+        val found = runCatching { ParcelNet.municipalityFull(lat, lon) }.getOrNull() ?: return null
+        ko = (lat to lon) to found
+        return found
+    }
+
+    LaunchedEffect(text, book.size) {
+        val words = text.trim()
+        if (words.isEmpty()) { hits = emptyList(); line = null; return@LaunchedEffect }
+        delay(250)
+        val sheet = Regex("""^p\.?\s*l\.?\s*(\d+)$""", RegexOption.IGNORE_CASE).find(words)?.groupValues?.get(1)
+        val answer = runCatching {
+            when {
+                sheet != null -> {
+                    val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
+                    ParcelNet.ossSearch(k.third, sheet = sheet).also { line = "k.o. ${k.second} · posjedovni list $sheet: ${it.size}" }
+                }
+                Regex("""^\*?\d+(/\d*)?$""").matches(words) -> {
+                    val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
+                    ParcelNet.suggest(k.first, k.second, words).also { line = "k.o. ${k.second} · ${it.size}" }
+                }
+                words.any { it.isLetter() } -> {
+                    OwnerBook.search(book, words).map { OwnerBook.hit(it) }.also {
+                        line = "Imenik: ${it.size} · iz ${book.size} imena s listova otvorenih na ovom telefonu"
+                    }
+                }
+                else -> emptyList()
+            }
+        }
+        if (text.trim() != words) return@LaunchedEffect
+        hits = answer.getOrNull().orEmpty()
+        answer.exceptionOrNull()?.let { line = it.message ?: "katastar nije odgovorio" }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        MapField(
+            text = text,
+            onText = { text = it },
+            hint = "broj čestice, pl 1984 ili ime",
+            icon = R.drawable.ic_parcels,
+            light = false,
+            onSearch = { focus.clearFocus() },
+        )
+        line?.let { Box(Modifier.padding(horizontal = GAP)) { NoteLine(it) } }
+        if (hits.isNotEmpty()) {
+            Box(Modifier.padding(horizontal = GAP)) {
+                ResultsList(hits, light = false) { hit ->
+                    hits = emptyList()
+                    line = null
+                    focus.clearFocus()
+                    onParcel(hit)
+                }
+            }
         }
     }
 }

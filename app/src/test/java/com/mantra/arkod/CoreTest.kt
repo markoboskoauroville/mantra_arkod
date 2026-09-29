@@ -1655,4 +1655,84 @@ class CoreTest {
         assertEquals(listOf("uporaba", "posjedovni", "vlasnički"), Parcels.Tab.entries.map { it.word })
         assertEquals(listOf("isprekidana", "puna", "točkasta"), Parcels.LineStyle.entries.map { it.word })
     }
+
+    // --- v3 (29.9.2026): the parcels key, Parcel view, the parcel field, Imenik ------------------
+
+    @Test fun theParcelsKeyHidesEverythingAndOnlyMineWinsOverIt() {
+        assertEquals(true to true, Parcels.visibility(cadastreOn = true, onlyMine = false))
+        assertEquals(false to false, Parcels.visibility(cadastreOn = false, onlyMine = false))
+        // "all the time, no matter on or off, only my parcels drawn and everything else is out"
+        assertEquals(false to true, Parcels.visibility(cadastreOn = true, onlyMine = true))
+        assertEquals(false to true, Parcels.visibility(cadastreOn = false, onlyMine = true))
+    }
+
+    @Test fun theNumbersOssOffersBecomeHitsWithStarredOnesLast() {
+        val json = """[{"key1":"11","value1":"*245"},{"key1":"12","value1":"2450"},{"key1":"","value1":"2451"},{"key1":"13","value1":"2452/1"}]"""
+        val hits = Parcels.parseSuggestions(json, "334723", "KUKLJICA")
+        assertEquals(listOf("2450", "2452/1", "*245"), hits.map { it.title })
+        assertEquals("334723-2450", hits.first().ref)
+        assertEquals("12", hits.first().id)
+        assertEquals("k.o. KUKLJICA", hits.first().under)
+        assertTrue(hits.all { it.source == Finding.Source.PARCEL })
+        assertEquals(1, Parcels.parseSuggestions(json, "334723", "KUKLJICA", limit = 1).size)
+        assertTrue(Parcels.parseSuggestions("[]", "334723", "KUKLJICA").isEmpty())
+    }
+
+    private fun entry(name: String, reference: String, role: OwnerBook.Role = OwnerBook.Role.POSJEDNIK, detail: String = "p.l. 1984") =
+        OwnerBook.Entry(name, role, detail, 7L, reference, reference.substringAfter('-'), "KUKLJICA")
+
+    @Test fun imenikTakesEveryHolderAndOwnerOfASheetAndDropsNamesWithoutLetters() {
+        val parcel = Parcels.Parcel(7L, "1655/3", "334723-1655/3", 61, emptyList())
+        val record = Parcels.Record(
+            "1655/3", "KUKLJICA", "334723", "ŽAVRH", "61", emptyList(),
+            listOf(Parcels.Sheet("1984", listOf(Parcels.Owner(" JAŠA ANICA ", "1/1", "KUKLJICA"), Parcels.Owner("---", "", "")))),
+        )
+        val folio = Parcels.Folio(
+            "182", "KUKLJICA", "Zadar", "glavna", "", 0,
+            listOf(Parcels.Share("1. Suvlasnički dio: 1/2", listOf(Parcels.Owner("JAŠA ANICA POK. JOSE", "1/2", "")), emptyList())),
+            listOf("1655/3"), emptyList(),
+        )
+        val e = OwnerBook.entriesOf(parcel, record, listOf(folio))
+        assertEquals(listOf("JAŠA ANICA", "JAŠA ANICA POK. JOSE"), e.map { it.name })
+        assertEquals(listOf(OwnerBook.Role.POSJEDNIK, OwnerBook.Role.VLASNIK), e.map { it.role })
+        assertEquals("p.l. 1984", e[0].detail)
+        assertEquals("z.k.ul. 182 · 1/2", e[1].detail)
+        assertTrue(e.all { it.reference == "334723-1655/3" && it.municipalityName == "KUKLJICA" })
+    }
+
+    @Test fun imenikReplacesWhatAParcelSaidBeforeSoASaleDropsTheSeller() {
+        val before = listOf(entry("SELLER IVO", "334723-1"), entry("OTHER ANA", "334723-2"))
+        val after = OwnerBook.add(before, listOf(entry("BUYER MARA", "334723-1"), entry("BUYER MARA", "334723-1")))
+        assertEquals(listOf("BUYER MARA", "OTHER ANA"), after.map { it.name })
+        assertEquals(2, OwnerBook.add(before, emptyList()).size)
+        assertEquals(1, OwnerBook.add(before, listOf(entry("X", "334723-9")), limit = 1).size)
+    }
+
+    @Test fun imenikFindsANameByAnyWordsWithoutDiacritics() {
+        val book = listOf(
+            entry("JAŠA ANICA POK. JOSE", "334723-1"),
+            entry("ANIĆ JOSIP", "334723-2"),
+            entry("JAŠA ANICA POK. JOSE", "334723-1"),
+        )
+        assertEquals(listOf("JAŠA ANICA POK. JOSE"), OwnerBook.search(book, "anica jasa").map { it.name })
+        // The name that begins with the first word comes first.
+        assertEquals("ANIĆ JOSIP", OwnerBook.search(book, "ani").first().name)
+        assertEquals(2, OwnerBook.search(book, "ani").size)
+        assertTrue(OwnerBook.search(book, "a").isEmpty())
+        assertTrue(OwnerBook.search(book, "marko").isEmpty())
+    }
+
+    @Test fun imenikSurvivesThePhoneAndAHitOpensTheParcel() {
+        val book = listOf(entry("NAME | WITH BAR", "334723-1655/3", OwnerBook.Role.VLASNIK, "z.k.ul. 182 · 1/2"))
+        val back = OwnerBook.decode(OwnerBook.encode(book))
+        assertEquals(1, back.size)
+        assertEquals("NAME / WITH BAR", back[0].name)
+        assertEquals(OwnerBook.Role.VLASNIK, back[0].role)
+        assertEquals("334723-1655/3", back[0].reference)
+        assertTrue(OwnerBook.decode("").isEmpty())
+        val hit = OwnerBook.hit(back[0])
+        assertEquals("7", hit.id)
+        assertEquals("334723-1655/3", hit.ref)
+        assertEquals("1655/3 · k.o. KUKLJICA · vlasnik · z.k.ul. 182 · 1/2", hit.under)
+    }
 }

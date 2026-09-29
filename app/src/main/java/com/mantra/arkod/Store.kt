@@ -68,10 +68,32 @@ class Store(context: Context) {
     fun setOpened(name: String, value: Boolean) =
         prefs.edit().putBoolean("open-$name", value).apply()
 
-    /** The compass over the map: 0 dark, 1 night, 2 off. Off unless he turns it on. */
-    var compassMode: Int
-        get() = prefs.getInt(KEY_COMPASS, 2).coerceIn(0, 2)
-        set(v) = prefs.edit().putInt(KEY_COMPASS, v.coerceIn(0, 2)).apply()
+    /**
+     * THE PARCELS KEY (29.9.2026, v3): *"It should hide parcels overlay completely from the map."*
+     * On: the state's parcels and his own are drawn. Off: nothing of the cadastre is on the map.
+     */
+    var cadastreOn: Boolean
+        get() = prefs.getBoolean(KEY_CADASTRE_ON, true)
+        set(v) = prefs.edit().putBoolean(KEY_CADASTRE_ON, v).apply()
+
+    /**
+     * ONLY MY PARCELS (29.9.2026, v3): *"all the time, no matter on or off, only my parcels drawn
+     * and everything else is out."* Stronger than the key: while it is on, the state's parcels are
+     * never drawn and his are always drawn.
+     */
+    var onlyMine: Boolean
+        get() = prefs.getBoolean(KEY_ONLY_MINE, false)
+        set(v) = prefs.edit().putBoolean(KEY_ONLY_MINE, v).apply()
+
+    /** The parcel field on the map, under Google's; shown unless he hides it in Parcel view. */
+    var parcelSearchOn: Boolean
+        get() = prefs.getBoolean(KEY_PARCEL_SEARCH, true)
+        set(v) = prefs.edit().putBoolean(KEY_PARCEL_SEARCH, v).apply()
+
+    /** Imenik: every holder and owner the sheets opened on this phone named ([OwnerBook]). */
+    var ownerBook: List<OwnerBook.Entry>
+        get() = OwnerBook.decode(prefs.getString(KEY_OWNER_BOOK, "") ?: "")
+        set(v) = prefs.edit().putString(KEY_OWNER_BOOK, OwnerBook.encode(v)).apply()
 
     /** Which of VTM's render themes draws the offline file. The plain one suits mapsforge's Croatia. */
     var themeName: String
@@ -156,7 +178,10 @@ class Store(context: Context) {
         private const val KEY_LAYER = "layer"
         private const val KEY_KEYS = "keys"
         private const val KEY_TRACK_COLOUR = "trackColour"
-        private const val KEY_COMPASS = "compassMode"
+        private const val KEY_CADASTRE_ON = "cadastreOn"
+        private const val KEY_ONLY_MINE = "onlyMine"
+        private const val KEY_PARCEL_SEARCH = "parcelSearchOn"
+        private const val KEY_OWNER_BOOK = "ownerBook"
         private const val KEY_THEME = "themeName"
         private const val KEY_GOOGLE_VIEW = "googleView"
         private const val KEY_RING = "keyring"

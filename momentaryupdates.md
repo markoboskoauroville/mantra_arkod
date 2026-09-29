@@ -133,17 +133,21 @@ Asked, answered: the repository name is **manra_arkod** (typed), read as `mantra
 
 Worked by the local Claude Code on the Mac, on top of the cloud's v2 (dc44042).
 
-1. Parcels key: a tap hides / shows the whole cadastre overlay; a long press opens the parcels view
-   settings. **Status:** pending.
-2. Parcels view settings: "only my parcels" (always, whatever the overlay key says), "parcel search
-   on the map", and the way to Moje čestice. **Status:** pending.
+1. Parcels key: a tap hides / shows the whole cadastre overlay; a long press opens Parcel view.
+   **Status:** written in v3 (30.9.2026); CI and the emulator next.
+2. Parcel view: "Only Moje čestice" (always, whatever the key says), "Parcel search on the map",
+   the way to Moje čestice, and Imenik. **Status:** written in v3.
 3. Google search field on the map, on all three maps, when a Google key exists; the result is a
-   point on whichever map is up; suggestions as he types. **Status:** pending.
-4. Parcel-number search field under it (toggle), answers as he types. **Status:** pending.
-5. Owner search over the whole of Croatia. **Status:** pending: checking what the public registry allows.
+   point on whichever map is up; suggestions as he types. **Status:** written in v3.
+4. Parcel field under it (toggle), answers as he types: a number, "pl 1984", or a name.
+   **Status:** written in v3.
+5. Owner search over the whole of Croatia. **Status:** not possible as asked: the state publishes no
+   search by name (every name-shaped path under /oss/public is 404). v3 has **Imenik** instead:
+   every holder and owner on every sheet opened on the phone, found by name in the parcel field.
 6. Top line: the coordinates of the map centre, updating while he pans; where-am-I snaps there.
-   **Status:** pending.
-7. Compass removed. **Status:** pending.
-8. Settings in English; everything ARKOD (sheets, parcels, their terms) in Croatian. **Status:** pending.
+   **Status:** written in v3.
+7. Compass removed. **Status:** done in v3 (overlay, setting, icon, its checks).
+8. Settings in English; everything ARKOD (sheets, parcels, their terms) in Croatian.
+   **Status:** written in v3.
 9. Test everything on the emulator before calling it done; then the message to his friend in
-   Croatian. **Status:** pending.
+   Croatian. **Status:** verify.py 220/220 and 6 new unit tests (200); emulator after CI.

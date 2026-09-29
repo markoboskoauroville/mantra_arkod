@@ -73,12 +73,12 @@ class MainActivity : ComponentActivity() {
         try {
             val text = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             if (text == null) {
-                Trail.say("Datoteka se nije mogla pročitati")
+                Trail.say("The file could not be read")
                 return@registerForActivityResult
             }
             addKeyText(text)
         } catch (e: Exception) {
-            Trail.say("Uvoz nije uspio: ${e.javaClass.simpleName}")
+            Trail.say("Import failed: ${e.javaClass.simpleName}")
         }
     }
 
@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
     private fun addKeyText(text: String) {
         val found = Keys.parse(text)
         if (found.isEmpty()) {
-            Trail.say("U tom tekstu nema Google ključa (počinje s AIza…)")
+            Trail.say("There is no Google key in that text (it starts with AIza…)")
             return
         }
         store.keys = store.keys + found.associate { it.provider to it.key }
@@ -192,7 +192,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val problem = MapDownload.fetch(this@MainActivity) { }
             if (problem == null) {
-                Trail.say("Offline karta Hrvatske je na telefonu")
+                Trail.say("The offline map of Croatia is on the phone")
                 if (Layers.byId(store.layerId).kind == LayerKind.VECTOR_FILE) canvas?.show(Layers.OFFLINE)
             }
             UiTick.bump()
@@ -206,9 +206,9 @@ class MainActivity : ComponentActivity() {
         val added = store.keyring.size - before.size
         Trail.say(
             when {
-                added == 0 && found.isEmpty() -> "U tome nema Google ključa"
-                added == 0 -> "Taj ključ je već dodan"
-                else -> "Dodano: $added. Provjeravam…"
+                added == 0 && found.isEmpty() -> "There is no Google key in it"
+                added == 0 -> "That key is already added"
+                else -> "Added: $added. Testing…"
             }
         )
         UiTick.bump()
@@ -228,10 +228,10 @@ class MainActivity : ComponentActivity() {
                 store.keyring,
                 key.value,
                 verdict,
-                answer.problem ?: "radi",
+                answer.problem ?: "works",
                 System.currentTimeMillis(),
             )
-            Trail.say("${key.label}: ${answer.problem ?: "radi"}")
+            Trail.say("${key.label}: ${answer.problem ?: "works"}")
             // A key that works puts Google's map up at once, if Google is what he is looking at.
             UiTick.bump()
         }
@@ -239,7 +239,7 @@ class MainActivity : ComponentActivity() {
 
     private fun removeKey(key: Keyring.Key) {
         store.keyring = Keyring.remove(store.keyring, key.value)
-        Trail.say("${key.label} je uklonjen")
+        Trail.say("${key.label} removed")
         UiTick.bump()
     }
 

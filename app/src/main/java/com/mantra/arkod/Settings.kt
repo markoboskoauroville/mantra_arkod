@@ -55,8 +55,7 @@ fun SettingsFace(
     version: String,
     myParcelCount: Int,
     onMyParcels: () -> Unit,
-    compassOn: Boolean,
-    onCompass: () -> Unit,
+    onParcelView: () -> Unit,
     hasOffline: Boolean,
     download: MapDownload.Live?,
     onFetchOfflineMap: () -> Unit,
@@ -106,7 +105,7 @@ fun SettingsFace(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Words("postavke", Paint.Sand, 17, TextAlign.Start, Modifier.padding(start = 4.dp))
+                Words("Settings", Paint.Sand, 17, TextAlign.Start, Modifier.padding(start = 4.dp))
                 Box(
                     Modifier.size(46.dp).clip(CircleShape).background(Paint.Card)
                         .clickable(onClick = onClose),
@@ -114,15 +113,20 @@ fun SettingsFace(
                 ) { Words("✕", Paint.Sand, 18) }
             }
 
+            // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings
+            // in the English language and all terminology from arkod in Croatian."* So a row here is
+            // English, and a name the cadastre gives a thing (čestica, posjedovni list, k.o.) is not.
             Group("Moje čestice") {
-                Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount", onClick = onMyParcels)
+                Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
+                Hairline()
+                Opens("Parcel view", R.drawable.ic_layers, under = "what the parcels key shows", onClick = onParcelView)
             }
 
-            Group("Offline karta") {
+            Group("Offline map") {
                 val live = download
                 when {
                     live?.running == true -> Action(
-                        verb = "Preuzimam Hrvatsku",
+                        verb = "Downloading Croatia",
                         icon = R.drawable.ic_save,
                         onClick = {},
                         quiet = true,
@@ -133,11 +137,11 @@ fun SettingsFace(
                         title = Layers.OfflineDownload.LABEL,
                         icon = R.drawable.ic_mountain,
                         chosen = current.kind == LayerKind.VECTOR_FILE,
-                        under = if (MapDownload.isPresent(context)) "na telefonu" else "odabrana .map datoteka",
+                        under = if (MapDownload.isPresent(context)) "on the phone" else "chosen .map file",
                         onClick = {},
                     )
                     else -> Action(
-                        verb = "Preuzmi offline kartu",
+                        verb = "Download offline map",
                         icon = R.drawable.ic_save,
                         onClick = onFetchOfflineMap,
                         quiet = true,
@@ -150,7 +154,7 @@ fun SettingsFace(
                     Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { Words(it, Paint.Red, 12, TextAlign.Start) }
                 }
                 Hairline()
-                Action("Odaberi .map datoteku", R.drawable.ic_folder, onClick = onChooseMapFile, quiet = true, modifier = Modifier.fillMaxWidth())
+                Action("Choose a .map file", R.drawable.ic_folder, onClick = onChooseMapFile, quiet = true, modifier = Modifier.fillMaxWidth())
                 Hairline(inset = 16.dp)
                 Box(Modifier.padding(12.dp)) {
                     Choice(
@@ -166,10 +170,10 @@ fun SettingsFace(
                 }
             }
 
-            Group("Google karta") {
+            Group("Google map") {
                 Box(Modifier.padding(12.dp)) {
                     Choice(
-                        parts = listOf(Part("karta"), Part("satelit"), Part("teren"), Part("hibrid")),
+                        parts = listOf(Part("map"), Part("satellite"), Part("terrain"), Part("hybrid")),
                         chosen = Layers.GOOGLE_ALL.indexOfFirst { it.id == googleId }.coerceAtLeast(0),
                         onChoose = { i ->
                             googleId = Layers.GOOGLE_ALL[i].id
@@ -181,11 +185,11 @@ fun SettingsFace(
             }
 
             // THE KEYRING: every key he added, what it last answered, a test and a delete for each.
-            Group("API ključevi") {
+            Group("API keys") {
                 Opens(
-                    title = "Google ključevi",
+                    title = "Google keys",
                     icon = R.drawable.ic_key,
-                    under = if (keyring.isEmpty()) "nijedan" else "${keyring.size}",
+                    under = if (keyring.isEmpty()) "none" else "${keyring.size}",
                     onClick = {
                         keysOpen = !keysOpen
                         store.setOpened("keys", keysOpen)
@@ -207,8 +211,8 @@ fun SettingsFace(
                                     Paint.Dim, 12, TextAlign.Start,
                                 )
                             }
-                            IconAction(R.drawable.ic_play, "provjeri", onClick = { onTestKey(key) })
-                            IconAction(R.drawable.ic_trash, "obriši", onClick = { onRemoveKey(key) }, tint = Paint.Red)
+                            IconAction(R.drawable.ic_play, "test", onClick = { onTestKey(key) })
+                            IconAction(R.drawable.ic_trash, "delete", onClick = { onRemoveKey(key) }, tint = Paint.Red)
                         }
                     }
                     Hairline()
@@ -220,7 +224,7 @@ fun SettingsFace(
                             Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).border(1.dp, Look.Outline, RoundedCornerShape(10.dp))
                                 .padding(horizontal = 12.dp, vertical = 12.dp),
                         ) {
-                            if (pasted.isEmpty()) Words("zalijepite ključ (AIza…)", Paint.Dim, 14, TextAlign.Start)
+                            if (pasted.isEmpty()) Words("paste a key (AIza…)", Paint.Dim, 14, TextAlign.Start)
                             androidx.compose.foundation.text.BasicTextField(
                                 value = pasted,
                                 onValueChange = { pasted = it.trim() },
@@ -231,7 +235,7 @@ fun SettingsFace(
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         }
-                        IconAction(R.drawable.ic_check, "dodaj", onClick = {
+                        IconAction(R.drawable.ic_check, "add", onClick = {
                             if (pasted.isNotBlank()) {
                                 onPasteKey(pasted)
                                 pasted = ""
@@ -239,15 +243,15 @@ fun SettingsFace(
                         })
                     }
                     Hairline()
-                    Action("Ključ iz datoteke", R.drawable.ic_folder, onClick = onImportKeys, quiet = true, modifier = Modifier.fillMaxWidth())
+                    Action("Key from a file", R.drawable.ic_folder, onClick = onImportKeys, quiet = true, modifier = Modifier.fillMaxWidth())
                     Hairline()
-                    Action("Provjeri jednu pločicu", R.drawable.ic_play, onClick = onTestTiles, quiet = true, modifier = Modifier.fillMaxWidth())
+                    Action("Test one tile", R.drawable.ic_play, onClick = onTestTiles, quiet = true, modifier = Modifier.fillMaxWidth())
                 }
             }
 
             // THE CADASTRE KEPT ON THE PHONE (29.9.2026).
-            Group("ARKOD na telefonu") {
-                Toggle("Spremaj unaprijed", R.drawable.ic_save, on = prefetch, onChange = {
+            Group("ARKOD on the phone") {
+                Toggle("Fetch ahead", R.drawable.ic_save, on = prefetch, onChange = {
                     prefetch = it
                     store.prefetch = it
                 })
@@ -258,7 +262,7 @@ fun SettingsFace(
                 ) {
                     Words(cacheLabel, Paint.Dim, 12, TextAlign.Start, Modifier.weight(1f))
                     Action(
-                        verb = if (sureClear) "ponovno: obriši" else "obriši",
+                        verb = if (sureClear) "again: clear" else "clear",
                         icon = R.drawable.ic_trash,
                         onClick = {
                             if (sureClear) {
@@ -275,22 +279,18 @@ fun SettingsFace(
                 }
             }
 
-            Group("Tragovi") {
-                Opens("Tragovi", R.drawable.ic_track, under = "$trackCount", onClick = onTracks)
+            Group("Tracks") {
+                Opens("Tracks", R.drawable.ic_track, under = "$trackCount", onClick = onTracks)
                 Hairline()
-                Opens("Mapa za tragove i izvoz", R.drawable.ic_folder, under = folderName, onClick = onChooseExportFolder)
+                Opens("Folder for tracks and export", R.drawable.ic_folder, under = folderName, onClick = onChooseExportFolder)
                 if (recording) {
                     Hairline()
-                    Action(if (recordingPaused) "Nastavi snimanje" else "Pauziraj snimanje", R.drawable.ic_play, onClick = onPause, quiet = true, modifier = Modifier.fillMaxWidth())
+                    Action(if (recordingPaused) "Resume recording" else "Pause recording", R.drawable.ic_play, onClick = onPause, quiet = true, modifier = Modifier.fillMaxWidth())
                 }
             }
 
-            Group("Na karti") {
-                Toggle("Kompas", R.drawable.ic_compass, on = compassOn, onChange = { onCompass() })
-            }
-
             // THE VERSION OPENS THE LATEST BUILD (29.9.2026, the rule for every Mantra app).
-            Group("O aplikaciji") {
+            Group("About") {
                 Row(
                     Modifier.fillMaxWidth().clickable { runCatching { open.openUri(RELEASES) } }.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -298,9 +298,9 @@ fun SettingsFace(
                 ) {
                     Glyph(R.drawable.ic_info, Paint.Dim)
                     Column {
-                        Words("Mantra ARKOD · verzija $version", Paint.Sand, 15, TextAlign.Start)
+                        Words("Mantra ARKOD · version $version", Paint.Sand, 15, TextAlign.Start)
                         Words(
-                            "Katastar: Državna geodetska uprava (uredjenazemlja.hr) · © OpenStreetMap contributors · mapsforge · Google",
+                            "Cadastre: Državna geodetska uprava (uredjenazemlja.hr) · © OpenStreetMap contributors · mapsforge · Google",
                             Paint.Dim, 12, TextAlign.Start,
                         )
                     }
@@ -342,4 +342,92 @@ private fun Words(
         fontFamily = FontFamily.Monospace,
         textAlign = align,
     )
+}
+
+/**
+ * PARCEL VIEW (29.9.2026, v3), a long press on the parcels key: *"that settings dialog, we can turn
+ * on or off some things. It's basically viewing settings."* What the parcels key shows, whether
+ * only his own parcels are drawn whatever the key says, and whether the parcel field is on the
+ * map. Settings words in English; the cadastre's words in Croatian.
+ */
+@Composable
+fun ParcelViewFace(
+    cadastreOn: Boolean,
+    onCadastre: (Boolean) -> Unit,
+    onlyMine: Boolean,
+    onOnlyMine: (Boolean) -> Unit,
+    parcelSearchOn: Boolean,
+    onParcelSearch: (Boolean) -> Unit,
+    myParcelCount: Int,
+    onMyParcels: () -> Unit,
+    bookSize: Int,
+    onClearBook: () -> Unit,
+    onClose: () -> Unit,
+) {
+    var sureClear by remember { mutableStateOf(false) }
+    Box(
+        Modifier.fillMaxSize().background(Color(0x99000000)).clickable(onClick = onClose),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            Modifier
+                .safeDrawingPadding()
+                .padding(16.dp)
+                .widthIn(max = 460.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Paint.Ground)
+                // A tap inside is the dialog's own; only a tap outside closes it.
+                .clickable(enabled = true, onClick = {})
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 8.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Glyph(R.drawable.ic_parcels, Paint.Sand)
+                Words("Parcel view", Paint.Sand, 17, TextAlign.Start, Modifier.padding(start = 12.dp).weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
+            }
+            Column(Modifier.padding(horizontal = 12.dp)) {
+                Group("On the map") {
+                    Toggle("Parcels on the map", R.drawable.ic_parcels, on = cadastreOn, onChange = onCadastre)
+                    Hint("The same as a tap on the parcels key: off hides the cadastre completely.")
+                    Hairline()
+                    Toggle("Only Moje čestice", R.drawable.ic_pin, on = onlyMine, onChange = onOnlyMine)
+                    Hint("Always, whatever the parcels key says: your parcels are drawn and every other parcel is hidden.")
+                    Hairline()
+                    Toggle("Parcel search on the map", R.drawable.ic_search, on = parcelSearchOn, onChange = onParcelSearch)
+                    Hint("The čestica field under Google's search: a number, \"pl 1984\" or a name.")
+                }
+                Group("Moje čestice") {
+                    Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
+                }
+                Group("Imenik") {
+                    Hint(
+                        "$bookSize names from the posjedovni and vlasnički listovi opened on this phone. The " +
+                            "state publishes no search by name, so the parcel field finds a person among these, " +
+                            "and the list grows with every sheet you open."
+                    )
+                    if (bookSize > 0) {
+                        Hairline()
+                        Action(
+                            verb = if (sureClear) "again: clear Imenik" else "Clear Imenik",
+                            icon = R.drawable.ic_trash,
+                            onClick = { if (sureClear) { onClearBook(); sureClear = false } else sureClear = true },
+                            quiet = true,
+                            danger = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Hint(text: String) {
+    Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)) { Words(text, Paint.Dim, 12, TextAlign.Start) }
 }

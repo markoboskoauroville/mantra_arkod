@@ -199,6 +199,29 @@ object Parcels {
             ?.optString("key1")?.toLongOrNull()
     }
 
+    /**
+     * The numbers OSS offers for the start of one, as hits a tap opens: the id is the parcel's, the
+     * reference is made from the municipality. Numbers with a star (a building's own number in
+     * the old survey) come after the plain ones.
+     */
+    fun parseSuggestions(json: String, municipalityReg: String, municipalityName: String, limit: Int = 12): List<Finding.Hit> {
+        val a = JSONArray(json)
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }
+            .mapNotNull { o ->
+                val number = o.optString("value1").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                val id = o.optString("key1").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                Finding.Hit(
+                    id = id,
+                    title = number,
+                    under = "k.o. $municipalityName",
+                    source = Finding.Source.PARCEL,
+                    ref = "$municipalityReg-$number",
+                )
+            }
+            .sortedBy { it.title.startsWith("*") }
+            .take(limit)
+    }
+
     /** Parcels by their full references, "334723-2450", as many as are asked at once. */
     fun byReferenceUrl(references: List<String>): String {
         val quoted = references.joinToString(",") { "'" + it.replace("'", "") + "'" }
@@ -221,6 +244,16 @@ object Parcels {
     // --- the answers ------------------------------------------------------------------------------
 
     /** A ring is a list of (latitude, longitude). */
+    /**
+     * WHAT IS DRAWN (29.9.2026, v3): the parcels key and "only my parcels" as one rule.
+     * First the state's layer, then his own parcels. Only-mine wins over the key.
+     */
+    fun visibility(cadastreOn: Boolean, onlyMine: Boolean): Pair<Boolean, Boolean> = when {
+        onlyMine -> false to true
+        cadastreOn -> true to true
+        else -> false to false
+    }
+
     data class Parcel(
         val id: Long,
         val number: String,

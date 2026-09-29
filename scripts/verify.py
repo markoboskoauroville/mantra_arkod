@@ -16,11 +16,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # Mantra ARKOD, 29.9.2026: 33 cases left with the features they tested (routes, BRouter's
 # segments, OpenAndroMaps, kept imagery, Google's polyline), 11 came with my parcels and the
 # cadastre kept ahead. The floor is what is here, and it ratchets from here.
-TEST_FLOOR = 194
+# v3, 29.9.2026: six cases came with the parcels key, the parcel field's suggestions and Imenik.
+TEST_FLOOR = 200
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt"]
 
 failures, checks = [], []
 
@@ -261,7 +262,7 @@ check("the credits are gathered in settings",
 map_screen = screens.split("private fun SettingsFace")[0]
 check("no bar is painted on a column",
       ".background(Paint.Bar)" not in map_screen.split("private fun Panel")[0] or
-      "Column(Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding())" in map_screen,
+      "Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding()," in map_screen,
       "the background belongs to the line and to the key row, not to their container")
 check("an empty line takes no height at all",
       "if (note != null) NoteLine(note)" in screens
@@ -457,14 +458,13 @@ check("the track list is loaded rather than read during composition",
 check("speed is on the top line",
       "Geo.formatSpeed(fix?.speedMs)" in screens and "fun formatSpeed" in (MAIN / "Geo.kt").read_text(),
       "kilometres an hour, a tenth at walking pace")
-# 27.9.2026, his rule: the compass is on or off, one switch; its ink follows the map by itself.
-check("the compass is on or off, and its ink follows the map",
-      "compass = if (compass == COMPASS_OFF) COMPASS_DARK else COMPASS_OFF" in screens
-      and "night = Parcels.inkFor(" in screens and "store.compassMode" in screens,
-      "dark ink over a pale map, light over a dark one, chosen for him")
-check("the compass is an overlay with no window of its own",
-      "private fun CompassOverlay" in screens and "BubbleVial" not in screens,
-      "edge to edge, half transparent, the map showing through")
+# THE COMPASS LEFT ON 29.9.2026 (v3): "remove the compass. We don't want compass there. Compass is
+# extra, no needed." The checks that guarded its looks went with it; this one keeps it out.
+check("the compass is gone: no dial, no little compass, no switch, no icon",
+      "CompassOverlay" not in screens and "LittleCompass" not in screens and "CompassDial" not in screens
+      and "compassMode" not in (MAIN / "Store.kt").read_text() and "onCompass" not in (MAIN / "Settings.kt").read_text()
+      and not (ROOT / "app/src/main/res/drawable/ic_compass.xml").exists() and "BubbleVial" not in screens,
+      "the overlay, the needle, the setting and the drawable all left together")
 check("the lock is shown rather than announced",
       'Trail.say("Locked to the middle")' not in screens
       and 'Trail.say("The map is free again")' not in screens,
@@ -473,12 +473,6 @@ check("the bubble level is gone from the app, not merely from the screen",
       not (MAIN / "Level.kt").exists() and "Level." not in (MAIN / "Sensors.kt").read_text()
       and "calibration" not in (MAIN / "Store.kt").read_text(),
       "the file, the sensor, the calibration and the tests all left together")
-# Reversed at his word, 27.9.2026: "T compass we need to remove. And instead of T, K is coming.
-# T is going into the settings." The compass is still drawn over the map; it is chosen in settings.
-check("the compass is drawn over the map and chosen in the settings",
-      "private fun CompassOverlay" in screens and 'glyph = "T"' not in screens
-      and "onCompass" in (MAIN / "Settings.kt").read_text(),
-      "over the map, its switch in the settings")
 
 
 # WHAT HE ASKED FOR ON 15.9.2026, AFTER THE MAP SERVER LANDED.
@@ -528,8 +522,10 @@ check("two taps in a row are what lock it",
 # its own options and a dropdown of its views.
 # MANTRA ARKOD (29.9.2026): my parcels come first, where Mantra Trail kept its tracks; then the
 # offline map, Google's views and the keys; the cadastre kept on the phone; tracks; about.
-order = ['Group("Moje čestice")', 'Group("Offline karta")', 'Group("Google karta")', 'Group("API ključevi")',
-         'Group("ARKOD na telefonu")', 'Group("Tragovi")', 'Group("Na karti")', 'Group("O aplikaciji")']
+# v3 (29.9.2026): "Write all the settings in the English language and all terminology from arkod in
+# Croatian" -- the groups are English; Moje čestice keeps its Croatian name.
+order = ['Group("Moje čestice")', 'Group("Offline map")', 'Group("Google map")', 'Group("API keys")',
+         'Group("ARKOD on the phone")', 'Group("Tracks")', 'Group("About")']
 check("my parcels come first and every group is in its place",
       all(g in settings_src for g in order) and [settings_src.index(g) for g in order] == sorted(settings_src.index(g) for g in order),
       " · ".join(g[7:-2] for g in order))
@@ -537,7 +533,8 @@ check("a row that opens a list shows whether it is open",
       "open = keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
       "the chevron points right when closed and down when open")
 check("a setting is one word and its control shows the state",
-      'Toggle("Kompas"' in settings_src and 'Toggle("Spremaj unaprijed"' in settings_src,
+      'Toggle("Fetch ahead"' in settings_src and 'Toggle("Parcels on the map"' in settings_src
+      and 'Toggle("Only Moje čestice"' in settings_src and 'Toggle("Parcel search on the map"' in settings_src,
       "the switch is the state; no sentence")
 check("the version opens the latest build",
       "open.openUri(RELEASES)" in settings_src and "releases/latest" in screens,
@@ -566,9 +563,6 @@ check("no route, no point key, no router is left",
 # The little compass (16.9.2026), as Google has: one tap north up, the next turning with the walk.
 # 17.9.2026: it was written on the 16th and he never saw it, because it was nested inside the
 # 72dp centre target — fillMaxSize inside 72dp is 72dp, so it drew behind the crosshair.
-check("the compass is on the screen, not inside the centre target",
-      screens_src.index("LittleCompass(") < screens_src.index("CentreCross()"),
-      "top right, where Google keeps it; it used to be nested in the 72dp centre target")
 # 17.9.2026: he sent Google's screenshot twice. Black disc, red north half, white south half, N.
 # Refined 17.9.2026: hollow, and one thing only. No disc behind it, and the tap that used to
 # choose a second state is gone with the state.
@@ -591,33 +585,14 @@ check("each of the three maps has its own key",
 check("the offline map has views of its own",
       "OFFLINE_VIEWS" in layers and "onOfflineView" in settings_src,
       "the same file drawn four ways, because Google's entry had four and this one had none")
-check("nothing on the compass is outlined",
-      "drawCircle(Color(0xFF0B0D10), radius = r" not in screens
-      and "drawCircle(Color.White, radius = r, center = c, style = Stroke(1.dp.toPx()))" in screens,
-      "one white ring at one pixel")
 check("nothing on the marks is outlined",
       "argb(190, 11, 13, 16)" not in (MAIN / "Marks.kt").read_text()
       and "setShadowLayer" not in (MAIN / "Marks.kt").read_text(),
       "nothing drawn behind a mark")
-check("the compass is one white ring and a needle inside it",
-      "drawCircle(Color.White" in screens and 'Label("N"' not in screens
-      and "* 0.58f" in screens,
-      "nothing drawn twice, nothing reaching past the ring, no letter")
-check("one tap rights the map and that is all it does",
-      "onTap = { Canvases.setMapRotation(0f) }" in screens
-      and "NORTH_FOLLOW" not in screens,
-      "no second state to be in by accident")
-check("there is a compass that puts north up",
-      "private fun LittleCompass" in screens and "Canvases.setMapRotation(0f)" in screens,
-      "one tap")
 # Removed with the second tap, 17.9.2026: he asked for a control that does one thing.
-check("the compass reports the map's own angle",
-      "mapTurn = Canvases.mapRotationDeg()" in screens,
-      "so it cannot disagree with what is under it")
-
 check("the map can be turned and the turn can be read back",
       "fun setMapRotation" in canvas_src and "fun mapRotationDeg" in canvas_src,
-      "VTM turns with two fingers by itself; the little compass needs to read and set it")
+      "VTM turns with two fingers by itself")
 # Replaced 16.9.2026: he asked for Google's mark instead — a dot with a cone of light in front.
 # The mark moved into Marks.kt when the second engine arrived (16.9.2026): both engines draw the
 # same dot, so it is drawn in one place and handed to whichever is running.
@@ -780,16 +755,16 @@ check("the keys are a ring, not one key",
 # 17.9.2026: the keys left the Google row for a group of their own at the bottom — one ring serves
 # whatever asks — and a dropdown he opens stays open until he closes it.
 check("the keys are a group of their own at the bottom",
-      settings_src.index('Group("Google karta")') < settings_src.index('Group("API ključevi")'),
+      settings_src.index('Group("Google map")') < settings_src.index('Group("API keys")'),
       "under the Google row they were two lines he passed on the way to a view")
 check("a dropdown he opened stays open",
       "store.opened(" in settings_src and "fun setOpened(" in (MAIN / "Store.kt").read_text(),
       "between sessions, as he asked")
 check("the version rides on the credits and the app's name is not a row",
-      '"Mantra ARKOD · verzija $version"' in settings_src,
+      '"Mantra ARKOD · version $version"' in settings_src,
       "the launcher already says what the app is called")
 check("each key can be tested from its own row",
-      'IconAction(R.drawable.ic_play, "provjeri"' in settings_src and "onTestKey" in settings_src,
+      'IconAction(R.drawable.ic_play, "test"' in settings_src and "onTestKey" in settings_src,
       "and what Google said sits under that key, not somewhere else")
 check("a key is shown masked and kept whole",
       "val masked: String" in ring_src and "value.take(8)" in ring_src,
@@ -837,9 +812,12 @@ check("a tap anywhere reaches the cadastre, the middle included",
 check("a parcel I keep keeps its shape, colour and line, so it draws with no signal",
       all(f in parcels_src.split("data class Mark")[1][:500] for f in ["val rings", "val colour", "val style", "val name"]),
       "Parcels.Mark examined")
-check("the cadastre is always on, and there is no key to turn it off",
-      "ParcelsShown.on = true" in screens_src and 'glyph = "K"' not in screens_src and "cadastreOn" not in (MAIN / "Store.kt").read_text(),
-      "Screens.kt and Store.kt examined")
+# Reversed at his word, 29.9.2026 (v3): "It should hide parcels overlay completely from the map."
+# The cadastre is on by default and on the first run; the parcels key is the one way to hide it.
+check("the cadastre is on by default and only the parcels key hides it",
+      'getBoolean(KEY_CADASTRE_ON, true)' in (MAIN / "Store.kt").read_text() and 'glyph = "K"' not in screens_src
+      and screens_src.count("store.cadastreOn = ") == 2,
+      "Screens.kt and Store.kt examined: the key and Parcel view's switch")
 check("a first tap selects, a tap on the selection opens its sheet",
       "ParcelNet.outline(lat, lon)" in screens_src and "dodirnite ponovno za list" in screens_src,
       "Screens.kt examined")
@@ -952,3 +930,24 @@ print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:
     print("failed: " + ", ".join(failures))
     sys.exit(1)
+
+
+# V3, HIS EVENING REQUEST OF 29.9.2026 (momentaryupdates.md).
+check("the parcels key hides the cadastre and a long press opens Parcel view",
+      "cadastreOn = !cadastreOn" in screens and "onLongClick = { parcelView = true }" in screens
+      and "detectTapGestures(onTap = { tap() }, onLongPress" in screens and "ParcelViewFace(" in screens,
+      "a tap is the overlay, a hold is its view settings")
+check("only my parcels wins over the key, in one rule both engines read",
+      "fun visibility(cadastreOn: Boolean, onlyMine: Boolean)" in (MAIN / "Parcels.kt").read_text()
+      and "if (mineOn) marks + listOfNotNull(selection) else emptyList()" in (MAIN / "ParcelNet.kt").read_text(),
+      "Parcels.visibility decides; ParcelsShown draws it")
+check("Google's field is on all three maps when there is a key, the parcel field under it",
+      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(book)" in screens
+      and screens.index("PlaceField(store)") < screens.index("ParcelField(book)"),
+      "not tied to the Google map; the parcel field shown or hidden in Parcel view")
+check("both fields answer as he types",
+      "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
+      "Places autocomplete, OSS numbers, and Imenik for names")
+check("the top line shows the middle of the map, not the fix",
+      "FixLine(centre, fix, zoom, layer)" in screens and "Geo.formatLat(it.first)" in screens,
+      "it updates while he pans; where-am-I puts the middle on him")
