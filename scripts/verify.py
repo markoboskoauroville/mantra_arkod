@@ -933,6 +933,21 @@ for f in MAIN.glob("*.kt"):
 check("no comment opens another comment by accident", not nested,
       f"{len(list(MAIN.glob('*.kt')))} files scanned, found: {nested or 'none'}")
 
+# v2 (29.9.2026), from the first run on the emulator (TEST_RESULTS v1).
+check("a layer just put on asks for its tiles, it does not wait for a pan",
+      "fun load()" in canvas_src and "map.clearMap()" in canvas_src.split("fun load()")[1][:200]
+      and canvas_src.count("load()") >= 4 and "addOnLayoutChangeListener" in canvas_src,
+      "clearMap after every show, and again at the view's first real size (B2, H1)")
+check("the touch sink does not consume, so a scroll inside it works both ways",
+      ".consume()" not in screens_src.split("private fun Modifier.swallowTouches()")[1],
+      "being a pointer target is enough to keep the map from the touch (D1)")
+check("a key being typed is masked",
+      screens_src.count("PasswordVisualTransformation()") >= 1 and "PasswordVisualTransformation()" in settings_src,
+      "the Google panel and the keys group (MT-KEY-3)")
+check("the sheet says what TXT and CPY did",
+      "Trail.note.collectAsState()" in screens_src.split("private fun ParcelCardView")[1][:4000],
+      "the note line is under the sheet (E3)")
+
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:
     print("failed: " + ", ".join(failures))

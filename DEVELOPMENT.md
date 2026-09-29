@@ -309,3 +309,26 @@ where he walks. Records and folios are kept too, so a sheet opens on a hillside,
 **Test 1 moved to the JVM in the cloud.** Kotlin 2.0.21 with the kotlin-jvm plugin from the
 Gradle plugin portal compiled the eleven Android-free files and CoreTest; Maven Central rate-limited
 the first attempts (429) and answered on the third.
+
+## 29.9.2026 — v2, from the first run on the emulator (TEST_RESULTS v1)
+
+The local Claude Code ran A1–E3 on a Pixel 7 emulator from the CI release. Four faults:
+
+**The map was black until a pan** after a cold start into a saved view, after a density change,
+when the key of the map already up was pressed, and OFF → OSM. VTM's tile layers fetch tiles only on
+a clear or a move (`TileLayer.onMapEvent`, read from the 0.25.0 jar with javap); every show ended in
+`updateMap(true)`, which redraws what is there, and for a layer just put on that is nothing. Every
+show now ends in `load()` (`clearMap()` then `updateMap(true)`), and the view's first real size and
+every change of it load again. The key of the map already up only loads, it no longer rebuilds.
+
+**The Google panel would not scroll up by finger.** `swallowTouches` consumed every event, and a
+scroll cancels itself when a parent consumes. Being a pointer target is what keeps the map from the
+touch, so the sink no longer consumes.
+
+**A key was shown whole while it was typed.** Both paste fields are masked now.
+
+**TXT and CPY said nothing on the sheet**: their answer went to the note line, under the sheet. The
+sheet shows the note itself.
+
+Also: where-am-I from far out goes to z17; the first view moved west so Istria is on the screen; the
+download's size is rounded (176 MB, as the label says, not 175).

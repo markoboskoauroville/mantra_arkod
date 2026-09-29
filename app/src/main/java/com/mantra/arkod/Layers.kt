@@ -192,7 +192,7 @@ object Layers {
     }
 
     /** Where the app looks the first time it opens: all of Croatia on the screen. */
-    const val HOME_LAT = 44.45
-    const val HOME_LON = 16.40
+    const val HOME_LAT = 44.50
+    const val HOME_LON = 16.10
     const val HOME_ZOOM = 7
 }

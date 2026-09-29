@@ -95,6 +95,25 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             taps.onTouchEvent(event)
             false
         }
+        // THE BLACK MAP OF v1 (TEST_RESULTS A/B2/H1, 29.9.2026): on a cold start the first layer
+        // is put on before the view has a size, so no tile is asked for until a pan. The view's
+        // first real size, and every change of it (a density change, a rotation), asks again.
+        view.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+            val w = right - left
+            val h = bottom - top
+            if (w > 0 && h > 0 && (w != oldRight - oldLeft || h != oldBottom - oldTop)) view.post { load() }
+        }
+    }
+
+    /**
+     * ASK FOR THE TILES OF WHAT IS ON THE MAP NOW. VTM's tile layers fetch only on a clear or a
+     * move (TileLayer.onMapEvent, read from the 0.25.0 jar): updateMap(true) alone redraws what
+     * is already there, which for a layer just put on is nothing, so the map stayed black until
+     * the first pan. clearMap() sends the clear, and that loads every layer.
+     */
+    fun load() {
+        map.clearMap()
+        map.updateMap(true)
     }
 
     /**
@@ -157,7 +176,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             applyTheme(store.themeName)
             restoreOverlays()
             placeCadastre()
-            map.updateMap(true)
+            load()
             null
         } catch (e: Exception) {
             "Offline karta se nije otvorila: ${e.javaClass.simpleName}"
@@ -203,7 +222,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             bitmapLayer = bitmaps
             restoreOverlays()
             placeCadastre()
-            map.updateMap(true)
+            load()
             null
         } catch (e: Exception) {
             "Karta se nije otvorila: ${e.javaClass.simpleName}"
@@ -504,7 +523,9 @@ class VtmCanvas(private val context: Context, private val store: Store) {
         map.mapPosition.let { it.getLatitude() to it.getLongitude() }
 
     fun centreOn(fix: Fix) {
-        val position = MapPosition(fix.lat, fix.lon, map.mapPosition.scale)
+        // Where-am-I from far out (TEST_RESULTS A, v1): close enough to see the parcels.
+        val scale = if (map.mapPosition.zoomLevel < Parcels.TAP_ZOOM) (1 shl 17).toDouble() else map.mapPosition.scale
+        val position = MapPosition(fix.lat, fix.lon, scale)
         position.bearing = map.mapPosition.bearing
         map.animator().animateTo(400, position)
     }

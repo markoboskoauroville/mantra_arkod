@@ -334,6 +334,11 @@ fun ArkodApp(
 
     /** One of the three maps, chosen by its key. The choice is remembered for the next run. */
     fun choose(picked: MapLayer) {
+        // The key of the map already up asks it to load again, and changes nothing else (B2, v1).
+        if (picked.id == layer.id) {
+            CanvasHolder.canvas?.load()
+            return
+        }
         layer = picked
         store.layerId = picked.id
         scope.launch { showLayer(store, picked) }
@@ -818,7 +823,7 @@ private fun OfflineOffer(
     onFetch: () -> Unit,
     onChooseFile: () -> Unit,
 ) {
-    val total = Layers.OfflineDownload.BYTES / 1_000_000
+    val total = (Layers.OfflineDownload.BYTES + 500_000) / 1_000_000
     CentrePanel {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Glyph(R.drawable.ic_mountain, Paint.Sand)
@@ -924,6 +929,8 @@ private fun GoogleKeyHelp(
                     value = text,
                     onValueChange = { text = it.trim() },
                     singleLine = true,
+                    // A KEY IS NEVER ON THE SCREEN WHOLE, not even while it is typed (MT-KEY-3).
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                     textStyle = TextStyle(color = Paint.Sand, fontSize = 15.sp, fontFamily = FontFamily.Monospace),
                     cursorBrush = SolidColor(Paint.AmberBright),
                     modifier = Modifier.fillMaxWidth(),
@@ -1684,6 +1691,10 @@ private fun ParcelCardView(
             size = 14,
             align = TextAlign.Start,
         )
+        // WHAT TXT AND CPY DID, on the sheet itself (TEST_RESULTS E3, v1): the note line is under
+        // the sheet, so its answer was never seen.
+        val said by Trail.note.collectAsState()
+        said?.let { Label(it, Paint.AmberBright, size = 12, align = TextAlign.Start, lines = 3) }
         // READ OFF THE PHONE (29.9.2026): the state did not answer, so this is what it said last.
         card.keptSince?.let { since ->
             val day = java.text.SimpleDateFormat("d.M.yyyy.", java.util.Locale.ROOT).format(java.util.Date(since))
@@ -2189,12 +2200,16 @@ private fun MyParcelsFace(
     }
 }
 
-/** Every touch on this is its own: nothing reaches the map beneath. */
+/**
+ * EVERY TOUCH ON THIS IS ITS OWN: nothing reaches the map beneath. Being a pointer target is
+ * enough for that, because Compose gives a touch to the topmost node that takes it and not to the
+ * map under it. It used to CONSUME every event as well, and a scroll inside cancels itself when a
+ * parent consumes (TEST_RESULTS D1, v1: the Google panel would not scroll up by finger).
+ */
 private fun Modifier.swallowTouches(): Modifier = this.pointerInput(Unit) {
     awaitPointerEventScope {
         while (true) {
             awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Final)
-                .changes.forEach { it.consume() }
         }
     }
 }

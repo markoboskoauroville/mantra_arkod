@@ -141,7 +141,7 @@ fun SettingsFace(
                         icon = R.drawable.ic_save,
                         onClick = onFetchOfflineMap,
                         quiet = true,
-                        trailing = "${Layers.OfflineDownload.BYTES / 1_000_000} MB",
+                        trailing = "${(Layers.OfflineDownload.BYTES + 500_000) / 1_000_000} MB",
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -225,6 +225,7 @@ fun SettingsFace(
                                 value = pasted,
                                 onValueChange = { pasted = it.trim() },
                                 singleLine = true,
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                                 textStyle = androidx.compose.ui.text.TextStyle(color = Paint.Sand, fontSize = 14.sp, fontFamily = FontFamily.Monospace),
                                 cursorBrush = androidx.compose.ui.graphics.SolidColor(Paint.AmberBright),
                                 modifier = Modifier.fillMaxWidth(),

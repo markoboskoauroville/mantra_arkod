@@ -73,8 +73,9 @@ Screenshots: `adb exec-out screencap -p > tests/screens/<ID>.png`, committed wit
 
 **B · the key row**
 
-- B1  Nine keys, left to right: −, where-am-I, record, **OFF, GOO, OSM**, ★, ⚙, +. No K key.
-- B2  Each map key switches at once, lights itself, and the top line names the map.
+- B1  Nine keys, left to right: −, where-am-I, record, **OFF, GOO, OSM**, the parcels grid (Moje čestice), ⚙, +. No K key.
+- B2  Each map key switches at once, lights itself, and the top line names the map. Pressing the
+      key of the map already up, and OFF → OSM, draws at once with no pan (v2 fix).
 - B3  Nothing clips at 360 dp wide (a small phone); screenshot the row.
 
 **C · the offline map (OFF)**
@@ -133,7 +134,7 @@ Screenshots: `adb exec-out screencap -p > tests/screens/<ID>.png`, committed wit
 **H · it opens where it was left**
 
 - H1  Choose GOO or OFF, zoom 17, turn the map; swipe the app away; open it: the same map, place,
-      zoom and turn.
+      zoom and turn, **drawn at once with no pan** (v1 was black until a pan).
 
 **J · settings**
 
