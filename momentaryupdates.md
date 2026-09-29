@@ -21,3 +21,22 @@ POSSESSION SHEET 1615 with the possessors and their shares.)
    B list (the owners) from the public source and show it. **Status:** done in v94. The source is
    OSS's public land registry (`lr/lr-unit`). Linked parcels open by themselves; where the state has no
    link (all of Drenova), he types the land-book parcel or the z.k. uložak once, and it is kept.
+
+## 29.9.2026, the version in settings and under the icon (every app)
+
+> same as in camera, now this is something we're going to do in every app. You need to write in
+> manifest, so in the settings there will be version number, and when user clicks on the version number
+> there is a hidden link taking it to the last build of this app. Same as in camera, we're going to build
+> it here. And also same in the camera, we're going to create under icon a version number, so every icon
+> is updated as we update the versions numbers, and version number are always integers: one, two, three,
+> four, five, six, seven, eight, nine, ten, and so on for every little update. Please do that now for
+> Mantra Trail, and as we go on you're going to update in different apps
+> please continue updating
+
+1. The rule written into MANTRA_MANIFEST, for every app. **Status:** open
+2. Mantra Trail: the version in settings; a tap opens the latest build. **Status:** open
+3. Mantra Trail: the version under the launcher icon, whole numbers. **Status:** open
+4. The other apps as we touch them. **Status:** open
+
+(Also asked, 29.9.2026: the last screenshot on the desktop, the iCloud warning pop-ups on the Mac, and
+whether they can be suppressed. Not Mantra Trail; answered in the session.)
