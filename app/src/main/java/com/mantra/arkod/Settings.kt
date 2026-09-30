@@ -84,13 +84,14 @@ fun SettingsFace(
     var keysOpen by remember { mutableStateOf(store.opened("keys") || keyring.isEmpty()) }
     var prefetch by remember { mutableStateOf(store.prefetch) }
     var cacheLabel by remember { mutableStateOf("…") }
+    var keywords by remember { mutableStateOf(store.cacheKeywords) }
     var sureClear by remember { mutableStateOf(false) }
     var pasted by remember { mutableStateOf("") }
     val open = androidx.compose.ui.platform.LocalUriHandler.current
     val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(Unit) {
-        cacheLabel = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ArkodCache.label() }
+        cacheLabel = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { inventoryLine() }
     }
 
     Box(Modifier.fillMaxSize().background(Paint.Ground)) {
@@ -113,6 +114,59 @@ fun SettingsFace(
                         .clickable(onClick = onClose),
                     contentAlignment = Alignment.Center,
                 ) { Words("✕", Paint.Sand, 18) }
+            }
+
+            // WHAT THE PHONE KEEPS, ON TOP (v12): *"Inside the settings, always show at the top the size
+            // of the cache file. I am aware because we are now sniffing, we are caching everything."*
+            // The same switch as the cache key on the map, and his cache criteria.
+            Group("Kept on this phone") {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Words(cacheLabel, Paint.Sand, 13, TextAlign.Start, Modifier.weight(1f))
+                    Action(
+                        verb = if (sureClear) "again: clear" else "clear",
+                        icon = R.drawable.ic_trash,
+                        onClick = {
+                            if (sureClear) {
+                                ArkodCache.clear()
+                                cacheLabel = inventoryLine()
+                                sureClear = false
+                            } else {
+                                sureClear = true
+                            }
+                        },
+                        quiet = true,
+                        danger = true,
+                    )
+                }
+                Hairline()
+                Toggle("Cache", R.drawable.ic_sniff, on = prefetch, onChange = {
+                    prefetch = it
+                    store.prefetch = it
+                })
+                Hairline()
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Words("Cache criteria (keywords)", Paint.Sand, 14, TextAlign.Start)
+                    Box(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).border(1.dp, Look.Outline, RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                    ) {
+                        if (keywords.isEmpty()) Words("surnames, first names, anything: boško, gobić, maslinik", Paint.Dim, 14, TextAlign.Start)
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = keywords,
+                            onValueChange = { keywords = it; store.cacheKeywords = it },
+                            textStyle = androidx.compose.ui.text.TextStyle(color = Paint.Sand, fontSize = 14.sp),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(Paint.AmberBright),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    Words(
+                        "One per comma. With keywords, a sheet read in the background is kept only when a name, place or land use on it fits one of them. Empty: everything is kept. What you open yourself is always kept.",
+                        Paint.Dim, 12, TextAlign.Start,
+                    )
+                }
             }
 
             // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings
@@ -250,36 +304,6 @@ fun SettingsFace(
                     Action("Key from a file", R.drawable.ic_folder, onClick = onImportKeys, quiet = true, modifier = Modifier.fillMaxWidth())
                     Hairline()
                     Action("Test one tile", R.drawable.ic_play, onClick = onTestTiles, quiet = true, modifier = Modifier.fillMaxWidth())
-                }
-            }
-
-            // THE CADASTRE KEPT ON THE PHONE (29.9.2026).
-            Group("ARKOD on the phone") {
-                Toggle("Fetch ahead", R.drawable.ic_save, on = prefetch, onChange = {
-                    prefetch = it
-                    store.prefetch = it
-                })
-                Hairline()
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Words(cacheLabel, Paint.Dim, 12, TextAlign.Start, Modifier.weight(1f))
-                    Action(
-                        verb = if (sureClear) "again: clear" else "clear",
-                        icon = R.drawable.ic_trash,
-                        onClick = {
-                            if (sureClear) {
-                                ArkodCache.clear()
-                                cacheLabel = ArkodCache.label()
-                                sureClear = false
-                            } else {
-                                sureClear = true
-                            }
-                        },
-                        quiet = true,
-                        danger = true,
-                    )
                 }
             }
 
@@ -507,4 +531,10 @@ private val LINE_COLOURS = listOf(0xFF111111L, 0xFFF2DDB4L, 0xFFFFFFFFL, 0xFFEF4
 @Composable
 private fun Hint(text: String) {
     Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)) { Words(text, Paint.Dim, 12, TextAlign.Start) }
+}
+
+/** "123.4 MB · 5210 ARKOD tiles · 840 sheets and answers · 310 outlines" (v12). */
+private fun inventoryLine(): String {
+    val i = ArkodCache.inventory()
+    return "${Sniff.megabytes(i.bytes)} · ${i.tiles} ARKOD tiles · ${i.answers} sheets and answers · ${i.shapes} outlines"
 }

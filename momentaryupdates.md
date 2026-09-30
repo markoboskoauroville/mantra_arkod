@@ -420,9 +420,17 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
 "Mantra Barcode". **"QR" always means ARKOD.** (Kept in MANTRA_MANIFEST too.)
 
 1. The settings show, at the very top, how much the phone keeps: the size of the cache, and what is in
-   it (ARKOD tiles, sheets and answers, outlines). **Status:** in progress.
+   it (ARKOD tiles, sheets and answers, outlines). **Status:** done in v12: "Kept on this phone" is the
+   first group, with the size, the counts, clear, the Cache switch and the keywords.
 2. A cache key on the map, beside the others: on, the app sniffs (reads ahead in the background and
-   keeps what it reads); off, it keeps only what he opens himself. **Status:** in progress.
+   keeps what it reads); off, it keeps only what he opens himself. **Status:** done in v12: a round key
+   over the right end of the key row (the row holds nine keys at most, 41 dp each), lit while on; the
+   same switch as "Cache" in the settings and as fetching tiles ahead; a long press opens the
+   settings. The sniffer (Sniffer.kt): when the map rests at z16 or closer, the parcels under a 4 x 4
+   grid over the screen; when he opens a sheet, the other parcels of its owner sheet; two at a time,
+   each parcel once, a kept one never asked again; its line over the keys while it reads.
 3. Cache criteria: keywords he writes (surnames, first names, anything). With keywords, what the
    sniffer reads is kept only when a name or word on it fits one of them; without, everything is kept.
-   What he opens himself is always kept. **Status:** in progress.
+   What he opens himself is always kept. **Status:** done in v12 (Sniff.kt, 5 cases): one criterion per
+   comma, each of its words must begin a word of a name, the place or a land use on the sheet or its
+   owner sheets ("bosk" finds BOŠKO; "ana" does not find IVANA).

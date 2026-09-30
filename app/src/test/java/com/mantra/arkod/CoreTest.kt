@@ -1998,6 +1998,53 @@ ORA-01000: maximum open cursors exceeded
         assertNull(ParcelQuery.decodeShape(null))
         assertNull(ParcelQuery.decodeShape("rubbish"))
         assertNull(ParcelQuery.decodeShape("1|2|334723-2||"))
-        assertEquals("shape:334723-1358/3", ParcelQuery.shapeKey("334723-1358/3"))
+    }
+
+    // --- v12: the sniffer and its cache criteria (Sniff) ---------------------------------------
+
+    private val sheet1225 = Parcels.Record(
+        "1358/3", "KUKLJICA", "334723", "TESNO MALO", "516",
+        listOf(Parcels.Use("ŠUMA", "516", "1225")),
+        listOf(Parcels.Sheet("1225", listOf(Parcels.Owner("BOŠKO DENIS, POK. ANTE", "1/2", ""), Parcels.Owner("Marinko  Boško", "1/8", "")))),
+    )
+
+    @Test fun keywordsAreOnePerCommaOrLineEachOfItsWordsFolded() {
+        assertEquals(listOf(listOf("bosko", "ivana"), listOf("gobic")), Sniff.criteria("Boško Ivana, Gobić"))
+        assertEquals(listOf(listOf("maslinik")), Sniff.criteria("\n  maslinik ;; "))
+        assertTrue(Sniff.criteria("  ").isEmpty())
+    }
+
+    @Test fun aSheetFitsWhenEveryWordOfOneCriterionBeginsAWordOnIt() {
+        val words = Sniff.wordsOf(sheet1225)
+        assertTrue(Sniff.fits(words, Sniff.criteria("gobić, boško marinko")))
+        assertTrue(Sniff.fits(words, Sniff.criteria("bosk")))
+        assertTrue(Sniff.fits(words, Sniff.criteria("šuma")))          // a land use
+        assertTrue(Sniff.fits(words, Sniff.criteria("tesno")))         // a place
+        assertFalse(Sniff.fits(words, Sniff.criteria("boško ivana")))  // Ivana is not on this sheet
+        assertFalse(Sniff.fits(words, Sniff.criteria("ante marinko"))) // two people, not one line
+        assertFalse(Sniff.fits(words, Sniff.criteria("arko")))         // "arko" does not begin "marinko"
+        assertTrue(Sniff.fits(words, emptyList()))                     // no keywords: keep everything
+    }
+
+    @Test fun theOwnerSheetsNamesCountToo() {
+        val folio = Parcels.Folio("250", "KUKLJICA", "Zadar", "VLASNIČKI", "", 0,
+            listOf(Parcels.Share("1. Suvlasnički dio: 1/2", listOf(Parcels.Owner("Boško Svetko", "", "")), emptyList())), listOf("1358/3"), emptyList())
+        assertTrue(Sniff.fits(Sniff.wordsOf(null, listOf(folio)), Sniff.criteria("svetko")))
+    }
+
+    @Test fun theGridAsksTheMiddleFirstAndCoversTheBox() {
+        val g = Sniff.grid(44.0, 15.0, 44.01, 15.01, 5)
+        assertEquals(25, g.size)
+        assertEquals(44.005, g[0].first, 1e-9)
+        assertEquals(15.005, g[0].second, 1e-9)
+        assertTrue(g.all { (la, lo) -> la > 44.0 && la < 44.01 && lo > 15.0 && lo < 15.01 })
+    }
+
+    @Test fun theSnifferSaysWhatItDidAndTheSizeReadsLikeAPerson() {
+        val line = Sniff.line(Sniff.Tally(read = 40, kept = 12, skipped = 28), Sniff.criteria("boško, gobić"))
+        assertEquals("cache · 40 read · 12 kept · 28 not fitting · keywords: bosko, gobic", line)
+        assertEquals("512 kB", Sniff.megabytes(512_000))
+        assertEquals("123.4 MB", Sniff.megabytes(123_400_000))
+        assertEquals("400 MB", Sniff.megabytes(400_000_000))
     }
 }

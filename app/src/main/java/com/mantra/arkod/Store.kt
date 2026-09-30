@@ -107,6 +107,11 @@ class Store(context: Context) {
 
     fun forget(box: String) = prefs.edit().remove("history-$box").apply()
 
+    /** Cache criteria (v12): his keywords, one per comma or line; empty keeps everything. */
+    var cacheKeywords: String
+        get() = prefs.getString("cache-keywords", "").orEmpty()
+        set(v) = prefs.edit().putString("cache-keywords", v).apply()
+
     /** Every k.o. the map has stood over (v11), so a parcel number is found there from anywhere. */
     var seenMunicipalities: List<ParcelQuery.Ko>
         get() = ParcelQuery.decodeSeen(prefs.getString("seen-municipalities", null))

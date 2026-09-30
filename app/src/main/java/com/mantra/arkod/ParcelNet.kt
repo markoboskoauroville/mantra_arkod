@@ -70,6 +70,14 @@ object ParcelNet {
         ArkodCache.answer(url)?.first ?: ParcelCaches.answer(url)?.first ?: throw e
     }
 
+    /**
+     * FOR THE SNIFFER (v12): the state's answer, read but NOT kept; the sniffer keeps it only when
+     * it fits his cache criteria. Kept already: from the phone, nothing asked.
+     */
+    fun peek(url: String): String = ArkodCache.answer(url)?.first ?: get(url)
+
+    fun keep(url: String, text: String) = ArkodCache.keepAnswer(url, text)
+
     /** The state's answer to [url], kept as every sheet is, for the parcel caches to store (v5). */
     fun keptText(url: String): String = getKept(url)
 
@@ -187,7 +195,7 @@ object ParcelNet {
         if (references.isEmpty()) return@withContext emptyList()
         // CACHE KING (v11): an outline read once comes off the phone; only the unknown ones are
         // asked, and when the WFS fails (ORA-01000) the kept ones still come back.
-        val kept = references.mapNotNull { ParcelQuery.decodeShape(ArkodCache.answer(ParcelQuery.shapeKey(it))?.first) }
+        val kept = references.mapNotNull { ParcelQuery.decodeShape(ArkodCache.shape(it)) }
         val missing = references.filter { r -> kept.none { it.reference == r } }
         if (missing.isEmpty()) return@withContext kept
         val fresh = try {
@@ -203,7 +211,7 @@ object ParcelNet {
     /** Outlines kept one by one, from wherever they came: the WFS, a parcel cache, a file. */
     fun keepShapes(parcels: List<Parcels.Parcel>) {
         parcels.filter { it.rings.isNotEmpty() && it.reference.isNotBlank() }
-            .forEach { ArkodCache.keepAnswer(ParcelQuery.shapeKey(it.reference), ParcelQuery.encodeShape(it)) }
+            .forEach { ArkodCache.keepShape(it.reference, ParcelQuery.encodeShape(it)) }
     }
 
     /**

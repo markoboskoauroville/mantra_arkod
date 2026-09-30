@@ -167,6 +167,11 @@ fun ArkodApp(
     val note by Trail.note.collectAsState()
     val net by Net.line.collectAsState()
     val kept by ArkodPrefetch.state.collectAsState()
+    // THE CACHE KEY (v12): *"app should actually have cache action button so i can enable or disable
+    // it while i'm going through the map."* On: tiles fetched ahead (as before) and the sniffer reading
+    // the sheets round the map. One switch, the same as "Cache in the background" in the settings.
+    var cacheOn by remember { mutableStateOf(store.prefetch) }
+    val sniffed by Sniffer.tally.collectAsState()
     val download by MapDownload.live.collectAsState()
     val recording = recordingSince != null
     val justFinished by Trail.justFinished.collectAsState()
@@ -230,6 +235,12 @@ fun ArkodApp(
         store.ownerBook = book
     }
 
+    LaunchedEffect(cacheOn) {
+        Sniffer.criteria = Sniff.criteria(store.cacheKeywords)
+        Sniffer.onSheet = { p, r, f -> scope.launch { enterInBook(p, r, f) } }
+        if (cacheOn) Sniffer.start() else Sniffer.stop()
+    }
+
     suspend fun openCard(parcel: Parcels.Parcel) {
         card = ParcelCard(parcel)
         val answer = runCatching { ParcelNet.record(parcel.id) }
@@ -255,6 +266,8 @@ fun ArkodApp(
             folioProblem = folios.exceptionOrNull()?.let { "zemljišna knjiga se nije mogla pročitati: ${it.message ?: it.javaClass.simpleName}" },
         )
         enterInBook(parcel, record, folios.getOrNull().orEmpty())
+        // THE SNIFFER FOLLOWS (v12): the other parcels of this owner sheet, read in the background.
+        if (cacheOn) Sniffer.follow(record, folios.getOrNull().orEmpty())
     }
 
     /** He typed a land-book parcel number or a folio number where the state has no link. */
@@ -533,6 +546,7 @@ fun ArkodApp(
             if (here != null && here == restingAt) {
                 restingFor += 1
                 if (restingFor == 4 && store.prefetch) ArkodPrefetch.viewSettled(here.first, here.second, now)
+                if (restingFor == 4 && store.prefetch) Sniffer.viewSettled(here.first, here.second, now)
             } else {
                 restingAt = here
                 restingFor = 0
@@ -593,6 +607,22 @@ fun ArkodApp(
             // A line with nothing in it takes no room at all.
             val moving = listOfNotNull(net, kept).joinToString(" · ").ifBlank { null }
             if (moving != null) StatusLine(moving)
+            if (cacheOn && sniffed.busy) StatusLine(Sniff.line(sniffed, Sniffer.criteria))
+            // THE CACHE KEY (v12): *"app should actually have cache action button so i can enable or
+            // disable it while i'm going through the map."* Round, on its own at the right, over the
+            // key row (which holds nine at most); lit while the app caches in the background. A long
+            // press opens the settings, where the size and the cache criteria are, at the top.
+            Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End) {
+                CacheKey(
+                    on = cacheOn,
+                    onClick = {
+                        cacheOn = !cacheOn
+                        store.prefetch = cacheOn
+                        Trail.say(if (cacheOn) "cache on: reading ahead in the background" else "cache off: only what you open is kept")
+                    },
+                    onLongClick = { settings = true },
+                )
+            }
             // The download goes on while he looks at another map; its line stays with him.
             if (download?.running == true && layer.kind != LayerKind.VECTOR_FILE) {
                 StatusLine("offline map: " + (download?.progress?.let { MapDownload.line(it) } ?: "starting…"))
@@ -943,7 +973,12 @@ fun ArkodApp(
                 trackCount = remember(UiTick.n, settings) { tracks().size },
                 onChooseExportFolder = onChooseExportFolder,
                 folderName = store.exportFolderName ?: "not chosen yet",
-                onClose = { settings = false },
+                onClose = {
+                    settings = false
+                    // The switch and the keywords may have changed there.
+                    cacheOn = store.prefetch
+                    Sniffer.criteria = Sniff.criteria(store.cacheKeywords)
+                },
             )
         }
     }
@@ -1031,6 +1066,21 @@ private suspend fun attempt(canvas: VtmCanvas, store: Store, layer: MapLayer): S
         return result.token?.let { canvas.show(layer, session = it, key = used) } ?: result.problem
     }
     return canvas.show(layer)
+}
+
+/** THE CACHE KEY (v12): a round key over the map, lit amber while the app caches in the background. */
+@Composable
+private fun CacheKey(on: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val tap by androidx.compose.runtime.rememberUpdatedState(onClick)
+    val hold by androidx.compose.runtime.rememberUpdatedState(onLongClick)
+    Box(
+        Modifier.size(46.dp).clip(CircleShape)
+            .background(if (on) Paint.Amber.copy(alpha = 0.30f) else Paint.Ground.copy(alpha = 0.86f))
+            .pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold() }) },
+        contentAlignment = Alignment.Center,
+    ) {
+        Glyph(R.drawable.ic_sniff, if (on) Paint.AmberBright else Paint.Sand, size = 24.dp)
+    }
 }
 
 /**

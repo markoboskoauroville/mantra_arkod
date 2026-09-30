@@ -119,6 +119,30 @@ object ArkodCache {
         return runCatching { f.readText() to f.lastModified() }.getOrNull()
     }
 
+    // --- outlines, one file per parcel (v11/v12) --------------------------------------------------
+
+    private fun shapeFile(reference: String): File? {
+        val name = MessageDigest.getInstance("SHA-1").digest(reference.toByteArray())
+            .joinToString("") { "%02x".format(it) }
+        return root?.let { File(it, "shapes/$name.txt") }
+    }
+
+    fun keepShape(reference: String, text: String) {
+        val f = shapeFile(reference) ?: return
+        runCatching { write(f, text.toByteArray()) }
+    }
+
+    fun shape(reference: String): String? = shapeFile(reference)?.takeIf { it.exists() }?.let { runCatching { it.readText() }.getOrNull() }
+
+    /** What the phone keeps, counted, for the top of the settings (v12). */
+    data class Inventory(val bytes: Long, val tiles: Int, val answers: Int, val shapes: Int)
+
+    fun inventory(): Inventory {
+        val r = root ?: return Inventory(0, 0, 0, 0)
+        fun count(dir: String) = File(r, dir).walkTopDown().count { it.isFile && !it.name.endsWith(".part") }
+        return Inventory(bytes(), tileCount(), count("answers"), count("shapes"))
+    }
+
     // --- the size of it ------------------------------------------------------------------------
 
     fun bytes(): Long = root?.walkTopDown()?.filter { it.isFile }?.sumOf { it.length() } ?: 0L

@@ -155,7 +155,4 @@ object ParcelQuery {
         if (rings.isEmpty()) return null
         return Parcels.Parcel(f[0].toLongOrNull() ?: 0L, f[1], f[2], f[3].toIntOrNull(), rings)
     }
-
-    /** The key an outline is kept under in the phone's store of answers. */
-    fun shapeKey(reference: String): String = "shape:$reference"
 }

@@ -20,11 +20,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v5, 30.9.2026: ten cases came with the restyled lines and the parcel caches.
 # v8, 30.9.2026: three cases for Moje čestice as files; one came with the state's reason (v6).
 # v11, 30.9.2026: six cases for the parcel field that finds a number wherever the map is, one for outlines kept one by one.
-TEST_FLOOR = 222
+# v12, 30.9.2026: five cases for the sniffer and its cache criteria.
+TEST_FLOOR = 227
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt", "ParcelQuery.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt", "ParcelQuery.kt", "Sniff.kt"]
 
 failures, checks = [], []
 
@@ -527,8 +528,10 @@ check("two taps in a row are what lock it",
 # offline map, Google's views and the keys; the cadastre kept on the phone; tracks; about.
 # v3 (29.9.2026): "Write all the settings in the English language and all terminology from arkod in
 # Croatian" -- the groups are English; Moje čestice keeps its Croatian name.
-order = ['Group("Moje čestice")', 'Group("Offline map")', 'Group("Google map")', 'Group("API keys")',
-         'Group("ARKOD on the phone")', 'Group("Tracks")', 'Group("About")']
+# v12, 30.9.2026: what the phone keeps goes to the very top, at his word ("always show at the top the
+# size of the cache file"); "ARKOD on the phone" is that group now. Moje čestice right under it.
+order = ['Group("Kept on this phone")', 'Group("Moje čestice")', 'Group("Offline map")', 'Group("Google map")',
+         'Group("API keys")', 'Group("Tracks")', 'Group("About")']
 check("my parcels come first and every group is in its place",
       all(g in settings_src for g in order) and [settings_src.index(g) for g in order] == sorted(settings_src.index(g) for g in order),
       " · ".join(g[7:-2] for g in order))
@@ -536,7 +539,7 @@ check("a row that opens a list shows whether it is open",
       "open = keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
       "the chevron points right when closed and down when open")
 check("a setting is one word and its control shows the state",
-      'Toggle("Fetch ahead"' in settings_src and 'Toggle("ARKOD layer"' in settings_src
+      'Toggle("Cache"' in settings_src and 'Toggle("ARKOD layer"' in settings_src
       and 'Toggle("Only Moje čestice"' in settings_src and 'Toggle("Parcel search"' in settings_src,
       "the switch is the state; no sentence")
 check("the version opens the latest build",
@@ -952,11 +955,21 @@ check("a parcel number is found wherever the map is (v11): Moje čestice in ever
       and "marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { m ->" in screens,
       "1358/3 typed in Zagreb (CENTAR NOVI) finds Kukljica's 1358/3")
 check("cache king (v11): an outline read once comes off the phone, searches and land books are kept, the WFS failing still gives the kept outlines",
-      "ParcelQuery.decodeShape(ArkodCache.answer(ParcelQuery.shapeKey(it))" in (MAIN / "ParcelNet.kt").read_text()
+      "ParcelQuery.decodeShape(ArkodCache.shape(it))" in (MAIN / "ParcelNet.kt").read_text()
       and "if (kept.isNotEmpty()) return@withContext kept" in (MAIN / "ParcelNet.kt").read_text()
       and "getKeptQuiet(Parcels.searchUrl(prefix" in (MAIN / "ParcelNet.kt").read_text()
       and "ParcelNet.keepShapes(got.map { it.first })" in (MAIN / "ParcelCaches.kt").read_text(),
       "shapes kept per parcel; suggestions, searches, books kept; a cache job keeps every outline it reads")
+sniffer = (MAIN / "Sniffer.kt").read_text()
+check("the sniffer (v12): reads round the resting map and a sheet's folio parcels; keeps a sheet only when it fits his keywords; the cache key on the map switches it, a round key over the row",
+      "Sniffer.viewSettled(here.first, here.second, now)" in screens and "Sniffer.follow(record, folios.getOrNull().orEmpty())" in screens
+      and "if (!Sniff.fits(Sniff.wordsOf(record, folios), criteria))" in sniffer and "ParcelNet.keep(recordUrl, text)" in sniffer
+      and "private fun CacheKey(" in screens and "if (cacheOn) Sniffer.start() else Sniffer.stop()" in screens,
+      "GetFeatureInfo grid at z16+, folio list A, criteria from store.cacheKeywords")
+check("the size of what the phone keeps is the first thing in the settings (v12)",
+      settings_src.index('Group("Kept on this phone")') < settings_src.index('Group("Moje čestice")')
+      and "ArkodCache.inventory()" in settings_src and "Cache criteria (keywords)" in settings_src,
+      "MB, ARKOD tiles, sheets and answers, outlines; the Cache switch; the keywords")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")
