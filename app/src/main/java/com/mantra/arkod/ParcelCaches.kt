@@ -173,7 +173,7 @@ object ParcelCaches {
                 var page = 0
                 val began = System.currentTimeMillis()
                 while (isActive) {
-                    say(Progress(name, if (page == 0) "asking the state for the parcels in the view (≈15 s)" else "outlines", found.size, total))
+                    say(Progress(name, if (page == 0) "asking the state for the čestice in the view (≈15 s)" else "outlines of čestice", found.size, total))
                     var text: String? = null
                     var lastProblem: Exception? = null
                     // THE STATE'S WFS FAILS IN SPELLS (30.9.2026: every request refused for its
@@ -187,7 +187,7 @@ object ParcelCaches {
                             lastProblem = e
                             if (attempt == TRIES) break
                             val wait = WAITS[(attempt - 1).coerceAtMost(WAITS.size - 1)]
-                            say(Progress(name, "the state's parcel service is failing; again in $wait s (try ${attempt + 1} of $TRIES)", found.size, total, problem = e.message))
+                            say(Progress(name, "the state's čestice service is failing; again in $wait s (try ${attempt + 1} of $TRIES)", found.size, total, problem = e.message))
                             delay(wait * 1000L)
                         }
                     }
@@ -200,7 +200,7 @@ object ParcelCaches {
                 }
                 total = found.size
                 if (total == 0) {
-                    say(Progress(name, "the state has no parcels in this view", finished = true))
+                    say(Progress(name, "the state has no čestice in this view", finished = true))
                     return@launch
                 }
                 var items = found.map { (p, label) -> ParcelCache.Item(p.id, p.number, p.reference, p.areaM2, p.rings, label) }
@@ -276,7 +276,7 @@ object ParcelCaches {
                     save(ParcelCache.Cache(info.copy(places = ParcelCache.places(items)), items), HashMap(kept))
                 }
                 val names = items.sumOf { it.holders.size }
-                say(Progress(name, "done: ${items.size} parcels, ${items.count { it.read }} sheets, $names names", finished = true))
+                say(Progress(name, "done: ${items.size} čestica · ${items.count { it.read }} listova · $names names", finished = true))
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

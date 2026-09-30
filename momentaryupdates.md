@@ -185,18 +185,23 @@ Worked by the local Claude Code on the Mac, on top of the cloud's v2 (dc44042).
 Read: "parcel cells", "Partials", "partials" are parcels; "R code" is ARKOD; "private parcels" are
 Moje čestice; "Kuklica" is Kukljica.
 
-1. Repository public. **Status:** pending.
-2. The parcels could not be brought back: "Only Moje čestice" was on, and it wins over the key.
-   **Status:** pending: the key must always bring them back.
-3. Line styles for the cadastre: colour, thickness, transparency, dashed/dotted, from the parcels
-   key's Parcel view. Where the state's picture cannot be restyled, it is hidden and our own
-   outlines drawn instead, for the area that is cached. **Status:** pending.
-4. Parcel caches: everything in the view (outlines, possession sheets, land use, owners) fetched
-   with a verbose status, stored under a name he gives, listed like tracks. **Status:** pending.
-5. Local search over the caches, by owner's name, with a link that selects the parcel and opens its
-   sheet. **Status:** pending.
-6. Cached parcels in their own colour / line style. **Status:** pending.
-7. More in the settings. **Status:** pending.
+1. Repository public. **Status:** it already was (checked 30.9.2026; history scanned, no keys).
+2. The parcels could not be brought back ("Only Moje čestice" wins over the key). **Status:** done
+   in v5: a tap on the Show/hide ARKOD layer key turns it off and shows everything. Emulator: yes.
+3. Line styles: colour (auto + six), transparency (20–100 %), thickness (Fine/Normal/Bold) for the
+   state's lines, made on the phone from its picture. Dashed/dotted only where a cache is, since the
+   state sends pictures. **Status:** done in v5; emulator: thin red at 35 % over Punta.
+4. Parcel caches: "Cache this view" in Parcel view, named, listed like tracks (Settings and Parcel
+   view → Parcel caches), verbose status on the map with stop. **Status:** done in v5/v6. Emulator:
+   "Punta", 127 čestica, 127 listova, 336 names in under 30 s. v6: the state's WFS failed for 15
+   minutes (ORA-01000, its database), so the job now waits it out (8 tries, ≈5 min) and says why.
+5. Local search by name, number, "pl N", address, use; a result selects the parcel, takes the map
+   there and opens its sheet from the phone. **Status:** done; emulator: "republika" → 4 owners with
+   z.k.ul., the tap opened 3905/1 at once.
+6. Each cache in its own colour, line and weight; inside it the state's lines are taken out.
+   **Status:** done; emulator: magenta lines and numbers over Punta.
+7. More in the settings. **Status:** Settings → Moje čestice group has Parcel view and Parcel caches;
+   Parcel view has Lines and Parcel caches.
 
 ## 30.9.2026, v5, the messages that came while it was being built
 
@@ -222,8 +227,8 @@ Read: "Ashaya Afterman" / "Tantra Manifest" are the Yshai Afterman style in MANT
 
 8. The friend's message in the Yshai Afterman style, Croatian, casual, no bullets, in a code box.
    **Status:** after v5.
-9. The key is the **Show/hide ARKOD layer** key, in every word of the app. **Status:** pending.
-10. The launcher icon is that key's glyph. **Status:** drawn.
-11. A tap outlines the parcel under the finger even with the layer hidden. **Status:** pending.
+9. The key is the **Show/hide ARKOD layer** key, in every word of the app. **Status:** done in v5.
+10. The launcher icon is that key's glyph. **Status:** done in v5; seen in the app drawer.
+11. A tap outlines the parcel under the finger even with the layer hidden. **Status:** done in v5; emulator: 3905/82 outlined with the layer hidden.
 12. No "pločice" anywhere in the app; ARKOD's things are čestice. **Status:** done.
-13. The app is called ARKOD Layer. **Status:** pending.
+13. The app is called ARKOD Layer. **Status:** done in v5; the launcher shows it.

@@ -296,6 +296,7 @@ fun ArkodApp(
         // FROM A CACHE (v5): the outline is on the phone, so the map goes there at once.
         ParcelCache.byReference(caches, ref)?.let { item ->
             val p = item.parcel()
+            Trail.say(null)
             select(p)
             val (lat, lon) = item.middle
             ParcelsShown.pin = lat to lon
