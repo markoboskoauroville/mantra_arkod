@@ -83,6 +83,8 @@ fun SettingsFace(
     onKeptParcel: (municipality: String, number: String) -> Unit = { _, _ -> },
     // The Services group's "Check now" (v14): every service but Google asked once.
     onCheckServices: () -> Unit = {},
+    // Help (v18): "en" or "hr".
+    onHelp: (String) -> Unit = {},
 ) {
     val services by Services.health.collectAsState()
     val serviceLog by Services.log.collectAsState()
@@ -417,6 +419,13 @@ fun SettingsFace(
                 }
             }
 
+            // HELP, IN ENGLISH AND IN CROATIAN (v18): the same two pages as the web app's.
+            Group("Help") {
+                Opens("Help", R.drawable.ic_info, under = "how it works and how to use it", onClick = { onHelp("en") })
+                Hairline()
+                Opens("Pomoć", R.drawable.ic_info, under = "kako radi i kako se koristi", onClick = { onHelp("hr") })
+            }
+
             // THE VERSION OPENS THE LATEST BUILD (29.9.2026, the rule for every Mantra app).
             Group("About") {
                 Row(
@@ -638,3 +647,38 @@ private fun inventoryLine(): String {
     val i = ArkodCache.inventory()
     return "${Sniff.megabytes(i.bytes)} · ${i.tiles} ARKOD tiles · ${i.answers} sheets and answers · ${i.shapes} outlines"
 }
+
+/**
+ * THE HELP (v18): *"add help section to both apps ... explaining how it works, what are the mechanisms,
+ * and how to use it in both languages, croatian and english, so there should be 2 help files."*
+ * assets/help/en.html and hr.html, the same pages as the web app's help/ (each links to the other).
+ */
+@Composable
+fun HelpFace(lang: String, onClose: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Paint.Ground)) {
+        Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+            Row(
+                Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Words(if (lang == "hr") "Pomoć" else "Help", Paint.Sand, 17, TextAlign.Start, Modifier.padding(start = 4.dp))
+                Box(
+                    Modifier.size(46.dp).clip(CircleShape).background(Paint.Card).clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center,
+                ) { Words("✕", Paint.Sand, 18) }
+            }
+            androidx.compose.ui.viewinterop.AndroidView(
+                factory = { ctx ->
+                    android.webkit.WebView(ctx).apply {
+                        setBackgroundColor(0xFF0B0D10.toInt())
+                        settings.javaScriptEnabled = false
+                        loadUrl("file:///android_asset/help/$lang.html")
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+

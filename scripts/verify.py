@@ -999,6 +999,12 @@ check("the service log (v16): every service going down or coming back is said on
       "Services.onChange = { e ->" in screens and "store.serviceLog = Services.encodeLog(Services.log.value)" in screens
       and 'Opens("Service log"' in settings_src and "ORA-01000: maximum open cursors exceeded" in settings_src,
       "with the time and the state's reason; why they fail and what the app does about it")
+help_dir = ROOT / "app/src/main/assets/help"
+help_ok = all((help_dir / f).exists() and (help_dir / f).read_text().count('<h2 id="') == 14 and "web only" not in (help_dir / f).read_text() for f in ["en.html", "hr.html"])
+check("help in English and Croatian (v18): two pages in the assets, 14 sections each, the same as the web app's; Settings → Help opens them",
+      help_ok and 'Group("Help")' in settings_src and 'onHelp("hr")' in settings_src and "file:///android_asset/help/$lang.html" in settings_src
+      and "HelpFace(lang) { help = null }" in screens,
+      "assets/help/en.html, hr.html; a WebView with its own close; Back closes it")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

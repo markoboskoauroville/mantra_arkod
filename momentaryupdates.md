@@ -515,4 +515,8 @@ Read: "playground" is the app as a whole, the map and everything on it.
 1. Two help files, English and Croatian, the same text in both apps: what every part of the screen is,
    how each thing works underneath (where the data comes from, what is kept, why the state's services
    fail and what the app does about it), and how to use it step by step. Settings → Help opens them.
-   **Status:** in progress.
+   **Status:** done in v18 (and arkod_web version 4): 14 sections each (what the app is, the screen, a
+   parcel, finding one, Moje čestice, Parcel view, caches, Imenik, the cache key and keywords,
+   fly-through, the services and their lights, the three maps and Google, what happens underneath,
+   when something does not work). The text is written once, in arkod_web/public/help/; FEATURES.md says
+   how it is copied here. Every new feature goes into both pages.

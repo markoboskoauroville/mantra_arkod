@@ -195,6 +195,9 @@ fun ArkodApp(
         }
     }
     androidx.activity.compose.BackHandler(enabled = full) { full = false }
+    // THE HELP (v18), over everything; Back closes it.
+    var help by remember { mutableStateOf<String?>(null) }
+    androidx.activity.compose.BackHandler(enabled = help != null) { help = null }
     val download by MapDownload.live.collectAsState()
     val recording = recordingSince != null
     val justFinished by Trail.justFinished.collectAsState()
@@ -1095,6 +1098,7 @@ fun ArkodApp(
                 onChooseExportFolder = onChooseExportFolder,
                 folderName = store.exportFolderName ?: "not chosen yet",
                 onKeptParcel = { m, n -> settings = false; scope.launch { openKept(m, n) } },
+                onHelp = { lang -> settings = false; help = lang },
                 onCheckServices = { Services.Service.values().filter { it != Services.Service.GOOGLE }.forEach { s -> scope.launch { ParcelNet.check(s) } } },
                 onClose = {
                     settings = false
@@ -1104,6 +1108,8 @@ fun ArkodApp(
                 },
             )
         }
+
+        help?.let { lang -> HelpFace(lang) { help = null } }
     }
 }
 
