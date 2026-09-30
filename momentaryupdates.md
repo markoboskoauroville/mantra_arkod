@@ -158,3 +158,42 @@ Worked by the local Claude Code on the Mac, on top of the cloud's v2 (dc44042).
    Google field (no key on the emulator). v4 fixes the two things seen: "Parcel search on the m…"
    was cut, and the "Čestice skrivene" line stayed after Parcel view turned them back on.
    The friend's message: in the chat, 30.9.2026.
+
+## 30.9.2026, v5: public, line styles, the parcels that would not come back, named parcel caches
+
+> please make repository public And please add more features in settings. And also in this action
+> button which shows and hides the parcel cells, you need to add different styles of lines and
+> transparency of lines, because lines— and thickness of lines, because lines are covering the map
+> too much. So we must go around that. So different styles and different colors. and I run into the
+> problem. I was playing with settings inside that view, and now whatever I do, I cannot get parcels
+> back. Only what I see is my stored parcels. Let's call them in this chat my private parcels, and I
+> cannot get other parcels to be in the view. Also, I want to have ability to cache all parcels in
+> the view Basically all its possessions and usage data, so I can then search each of them locally.
+> And you need to give me then links to select those parcels. I'm going to write, for example, name
+> of the owner in whole Kuklica area. I'm caching and I will find my grandmother Partials by search
+> by her name. That's the idea. And each cache action should be stored as different cache and user
+> can name it. So it's like replacing the X before, or it's already now. So similar as tracks,
+> tracks. So we have tracks to store where we were walking and we have partials cache to store under
+> different name what we have cached inside this app. The cache area should be defined by zoom level
+> of the app, so everything what's in it will be cached with verbose status showing what's going on.
+> And all cached parcel should have different color or maybe different line style. We need to
+> develop that. And what original R code is, uh, not offering different colors or different
+> thickness or different transparency of the lines. It means when I ask you different style, you
+> need to redraw over their layer, remove their layer, and keep our own style for that area. Again,
+> working with what's in the view and caching what you did.
+
+Read: "parcel cells", "Partials", "partials" are parcels; "R code" is ARKOD; "private parcels" are
+Moje čestice; "Kuklica" is Kukljica.
+
+1. Repository public. **Status:** pending.
+2. The parcels could not be brought back: "Only Moje čestice" was on, and it wins over the key.
+   **Status:** pending: the key must always bring them back.
+3. Line styles for the cadastre: colour, thickness, transparency, dashed/dotted, from the parcels
+   key's Parcel view. Where the state's picture cannot be restyled, it is hidden and our own
+   outlines drawn instead, for the area that is cached. **Status:** pending.
+4. Parcel caches: everything in the view (outlines, possession sheets, land use, owners) fetched
+   with a verbose status, stored under a name he gives, listed like tracks. **Status:** pending.
+5. Local search over the caches, by owner's name, with a link that selects the parcel and opens its
+   sheet. **Status:** pending.
+6. Cached parcels in their own colour / line style. **Status:** pending.
+7. More in the settings. **Status:** pending.
