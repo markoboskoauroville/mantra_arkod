@@ -193,6 +193,8 @@ object ParcelCaches {
                     }
                     val answer = text ?: throw lastProblem ?: IllegalStateException("the state did not answer")
                     val got = ParcelCache.parseFeatures(answer)
+                    // Every outline a cache reads is kept one by one too (v11): found from anywhere.
+                    ParcelNet.keepShapes(got.map { it.first })
                     if (page == 0) total = ParcelCache.matched(answer) ?: got.size
                     found.addAll(got.filter { seen.add(it.first.id) })
                     page += 1

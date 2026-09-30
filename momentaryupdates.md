@@ -386,4 +386,22 @@ The web app (arkod_web v2) got it at Marko's word, and FEATURES.md row 27 opens 
 2. The parcel field finds what he types wherever the map is: his own parcels (Moje čestice, caches)
    first in every k.o.; a k.o. name typed with the number ("1358/3 kukljica"); and when the k.o.
    under the map has no such number, the k.o. he has parcels in are asked too. One result: straight
-   to it and its sheet. **Status:** in progress.
+   to it and its sheet. **Status:** done in v11 (ParcelQuery.kt, 6 cases). Also: Search on the keyboard
+   asks again from where the map is (the second screenshot, in Kukljica, still said "k.o. CENTAR NOVI
+   · 0" because the answer was kept while the text stayed the same), and opens the one exact result.
+
+(With a second screenshot, in Kukljica: the cache job red with "katastar je odgovorio 400 (ORA-01000:
+maximum open cursors exceeded)", try 4 of 8.)
+
+> As you can see, the service— in this screenshot you can see service is not working always. So you
+> need to make this app a cache king. So every time it can cache something, it's just caching in the
+> background. It's kind of sniffer for QR code, and it must be very intelligent to use the cache to
+> get the same data again and again.
+
+3. Cache king, first part: every answer from the state kept and used when the state fails. Parcel
+   outlines kept one by one (from the WFS, and every outline a cache job reads), asked only when not
+   on the phone, and when the WFS fails the kept ones still come back; number suggestions, searches
+   and the land-book list kept like the sheets. **Status:** done in v11 (1 case). FEATURES row 28.
+4. Cache king, second part: the sniffer, reading ahead in the background what he will open next (the
+   parcels of a sheet he opened, the folio's list A, the parcels round the map's middle) when the
+   signal is good. **Status:** next, v12.

@@ -63,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -300,6 +302,18 @@ fun ArkodApp(
      */
     suspend fun showFoundParcel(hit: Finding.Hit) {
         val ref = hit.ref ?: return
+        // FROM MOJE ČESTICE (v11): the outline is on the phone, so the map goes there at once.
+        marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { m ->
+            val p = Parcels.Parcel(m.id, m.number, m.reference, null, m.rings)
+            Trail.say(null)
+            select(p)
+            val (lat, lon) = p.middle
+            ParcelsShown.pin = lat to lon
+            Canvases.refreshParcels()
+            Canvases.goTo(lat, lon, 18)
+            openCard(p)
+            return
+        }
         // FROM A CACHE (v5): the outline is on the phone, so the map goes there at once.
         ParcelCache.byReference(caches, ref)?.let { item ->
             val p = item.parcel()
@@ -569,7 +583,7 @@ fun ArkodApp(
             // TWO FIELDS ON THE MAP (29.9.2026, v3): Google's on all three maps when there is a
             // key, the answer pinned on whichever map is up; the parcel field under it.
             if (googleUsable) PlaceField(store) { hit -> showPlace(hit) }
-            if (parcelSearchOn) ParcelField(store, book, caches) { hit -> scope.launch { showFoundParcel(hit) } }
+            if (parcelSearchOn) ParcelField(store, book, caches, marks) { hit -> scope.launch { showFoundParcel(hit) } }
         }
 
         Column(
@@ -2689,9 +2703,16 @@ private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
  *    middle of the map (OSS, a quarter of a second);
  *  - "pl 1984": that possession sheet's parcels in the same k.o.;
  *  - a name, "jaša anica": Imenik, the holders and owners of every sheet opened on this phone.
+ *
+ * WHEREVER THE MAP IS (30.9.2026, v11): *"I typed the parcel number expecting that the map will take
+ * me there ... nothing is happening."* He was in Zagreb and typed 1358/3, a Kukljica number. Now a
+ * number is found in Moje čestice in every k.o., in the k.o. he names with it ("1358/3 kukljica"),
+ * and, when the k.o. under the map has no such number, in every k.o. he already has something in
+ * (ParcelQuery). Search on the keyboard opens the one exact result: the map goes there, the sheet
+ * opens.
  */
 @Composable
-private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<ParcelCache.Cache>, onParcel: (Finding.Hit) -> Unit) {
+private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<ParcelCache.Cache>, marks: List<Parcels.Mark>, onParcel: (Finding.Hit) -> Unit) {
     var history by remember { mutableStateOf(store.history("parcel")) }
     var text by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
@@ -2699,6 +2720,11 @@ private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<
     // The k.o. under the middle, asked again only when the middle has moved (a tenth of a degree).
     var ko by remember { mutableStateOf<Pair<Pair<Double, Double>, Triple<String, String, String>>?>(null) }
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    // SEARCH ASKS AGAIN (v11): the answer was kept while the text stayed the same, so after he had
+    // moved from Zagreb to Kukljica the line still said "k.o. CENTAR NOVI · 0". Search now asks again
+    // from where the map is, and opens the one exact result when the answer comes.
+    var asked by remember { mutableStateOf(0) }
+    var openWhenAnswered by remember { mutableStateOf(false) }
 
     suspend fun municipality(): Triple<String, String, String>? {
         val (lat, lon) = Canvases.centre() ?: return null
@@ -2706,26 +2732,49 @@ private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<
         if (known != null && Geo.distance(known.first.first, known.first.second, lat, lon) < 1_000) return known.second
         val found = runCatching { ParcelNet.municipalityFull(lat, lon) }.getOrNull() ?: return null
         ko = (lat to lon) to found
+        store.seenMunicipalities = ParcelQuery.withSeen(store.seenMunicipalities, ParcelQuery.Ko(found.first, found.second, found.third))
         return found
     }
 
-    LaunchedEffect(text, book.size, caches) {
+    LaunchedEffect(text, book.size, caches, asked) {
         val words = text.trim()
-        if (words.isEmpty()) { hits = emptyList(); line = null; return@LaunchedEffect }
-        delay(250)
+        if (words.isEmpty()) { hits = emptyList(); line = null; openWhenAnswered = false; return@LaunchedEffect }
+        if (!openWhenAnswered) delay(250)
         // THE CACHES FIRST (v5): on the phone, every name, number and sheet, with no signal.
         val cached = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { ParcelCache.search(caches, words) }
         val cachedLine = if (caches.isEmpty()) null else "caches: ${cached.size}"
         val sheet = Regex("""^p\.?\s*l\.?\s*(\d+)$""", RegexOption.IGNORE_CASE).find(words)?.groupValues?.get(1)
+        val query = if (sheet == null) ParcelQuery.parse(words) else null
+        var mine = emptyList<Finding.Hit>()
         val answer = runCatching {
             when {
                 sheet != null -> {
                     val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
                     ParcelNet.ossSearch(k.third, sheet = sheet).also { line = listOfNotNull(cachedLine, "k.o. ${k.second} · posjedovni list $sheet: ${it.size}").joinToString(" · ") }
                 }
-                Regex("""^\*?\d+(/\d*)?$""").matches(words) -> {
-                    val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
-                    ParcelNet.suggest(k.first, k.second, words).also { line = listOfNotNull(cachedLine, "k.o. ${k.second} · ${it.size}").joinToString(" · ") }
+                query != null -> {
+                    val known = ParcelQuery.known(store.seenMunicipalities, marks, caches, book)
+                    val named = query.place?.let { ParcelQuery.resolve(it, known) }
+                    if (query.place != null && named == null) {
+                        mine = ParcelQuery.mine(marks, query.number, known)
+                        error("k.o. \"${query.place}\" još nije poznata ovom telefonu: pomaknite kartu iznad nje jednom")
+                    }
+                    mine = ParcelQuery.mine(marks, query.number, known, only = named)
+                    val here = named ?: municipality()?.let { ParcelQuery.Ko(it.first, it.second, it.third) }
+                    val first = here?.let { ParcelNet.suggest(it.reg, it.label, query.number) }.orEmpty()
+                    // Not in the k.o. under the map: every k.o. he already has something in.
+                    val others = if (named != null || ParcelQuery.hasExact(mine + first, query.number)) emptyList()
+                        else known.filter { it.reg != here?.reg }.take(8).map { k ->
+                            async { runCatching { ParcelNet.suggest(k.reg, k.label, query.number) }.getOrDefault(emptyList()) }
+                        }.awaitAll().flatten()
+                    val elsewhere = others.mapNotNull { h -> known.firstOrNull { it.reg == h.ref?.substringBefore('-') }?.label }.distinct()
+                    line = listOfNotNull(
+                        cachedLine,
+                        mine.size.takeIf { it > 0 }?.let { "Moje čestice: $it" },
+                        here?.let { "k.o. ${it.label} · ${first.size}" } ?: "k.o. pod kartom nije poznata",
+                        elsewhere.takeIf { it.isNotEmpty() }?.let { "i u k.o. ${it.joinToString(", ")}" },
+                    ).joinToString(" · ")
+                    first + others
                 }
                 words.any { it.isLetter() } -> {
                     OwnerBook.search(book, words).map { OwnerBook.hit(it) }.also {
@@ -2736,10 +2785,19 @@ private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<
             }
         }
         if (text.trim() != words) return@LaunchedEffect
-        // Cached answers first; the state's after them, each parcel once.
-        hits = (cached + answer.getOrNull().orEmpty().filter { h -> cached.none { it.ref == h.ref && it.title == h.title } }).take(60)
+        // Moje čestice first, the caches' next, the state's after them, each parcel once.
+        val local = mine + cached.filter { h -> mine.none { it.ref == h.ref } }
+        hits = (local + answer.getOrNull().orEmpty().filter { h -> local.none { it.ref == h.ref } }).take(60)
         answer.exceptionOrNull()?.let { e ->
             line = listOfNotNull(cachedLine, e.message ?: "katastar nije odgovorio").joinToString(" · ")
+        }
+        if (openWhenAnswered) {
+            openWhenAnswered = false
+            query?.let { q -> ParcelQuery.best(hits, q.number) }?.let { hit ->
+                hits = emptyList()
+                line = null
+                onParcel(hit)
+            }
         }
     }
 
@@ -2747,10 +2805,19 @@ private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<
         MapField(
             text = text,
             onText = { text = it },
-            hint = "broj čestice, pl 1984 ili ime",
+            hint = "broj čestice (i k.o.), pl 1984 ili ime",
             icon = R.drawable.ic_parcels,
             light = false,
-            onSearch = { store.remember("parcel", text); history = store.history("parcel"); focus.clearFocus() },
+            onSearch = {
+                store.remember("parcel", text)
+                history = store.history("parcel")
+                focus.clearFocus()
+                // SEARCH OPENS IT (v11): asked again from where the map is now; the one exact number
+                // goes to the map and its sheet as soon as the answer is in.
+                ko = null
+                openWhenAnswered = true
+                asked++
+            },
             history = history,
             onForget = { store.forget("parcel"); history = emptyList() },
         )

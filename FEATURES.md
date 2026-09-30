@@ -28,7 +28,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 11 | FILE: one parcel sent as a .arkod.json file | yes (v10) | yes (web v1) |
 | 12 | Top line: the map middle's coordinates, zoom, map name; where-am-I snaps and shows the accuracy | yes (v3) | yes (web v1) |
 | 13 | Google's search field on every map (with a key), answers as you type; the point on whichever map is up | yes (v3) | yes (web v1) |
-| 14 | Parcel field: a number (answers as you type, OSS), "pl 1984", a name (Imenik and the caches) | yes (v3) | yes (web v1) |
+| 14 | Parcel field: a number (answers as you type, OSS), "pl 1984", a name (Imenik and the caches). **Wherever the map is** (v11): Moje čestice in every k.o., a k.o. named with the number ("1358/3 kukljica"), the known k.o. when the one under the map has none; Search asks again and opens the one exact result | yes (v11) | partly: the field as it was (web v1); wherever the map is, opened 30.9.2026 |
 | 15 | Search history in every search box, offered when the box is touched | yes (v8) | yes (web v1) |
 | 16 | Imenik: every holder and owner of every sheet opened on the device, searchable by name | yes (v3) | yes (web v1) |
 | 17 | Moje čestice: keep a parcel from its sheet, any colour, line solid/dashed/dotted, a name | yes | yes (web v1) |
@@ -42,6 +42,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 25 | Track recording to GPX, tracks list | yes | n/a (a browser cannot record in the background) |
 | 26 | Compass | n/a (removed at his word, v3) | n/a |
 | 27 | Full-screen key on the map: only the map and that key are visible; the same key leaves full screen (a key, never a tap in the middle, which v1 removed) | no (opened 30.9.2026) | yes (web v2) |
+| 28 | Cache king: every answer from the state kept on the device and used when the state fails: sheets, searches, suggestions, land books, and every parcel outline one by one (from the WFS, a cache, a file), so an outline read once is never asked again | yes (v11) | no (opened 30.9.2026; the service worker keeps OSS answers and tiles, not outlines) |
 
 ## The file format (.arkod.json), shared
 

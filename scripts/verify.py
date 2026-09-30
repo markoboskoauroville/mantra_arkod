@@ -19,11 +19,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v3, 29.9.2026: six cases came with the parcels key, the parcel field's suggestions and Imenik.
 # v5, 30.9.2026: ten cases came with the restyled lines and the parcel caches.
 # v8, 30.9.2026: three cases for Moje čestice as files; one came with the state's reason (v6).
-TEST_FLOOR = 215
+# v11, 30.9.2026: six cases for the parcel field that finds a number wherever the map is, one for outlines kept one by one.
+TEST_FLOOR = 222
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt", "ParcelQuery.kt"]
 
 failures, checks = [], []
 
@@ -941,9 +942,21 @@ check("only my parcels wins over the key, in one rule both engines read",
       and "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
       "Parcels.visibility decides; ParcelsShown draws it")
 check("Google's field is on all three maps when there is a key, the parcel field under it",
-      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(store, book, caches)" in screens
-      and screens.index("PlaceField(store)") < screens.index("ParcelField(store, book, caches)"),
+      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(store, book, caches, marks)" in screens
+      and screens.index("PlaceField(store)") < screens.index("ParcelField(store, book, caches, marks)"),
       "not tied to the Google map; the parcel field shown or hidden in Parcel view")
+check("a parcel number is found wherever the map is (v11): Moje čestice in every k.o., a k.o. named with it, the known k.o. when the one under the map has none; Search opens the one exact result",
+      "ParcelQuery.mine(marks, query.number, known" in screens and "ParcelQuery.resolve(it, known)" in screens
+      and "ParcelQuery.hasExact(mine + first, query.number)" in screens and "ParcelQuery.best(hits, q.number)" in screens and "openWhenAnswered = true" in screens
+      and "store.seenMunicipalities = ParcelQuery.withSeen(" in screens
+      and "marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { m ->" in screens,
+      "1358/3 typed in Zagreb (CENTAR NOVI) finds Kukljica's 1358/3")
+check("cache king (v11): an outline read once comes off the phone, searches and land books are kept, the WFS failing still gives the kept outlines",
+      "ParcelQuery.decodeShape(ArkodCache.answer(ParcelQuery.shapeKey(it))" in (MAIN / "ParcelNet.kt").read_text()
+      and "if (kept.isNotEmpty()) return@withContext kept" in (MAIN / "ParcelNet.kt").read_text()
+      and "getKeptQuiet(Parcels.searchUrl(prefix" in (MAIN / "ParcelNet.kt").read_text()
+      and "ParcelNet.keepShapes(got.map { it.first })" in (MAIN / "ParcelCaches.kt").read_text(),
+      "shapes kept per parcel; suggestions, searches, books kept; a cache job keeps every outline it reads")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

@@ -1927,4 +1927,77 @@ ORA-01000: maximum open cursors exceeded
         assertNull(Parcels.numberIn(Parcels.SheetRow("VLASNIČKI LIST · z.k. uložak 182", "2449/2 is not a link here")))
         assertNull(Parcels.numberIn(Parcels.SheetRow("${Parcels.HEAD_FOLIO_PARCELS} · uložak 182", "DRAGE")))
     }
+
+    // --- v11: the parcel field finds the number wherever the map is (ParcelQuery) -------------
+
+    private val kukljica = ParcelQuery.Ko("334723", "KUKLJICA", "3347")
+    private val centar = ParcelQuery.Ko("335266", "CENTAR NOVI", "9")
+    private val house = Parcels.Mark("334723-1358/3", "1358/3", 0xFFE8A64BL, emptyList(), 6436001L, name = "kuća")
+
+    @Test fun aNumberAloneOrWithItsKoIsReadEitherWayRound() {
+        assertEquals(ParcelQuery.Query("1358/3", null), ParcelQuery.parse("1358/3"))
+        assertEquals(ParcelQuery.Query("1358/3", "kukljica"), ParcelQuery.parse("1358/3 kukljica"))
+        assertEquals(ParcelQuery.Query("1358/3", "Kukljica"), ParcelQuery.parse("k.o. Kukljica, 1358/3"))
+        assertEquals(ParcelQuery.Query("*27", null), ParcelQuery.parse(" *27 "))
+        assertNull(ParcelQuery.parse("jaša anica"))
+        assertNull(ParcelQuery.parse("2450 2451"))
+    }
+
+    @Test fun theKoIsFoundByItsNameWithoutDiacriticsByItsStartOrByItsNumber() {
+        val known = listOf(centar, kukljica, ParcelQuery.Ko("334740", "KALI"))
+        assertEquals(kukljica, ParcelQuery.resolve("kuklj", known))
+        assertEquals(kukljica, ParcelQuery.resolve("334723", known))
+        assertEquals("KALI", ParcelQuery.resolve("kali", known)?.name)
+        assertNull(ParcelQuery.resolve("k", known)) // KUKLJICA and KALI both start with it
+        assertNull(ParcelQuery.resolve("split", known))
+    }
+
+    @Test fun theKnownKoComeFromTheMapImenikCachesAndMojeCesticeEachOnceWithANameWhereAnyHasIt() {
+        val book = listOf(OwnerBook.Entry("BOŠKO IVANA", OwnerBook.Role.POSJEDNIK, "p.l. 1225", 1L, "334723-1358/3", "1358/3", "KUKLJICA"))
+        val known = ParcelQuery.known(listOf(centar), listOf(house), emptyList(), book)
+        assertEquals(listOf("335266", "334723"), known.map { it.reg })
+        assertEquals("KUKLJICA", known[1].name)
+        // a mark alone still gives its k.o., by number
+        assertEquals("334723", ParcelQuery.known(emptyList(), listOf(house), emptyList(), emptyList()).single().label)
+    }
+
+    @Test fun mojeCesticeAreFoundByNumberInEveryKoWhereverTheMapIs() {
+        val other = Parcels.Mark("334723-1358/31", "1358/31", 0xFFE8A64BL, emptyList(), 5L)
+        val hits = ParcelQuery.mine(listOf(other, house), "1358/3", listOf(kukljica))
+        assertEquals(listOf("1358/3", "1358/31"), hits.map { it.title })
+        assertEquals("334723-1358/3", hits[0].ref)
+        assertEquals("Moje čestice · kuća · k.o. KUKLJICA", hits[0].under)
+        assertTrue(ParcelQuery.mine(listOf(house), "1358/3", listOf(kukljica), only = centar).isEmpty())
+    }
+
+    @Test fun searchOpensTheOneExactNumberAndLeavesAChoiceWhenTwoKoHaveIt() {
+        fun hit(ref: String) = Finding.Hit(ref, ref.substringAfter('-'), "", source = Finding.Source.PARCEL, ref = ref)
+        assertEquals("334723-1358/3", ParcelQuery.best(listOf(hit("334723-1358/3"), hit("334723-1358/31")), "1358/3")?.ref)
+        assertNull(ParcelQuery.best(listOf(hit("334723-1358/3"), hit("335266-1358/3")), "1358/3"))
+        assertEquals("334723-1358/31", ParcelQuery.best(listOf(hit("334723-1358/31")), "1358/3")?.ref)
+        assertNull(ParcelQuery.best(emptyList(), "1358/3"))
+        assertTrue(ParcelQuery.hasExact(listOf(hit("334723-1358/3")), "1358/3"))
+        assertFalse(ParcelQuery.hasExact(listOf(hit("335266-1358/31")), "1358/3"))
+    }
+
+    @Test fun theKoTheMapStoodOverAreKeptNewestFirstEachOnce() {
+        val list = ParcelQuery.withSeen(ParcelQuery.withSeen(listOf(kukljica), centar), kukljica)
+        assertEquals(listOf("334723", "335266"), list.map { it.reg })
+        assertEquals(list, ParcelQuery.decodeSeen(ParcelQuery.encodeSeen(list)))
+        assertTrue(ParcelQuery.decodeSeen(null).isEmpty())
+        assertTrue(ParcelQuery.decodeSeen("rubbish").isEmpty())
+    }
+
+    @Test fun anOutlineIsKeptAndReadBackWholeAndRubbishIsNotAnOutline() {
+        val p = Parcels.Parcel(6436001L, "1358/3", "334723-1358/3", 516,
+            listOf(listOf(44.0173 to 15.2494, 44.0174 to 15.2496, 44.0172 to 15.2497, 44.0173 to 15.2494)))
+        val back = ParcelQuery.decodeShape(ParcelQuery.encodeShape(p))
+        assertEquals(p.copy(rings = back!!.rings), back)
+        assertEquals(4, back.rings[0].size)
+        assertEquals(44.0174, back.rings[0][1].first, 1e-9)
+        assertNull(ParcelQuery.decodeShape(null))
+        assertNull(ParcelQuery.decodeShape("rubbish"))
+        assertNull(ParcelQuery.decodeShape("1|2|334723-2||"))
+        assertEquals("shape:334723-1358/3", ParcelQuery.shapeKey("334723-1358/3"))
+    }
 }

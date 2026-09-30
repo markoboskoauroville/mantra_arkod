@@ -60,6 +60,16 @@ object ParcelNet {
         old.first
     }
 
+    /**
+     * CACHE KING (v11): searches, suggestions and the land books are kept too, and read off the
+     * phone when the state does not answer. Quiet: it does not touch [kept], which a sheet shows.
+     */
+    private fun getKeptQuiet(url: String, readMs: Int = 25_000): String = try {
+        get(url, readMs).also { ArkodCache.keepAnswer(url, it) }
+    } catch (e: Exception) {
+        ArkodCache.answer(url)?.first ?: ParcelCaches.answer(url)?.first ?: throw e
+    }
+
     /** The state's answer to [url], kept as every sheet is, for the parcel caches to store (v5). */
     fun keptText(url: String): String = getKept(url)
 
@@ -106,7 +116,7 @@ object ParcelNet {
      */
     suspend fun findOwnerSheets(municipality: String, number: String, isFolio: Boolean): List<Parcels.Folio> =
         withContext(Dispatchers.IO) {
-            val books = Parcels.parseBooks(get(Parcels.booksUrl(municipality)), municipality)
+            val books = Parcels.parseBooks(getKeptQuiet(Parcels.booksUrl(municipality)), municipality)
             if (books.isEmpty()) throw Refused("nema zemljišne knjige imena $municipality")
             for (book in books) {
                 val units = if (isFolio) listOf(number)
@@ -156,14 +166,14 @@ object ParcelNet {
      */
     suspend fun suggest(municipalityReg: String, municipalityName: String, prefix: String): List<Finding.Hit> =
         withContext(Dispatchers.IO) {
-            Parcels.parseSuggestions(get(Parcels.searchUrl(prefix, municipalityReg), readMs = 10_000), municipalityReg, municipalityName)
+            Parcels.parseSuggestions(getKeptQuiet(Parcels.searchUrl(prefix, municipalityReg), readMs = 10_000), municipalityReg, municipalityName)
         }
 
     /** Parcels by number in one municipality, through OSS's search: one quick request each. */
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
             numbers.mapNotNull { n ->
-                val id = Parcels.parseSearch(get(Parcels.searchUrl(n, municipality)), n) ?: return@mapNotNull null
+                val id = Parcels.parseSearch(getKeptQuiet(Parcels.searchUrl(n, municipality)), n) ?: return@mapNotNull null
                 Parcels.Parcel(id, n, "$municipality-$n", null, emptyList())
             }
         }
@@ -175,7 +185,25 @@ object ParcelNet {
      */
     suspend fun shapes(references: List<String>): List<Parcels.Parcel> = withContext(Dispatchers.IO) {
         if (references.isEmpty()) return@withContext emptyList()
-        Parcels.parseParcels(get(Parcels.byReferenceUrl(references), readMs = 90_000))
+        // CACHE KING (v11): an outline read once comes off the phone; only the unknown ones are
+        // asked, and when the WFS fails (ORA-01000) the kept ones still come back.
+        val kept = references.mapNotNull { ParcelQuery.decodeShape(ArkodCache.answer(ParcelQuery.shapeKey(it))?.first) }
+        val missing = references.filter { r -> kept.none { it.reference == r } }
+        if (missing.isEmpty()) return@withContext kept
+        val fresh = try {
+            Parcels.parseParcels(get(Parcels.byReferenceUrl(missing), readMs = 90_000))
+        } catch (e: Exception) {
+            if (kept.isNotEmpty()) return@withContext kept
+            throw e
+        }
+        keepShapes(fresh)
+        kept + fresh
+    }
+
+    /** Outlines kept one by one, from wherever they came: the WFS, a parcel cache, a file. */
+    fun keepShapes(parcels: List<Parcels.Parcel>) {
+        parcels.filter { it.rings.isNotEmpty() && it.reference.isNotBlank() }
+            .forEach { ArkodCache.keepAnswer(ParcelQuery.shapeKey(it.reference), ParcelQuery.encodeShape(it)) }
     }
 
     /**
