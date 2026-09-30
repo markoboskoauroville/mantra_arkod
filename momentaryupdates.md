@@ -499,4 +499,8 @@ Read: "Yasha" is Jaša, a name on Kukljica's sheets; "R-Code" is ARKOD.
 3. What the services are, why they fail, and how the app goes round it: answered in the chat and kept
    in the settings' Services group. **Status:** done: a paragraph under the lights (DGU's four services,
    ORA-01000 is their database out of connections, nothing on the phone can fix it, what the app does).
-4. The web app brought level with v11 to v16 (FEATURES rows 14, 28 to 34). **Status:** in progress.
+4. The web app brought level with v11 to v16 (FEATURES rows 14, 28 to 35). **Status:** done: arkod_web
+   version 3, every row "yes" on both sides but 25 (tracks, n/a in a browser) and 26 (compass, n/a).
+5. v17, from the web app's tests: a service's first answer after the app opens is no longer logged as
+   "back online" (only going down and coming back are), and a lit round key has a dark base under its
+   amber, so it reads over a light map. **Status:** done in v17.

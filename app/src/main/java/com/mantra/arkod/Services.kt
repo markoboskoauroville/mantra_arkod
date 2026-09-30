@@ -114,7 +114,9 @@ object Services {
             val was = light(before)
             val now = light(after)
             // THE LOG (v16): a service going down or coming back, with the time and its reason.
-            if (now != was && now != Light.GREY) {
+            // Logged: going down (a first failure too), and coming back after being down. A first
+            // answer after the app opens is not news.
+            if ((now == Light.RED && was != Light.RED) || (now == Light.GREEN && was == Light.RED)) {
                 event = Event(maxOf(after.okAt, after.failAt), s, now == Light.GREEN, if (now == Light.RED) after.reason else "")
                 _log.value = (listOf(event!!) + _log.value).take(LOG_SIZE)
             }

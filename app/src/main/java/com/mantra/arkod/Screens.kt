@@ -1235,8 +1235,10 @@ private fun RoundKey(@androidx.annotation.DrawableRes icon: Int, on: Boolean, on
     val tap by androidx.compose.runtime.rememberUpdatedState(onClick)
     val hold by androidx.compose.runtime.rememberUpdatedState(onLongClick)
     Box(
+        // A dark base first, so a lit key's amber reads on a light map too (v16).
         Modifier.size(46.dp).clip(CircleShape)
-            .background(if (on) Paint.Amber.copy(alpha = 0.30f) else Paint.Ground.copy(alpha = 0.86f))
+            .background(Paint.Ground.copy(alpha = if (on) 0.96f else 0.86f))
+            .background(if (on) Paint.Amber.copy(alpha = 0.30f) else Color.Transparent)
             .pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold?.invoke() }) },
         contentAlignment = Alignment.Center,
     ) {

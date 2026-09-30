@@ -2136,11 +2136,12 @@ ORA-01000: maximum open cursors exceeded
         Services.ok(url, now = 5_000)                       // back
         Services.onChange = null
         val wfs = seen.filter { it.service == Services.Service.WFS }
-        assertEquals(listOf(true, false, true), wfs.map { it.online })
-        assertEquals("ORA-01000", wfs[1].reason)
+        // the first answer is not news; down, then back, are
+        assertEquals(listOf(false, true), wfs.map { it.online })
+        assertEquals("ORA-01000", wfs[0].reason)
         val clock = { t: Long -> "t$t" }
-        assertEquals("t3000 WFS offline · ORA-01000", Services.said(wfs[1], clock))
-        assertEquals("t5000 WFS back online", Services.said(wfs[2], clock))
+        assertEquals("t3000 WFS offline · ORA-01000", Services.said(wfs[0], clock))
+        assertEquals("t5000 WFS back online", Services.said(wfs[1], clock))
         val back = Services.decodeLog(Services.encodeLog(Services.log.value))
         assertEquals(Services.log.value, back)
         assertTrue(Services.decodeLog("rubbish\n1|NOPE|1|x").isEmpty())

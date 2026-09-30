@@ -28,7 +28,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 11 | FILE: one parcel sent as a .arkod.json file | yes (v10) | yes (web v1) |
 | 12 | Top line: the map middle's coordinates, zoom, map name; where-am-I snaps and shows the accuracy | yes (v3) | yes (web v1) |
 | 13 | Google's search field on every map (with a key), answers as you type; the point on whichever map is up | yes (v3) | yes (web v1) |
-| 14 | Parcel field: a number (answers as you type, OSS), "pl 1984", a name (Imenik and the caches). **Wherever the map is** (v11): Moje čestice in every k.o., a k.o. named with the number ("1358/3 kukljica"), the known k.o. when the one under the map has none; Search asks again and opens the one exact result | yes (v11) | partly: the field as it was (web v1); wherever the map is, opened 30.9.2026 |
+| 14 | Parcel field: a number (answers as you type, OSS), "pl 1984", a name (Imenik and the caches). **Wherever the map is** (v11): Moje čestice in every k.o., a k.o. named with the number ("1358/3 kukljica"), the known k.o. when the one under the map has none; Search asks again and opens the one exact result | yes (v11) | yes (web v3) |
 | 15 | Search history in every search box, offered when the box is touched | yes (v8) | yes (web v1) |
 | 16 | Imenik: every holder and owner of every sheet opened on the device, searchable by name | yes (v3) | yes (web v1) |
 | 17 | Moje čestice: keep a parcel from its sheet, any colour, line solid/dashed/dotted, a name | yes | yes (web v1) |
@@ -42,14 +42,14 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 25 | Track recording to GPX, tracks list | yes | n/a (a browser cannot record in the background) |
 | 26 | Compass | n/a (removed at his word, v3) | n/a |
 | 27 | Full-screen key on the map: only the map and that key are visible; the same key leaves full screen (a key, never a tap in the middle, which v1 removed) | yes (v15) | yes (web v2) |
-| 28 | Cache king: every answer from the state kept on the device and used when the state fails: sheets, searches, suggestions, land books, and every parcel outline one by one (from the WFS, a cache, a file), so an outline read once is never asked again | yes (v11) | no (opened 30.9.2026; the service worker keeps OSS answers and tiles, not outlines) |
-| 29 | The sniffer: with the cache key on, the sheets round the resting map (z16+) and the other parcels of a sheet's folio are read in the background; kept with their owner sheets and outline, into Imenik too | yes (v12) | no (opened 30.9.2026) |
-| 30 | Cache criteria: keywords (surnames, names, places, land uses); with them, a sheet read in the background is kept only when it fits one; what he opens is always kept | yes (v12) | no (opened 30.9.2026) |
-| 31 | The cache key on the map (round, over the key row; long press: settings), and the size of what is kept at the very top of the settings with the Cache switch and the keywords | yes (v12) | no (opened 30.9.2026) |
-| 32 | Every kept parcel listed in the settings: number, surname, place (rudina, k.o.), filtered; a tap opens it from the device | yes (v13) | no (opened 30.9.2026) |
-| 33 | A light for every service (ARKOD WMS, WFS, cadastre OSS, land registry, OSM, Google): green answering, red not, grey not asked; on the map under the coordinates, and in the settings with what each does, since when it is down and why, and what cannot be done meanwhile | yes (v14) | no (opened 30.9.2026) |
-| 34 | Fly-through scanning: the airplane key; he writes any words; wherever the map rests (z16+) the parcels in view are read and every one whose sheet mentions them is outlined (magenta, bold) and selected; every step on the line ("scanning 14/25 · 9 sheets read · found 1", "found 2449/2 · selecting") | yes (v16) | no (opened 30.9.2026) |
-| 35 | The service log: every service going down or coming back said on the map at once and kept with the time and the reason; read back in the settings, with why the state's services fail and what the app does about it | yes (v16) | no (opened 30.9.2026) |
+| 28 | Cache king: every answer from the state kept on the device and used when the state fails: sheets, searches, suggestions, land books, and every parcel outline one by one (from the WFS, a cache, a file), so an outline read once is never asked again | yes (v11) | yes (web v3) |
+| 29 | The sniffer: with the cache key on, the sheets round the resting map (z16+) and the other parcels of a sheet's folio are read in the background; kept with their owner sheets and outline, into Imenik too | yes (v12) | yes (web v3) |
+| 30 | Cache criteria: keywords (surnames, names, places, land uses); with them, a sheet read in the background is kept only when it fits one; what he opens is always kept | yes (v12) | yes (web v3) |
+| 31 | The cache key on the map (round, over the key row; long press: settings), and the size of what is kept at the very top of the settings with the Cache switch and the keywords | yes (v12) | yes (web v3) |
+| 32 | Every kept parcel listed in the settings: number, surname, place (rudina, k.o.), filtered; a tap opens it from the device | yes (v13) | yes (web v3) |
+| 33 | A light for every service (ARKOD WMS, WFS, cadastre OSS, land registry, OSM, Google): green answering, red not, grey not asked; on the map under the coordinates, and in the settings with what each does, since when it is down and why, and what cannot be done meanwhile | yes (v14) | yes (web v3) |
+| 34 | Fly-through scanning: the airplane key; he writes any words; wherever the map rests (z16+) the parcels in view are read and every one whose sheet mentions them is outlined (magenta, bold) and selected; every step on the line ("scanning 14/25 · 9 sheets read · found 1", "found 2449/2 · selecting") | yes (v16) | yes (web v3) |
+| 35 | The service log: every service going down or coming back said on the map at once and kept with the time and the reason; read back in the settings, with why the state's services fail and what the app does about it | yes (v16) | yes (web v3) |
 
 ## The file format (.arkod.json), shared
 
