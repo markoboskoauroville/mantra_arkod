@@ -504,3 +504,15 @@ Read: "Yasha" is Jaša, a name on Kukljica's sheets; "R-Code" is ARKOD.
 5. v17, from the web app's tests: a service's first answer after the app opens is no longer logged as
    "back online" (only going down and coming back are), and a lit round key has a dark base under its
    amber, so it reads over a light map. **Status:** done in v17.
+
+## 30.9.2026, v18: help, in English and in Croatian
+
+> please add help section to both apps, web and apk, explaining playground, how it works, what are the
+> mechanisms, and how to use it in both languages, croatian and english, so there should be 2 help files
+
+Read: "playground" is the app as a whole, the map and everything on it.
+
+1. Two help files, English and Croatian, the same text in both apps: what every part of the screen is,
+   how each thing works underneath (where the data comes from, what is kept, why the state's services
+   fail and what the app does about it), and how to use it step by step. Settings → Help opens them.
+   **Status:** in progress.
