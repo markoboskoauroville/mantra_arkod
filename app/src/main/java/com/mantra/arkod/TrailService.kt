@@ -141,7 +141,7 @@ class TrailService : Service() {
         )
         val state = if (Trail.paused.value) "pauza" else "snima"
         return Notification.Builder(this, CHANNEL)
-            .setContentTitle("Mantra ARKOD, $state")
+            .setContentTitle("ARKOD Layer, $state")
             .setContentText(
                 "${Geo.formatDistance(stats.distanceM)} · ${Geo.formatDuration(stats.durationMs)} · ${stats.points} točaka"
             )

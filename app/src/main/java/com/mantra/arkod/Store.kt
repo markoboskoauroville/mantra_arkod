@@ -90,6 +90,21 @@ class Store(context: Context) {
         get() = prefs.getBoolean(KEY_PARCEL_SEARCH, true)
         set(v) = prefs.edit().putBoolean(KEY_PARCEL_SEARCH, v).apply()
 
+    /** THE STATE'S LINES (v5): colour (or auto), transparency, weight, from Parcel view. */
+    var lines: ParcelStyle.Lines
+        get() = ParcelStyle.decode(prefs.getString(KEY_LINES, null))
+        set(v) = prefs.edit().putString(KEY_LINES, ParcelStyle.encode(v)).apply()
+
+    /** Inside a parcel cache, its own lines instead of the state's (v5). On unless he turns it off. */
+    var ownLines: Boolean
+        get() = prefs.getBoolean(KEY_OWN_LINES, true)
+        set(v) = prefs.edit().putBoolean(KEY_OWN_LINES, v).apply()
+
+    /** Whether a new cache also reads the owner sheets (vlasnički listovi), which takes longer. */
+    var cacheOwners: Boolean
+        get() = prefs.getBoolean(KEY_CACHE_OWNERS, true)
+        set(v) = prefs.edit().putBoolean(KEY_CACHE_OWNERS, v).apply()
+
     /** Imenik: every holder and owner the sheets opened on this phone named ([OwnerBook]). */
     var ownerBook: List<OwnerBook.Entry>
         get() = OwnerBook.decode(prefs.getString(KEY_OWNER_BOOK, "") ?: "")
@@ -182,6 +197,9 @@ class Store(context: Context) {
         private const val KEY_ONLY_MINE = "onlyMine"
         private const val KEY_PARCEL_SEARCH = "parcelSearchOn"
         private const val KEY_OWNER_BOOK = "ownerBook"
+        private const val KEY_LINES = "lines"
+        private const val KEY_OWN_LINES = "ownLines"
+        private const val KEY_CACHE_OWNERS = "cacheOwners"
         private const val KEY_THEME = "themeName"
         private const val KEY_GOOGLE_VIEW = "googleView"
         private const val KEY_RING = "keyring"

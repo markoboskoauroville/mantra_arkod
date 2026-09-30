@@ -56,7 +56,7 @@ object Gpx {
 
     fun header(trackName: String, createdMs: Long): String = buildString {
         append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        append("<gpx version=\"1.1\" creator=\"Mantra ARKOD\"\n")
+        append("<gpx version=\"1.1\" creator=\"ARKOD Layer\"\n")
         append("     xmlns=\"http://www.topografix.com/GPX/1/1\"\n")
         append("     xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n")
         append("     xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 ")

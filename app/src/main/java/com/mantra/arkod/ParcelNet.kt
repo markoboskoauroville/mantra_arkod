@@ -47,10 +47,27 @@ object ParcelNet {
             kept = null
         }
     } catch (e: Exception) {
-        val old = ArkodCache.answer(url) ?: throw e
+        // A parcel cache keeps the state's answers too (v5): a sheet from it opens with no signal
+        // even after the ARKOD tiles on the phone were cleared.
+        val old = ArkodCache.answer(url) ?: ParcelCaches.answer(url) ?: throw e
         kept = old.second
         old.first
     }
+
+    /** The state's answer to [url], kept as every sheet is, for the parcel caches to store (v5). */
+    fun keptText(url: String): String = getKept(url)
+
+    /**
+     * ONE PAGE OF EVERY PARCEL IN A BOX (30.9.2026, v5), from the state's WFS: [count] from [start],
+     * given a minute and a half because a page of five hundred took fifteen seconds.
+     */
+    fun boxPage(box: ParcelCache.Box, start: Int, count: Int): String =
+        get(
+            Parcels.WFS + "?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&OUTPUTFORMAT=application/json" +
+                "&SRSNAME=urn:ogc:def:crs:EPSG::4326&TYPENAMES=cp:CadastralParcel&COUNT=$count&STARTINDEX=$start" +
+                "&BBOX=" + ParcelCache.wfsBox(box),
+            readMs = 90_000,
+        )
 
     /** The parcel under a finger, in a fifth of a second; null in the sea or on an unnumbered road. */
     suspend fun at(lat: Double, lon: Double): Parcels.Parcel? = withContext(Dispatchers.IO) {
@@ -216,7 +233,7 @@ object ParcelNet {
         return try {
             val code = open.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
-                Report.tiles("katastarska pločica: HTTP $code")
+                Report.tiles("ARKOD: HTTP $code")
                 throw java.io.IOException("cadastre tile answered $code")
             }
             open.inputStream.use { it.readBytes() }
@@ -226,25 +243,34 @@ object ParcelNet {
     }
 
     /**
-     * ONE TILE OF THE STATE'S PICTURE, IN OUR INK: the recoloured copy if it is kept, else the
-     * state's picture (kept or fetched), every pixel recoloured, written as a PNG and kept.
+     * ONE TILE OF THE ARKOD LAYER (v5): the state's picture restyled as Parcel view says (colour,
+     * transparency, weight; kept on the phone per style), and where a parcel cache is drawn in its
+     * own lines, the state's lines inside the cache's box taken out and the cache's drawn instead.
+     * With no signal and no picture kept, a cache still draws its part on an empty tile.
      */
-    fun tile(z: Int, x: Int, y: Int, ink: Long): ByteArray {
-        ArkodCache.inked(z, x, y, ink)?.let { return it }
-        val bytes = rawTile(z, x, y)
-        val picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            ?: throw java.io.IOException("the cadastre sent something that is not a picture")
-        val w = picture.width
-        val h = picture.height
-        val pixels = IntArray(w * h)
-        picture.getPixels(pixels, 0, w, 0, 0, w, h)
-        picture.recycle()
-        for (i in pixels.indices) pixels[i] = Parcels.recolour(pixels[i], ink)
-        val out = Bitmap.createBitmap(pixels, w, h, Bitmap.Config.ARGB_8888)
-        val png = ByteArrayOutputStream(bytes.size)
-        out.compress(Bitmap.CompressFormat.PNG, 100, png)
-        out.recycle()
-        return png.toByteArray().also { ArkodCache.keepInked(z, x, y, ink, it) }
+    fun tile(z: Int, x: Int, y: Int): ByteArray {
+        val lines = ParcelsShown.lines
+        val ink = lines.ink(ParcelsShown.ink)
+        val key = ParcelStyle.key(ink, lines)
+        val here = ParcelCache.tileBox(z, x, y)
+        val over = if (ParcelsShown.ownLines) ParcelsShown.caches.filter { it.info.visible && it.info.box.intersects(here) } else emptyList()
+        val styled: ByteArray? = ArkodCache.inked(z, x, y, key) ?: runCatching {
+            val bytes = rawTile(z, x, y)
+            val picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                ?: throw java.io.IOException("the cadastre sent something that is not a picture")
+            val w = picture.width
+            val h = picture.height
+            val pixels = IntArray(w * h)
+            picture.getPixels(pixels, 0, w, 0, 0, w, h)
+            picture.recycle()
+            val out = Bitmap.createBitmap(ParcelStyle.restyle(pixels, w, h, ink, lines), w, h, Bitmap.Config.ARGB_8888)
+            val png = ByteArrayOutputStream(bytes.size)
+            out.compress(Bitmap.CompressFormat.PNG, 100, png)
+            out.recycle()
+            png.toByteArray().also { ArkodCache.keepInked(z, x, y, key, it) }
+        }.getOrElse { if (over.isEmpty()) throw it else null }
+        if (over.isEmpty()) return styled!!
+        return CacheTiles.draw(styled, over, z, x, y, lines.opacity)
     }
 }
 
@@ -264,6 +290,27 @@ object ParcelsShown {
     @Volatile
     var ink: Long = Parcels.INK_DARK
 
+    /** The state's lines as Parcel view set them: colour, transparency, weight (v5). */
+    @Volatile
+    var lines: ParcelStyle.Lines = ParcelStyle.Lines()
+
+    /** Inside a cache's box its own lines are drawn and the state's taken out (v5). */
+    @Volatile
+    var ownLines: Boolean = true
+
+    /** The parcel caches on the phone, as the map should draw them (v5). */
+    @Volatile
+    var caches: List<ParcelCache.Cache> = emptyList()
+
+    /**
+     * Everything that decides what a tile of the ARKOD layer looks like, in one string: when it
+     * changes, the layer is made again, because a tile already drawn carries the old look.
+     */
+    fun look(): String = ParcelStyle.key(lines.ink(ink), lines) + "|" + ownLines + "|" +
+        caches.filter { it.info.visible }.joinToString(",") { c ->
+            "${c.info.id}:${c.items.size}:${c.info.colour}:${c.info.style}:${c.info.weight}"
+        }
+
     @Volatile
     var marks: List<Parcels.Mark> = emptyList()
 
@@ -279,8 +326,12 @@ object ParcelsShown {
     @Volatile
     var pin: Pair<Double, Double>? = null
 
-    /** Everything the engines draw: his marks, and the selection on top. */
-    fun drawn(): List<Parcels.Mark> = if (mineOn) marks + listOfNotNull(selection) else emptyList()
+    /**
+     * Everything the engines draw: his marks, and the selection on top. The selection is drawn even
+     * with the ARKOD layer hidden (v5: "even when [they] are hidden, when user clicks ... you will
+     * outline the invisible [parcel]").
+     */
+    fun drawn(): List<Parcels.Mark> = (if (mineOn) marks else emptyList()) + listOfNotNull(selection)
 
     /** Set by the screen; called by either engine with where the finger landed. */
     @Volatile

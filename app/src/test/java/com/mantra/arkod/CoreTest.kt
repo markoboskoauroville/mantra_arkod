@@ -1735,4 +1735,122 @@ class CoreTest {
         assertEquals("334723-1655/3", hit.ref)
         assertEquals("1655/3 · k.o. KUKLJICA · vlasnik · z.k.ul. 182 · 1/2", hit.under)
     }
+
+    // --- v5 (30.9.2026): the state's lines restyled, and the parcel caches -----------------------
+
+    @Test fun theLinesKeepTheirOwnAlphaScaledAndTakeTheInk() {
+        val px = intArrayOf(0x00000000, 0xFF000000.toInt(), 0x80000000.toInt())
+        val out = ParcelStyle.restyle(px, 3, 1, 0xFFEF4444L, ParcelStyle.Lines(opacity = 50))
+        assertEquals(0, out[0])
+        assertEquals((127 shl 24) or 0xEF4444, out[1])
+        assertEquals((64 shl 24) or 0xEF4444, out[2])
+        // Auto follows the map's ink; a chosen colour wins over it.
+        assertEquals(0xFF15171AL, ParcelStyle.Lines().ink(0xFF15171AL))
+        assertEquals(0xFFFFFFFFL, ParcelStyle.Lines(colour = 0xFFFFFFFFL).ink(0xFF15171AL))
+    }
+
+    @Test fun fineKeepsTheCoreOfALineAndBoldGrowsIt() {
+        // A line three pixels wide in a row of seven.
+        val a = intArrayOf(0, 0, 255, 255, 255, 0, 0)
+        assertEquals(listOf(0, 0, 89, 255, 89, 0, 0), ParcelStyle.fine(a, 7, 1).toList())
+        assertEquals(listOf(0, 255, 255, 255, 255, 255, 0), ParcelStyle.bold(a, 7, 1).toList())
+    }
+
+    @Test fun aStyleIsRememberedAndEveryStyleIsItsOwnSetOfTiles() {
+        val l = ParcelStyle.Lines(0xFFFACC15L, 35, ParcelStyle.Weight.FINE)
+        assertEquals(l, ParcelStyle.decode(ParcelStyle.encode(l)))
+        assertEquals(ParcelStyle.Lines(), ParcelStyle.decode(null))
+        assertEquals(ParcelStyle.Lines(), ParcelStyle.decode(ParcelStyle.encode(ParcelStyle.Lines())))
+        val keys = listOf(
+            ParcelStyle.key(0xFF15171AL, ParcelStyle.Lines()),
+            ParcelStyle.key(0xFF15171AL, ParcelStyle.Lines(opacity = 35)),
+            ParcelStyle.key(0xFF15171AL, ParcelStyle.Lines(weight = ParcelStyle.Weight.BOLD)),
+            ParcelStyle.key(0xFFF2DDB4L, ParcelStyle.Lines()),
+        )
+        assertEquals(keys.size, keys.toSet().size)
+    }
+
+    private val square = listOf(44.0 to 15.0, 44.0 to 15.001, 44.001 to 15.001, 44.001 to 15.0)
+
+    private fun cacheOf(vararg items: ParcelCache.Item) = ParcelCache.Cache(
+        ParcelCache.Info("c1", "Kukljica 30.9.2026", 1L, ParcelCache.Box(43.99, 14.99, 44.01, 15.01), 16),
+        items.toList(),
+    )
+
+    private val baka = ParcelCache.Item(
+        id = 11L, number = "2450", reference = "334723-2450", areaM2 = 501, rings = listOf(square),
+        label = 44.0005 to 15.0005, municipalityName = "KUKLJICA", address = "DRAGE", uses = listOf("maslinik"),
+        holders = listOf(
+            ParcelCache.Holder("JAŠA ANICA POK. JOSE", OwnerBook.Role.POSJEDNIK, "p.l. 657"),
+            ParcelCache.Holder("JAŠA ANICA", OwnerBook.Role.VLASNIK, "z.k.ul. 182 · 1/2"),
+        ),
+        read = true,
+    )
+
+    @Test fun aCacheFindsHisGrandmotherByNameWithoutDiacritics() {
+        val c = cacheOf(baka, baka.copy(id = 12L, number = "2451", reference = "334723-2451", holders = emptyList()))
+        val hits = ParcelCache.search(listOf(c), "anica jasa")
+        assertEquals(listOf("JAŠA ANICA", "JAŠA ANICA POK. JOSE"), hits.map { it.title })
+        assertTrue(hits.all { it.ref == "334723-2450" && it.lat != null })
+        assertTrue(hits.first().under.contains("k.o. KUKLJICA"))
+        assertTrue(hits.first().under.endsWith("Kukljica 30.9.2026"))
+        assertTrue(ParcelCache.search(listOf(c), "marko").isEmpty())
+    }
+
+    @Test fun aCacheFindsByNumberSheetAddressAndUse() {
+        val c = cacheOf(baka, baka.copy(id = 12L, number = "2451", reference = "334723-2451", holders = emptyList(), address = "", uses = emptyList()))
+        assertEquals(listOf("2450", "2451"), ParcelCache.search(listOf(c), "245").map { it.title })
+        assertEquals(listOf("2450"), ParcelCache.search(listOf(c), "pl 657").map { it.title })
+        assertEquals(listOf("2450"), ParcelCache.search(listOf(c), "maslinik").map { it.title })
+        assertEquals(listOf("2450"), ParcelCache.search(listOf(c), "drage").map { it.title })
+    }
+
+    @Test fun aTapInsideACachedParcelFindsItAndAHiddenCacheIsNotTapped() {
+        val c = cacheOf(baka)
+        assertEquals("2450", ParcelCache.at(listOf(c), 44.0005, 15.0005)?.number)
+        assertNull(ParcelCache.at(listOf(c), 44.002, 15.0005))
+        assertNull(ParcelCache.at(listOf(c.copy(info = c.info.copy(visible = false))), 44.0005, 15.0005))
+        assertEquals("2450", ParcelCache.byReference(listOf(c), "334723-2450")?.number)
+    }
+
+    @Test fun aCacheSurvivesThePhone() {
+        val c = cacheOf(baka)
+        val info = c.info.copy(colour = 0xFF34D399L, style = Parcels.LineStyle.DOTTED, weight = ParcelStyle.Weight.BOLD, visible = false, count = 1, read = 1, places = "KUKLJICA")
+        assertEquals(info, ParcelCache.decodeInfo(ParcelCache.encodeInfo(info)))
+        val back = ParcelCache.decodeItems(ParcelCache.encodeItems(c.items)).single()
+        assertEquals(baka.copy(), back.copy())
+        assertNull(ParcelCache.decodeInfo("not json"))
+        assertTrue(ParcelCache.decodeItems("not json").isEmpty())
+    }
+
+    @Test fun theWfsAnswerGivesParcelsWithTheirNumberPoints() {
+        val json = """{"numberMatched":2224,"features":[{"id":"x","geometry":{"type":"Polygon","coordinates":[[[15.0,44.0],[15.001,44.0],[15.001,44.001],[15.0,44.0]]]},
+            "properties":{"inspireId":{"localId":"CP.10480898"},"label":"154/1","nationalCadastralReference":"334723-154/1","areaValue":{"value":501},
+            "referencePoint":{"type":"Point","coordinates":[15.24486571,44.03344363]}}}]}"""
+        val f = ParcelCache.parseFeatures(json).single()
+        assertEquals(10480898L, f.first.id)
+        assertEquals("154/1", f.first.number)
+        assertEquals(44.03344363 to 15.24486571, f.second)
+        assertEquals(2224, ParcelCache.matched(json))
+    }
+
+    @Test fun aTileIsWhereTheMapPutsItAndItsPixelsAgree() {
+        val z = 18
+        val x = Geo.tileX(15.253, z)
+        val y = Geo.tileY(44.036, z)
+        val box = ParcelCache.tileBox(z, x, y)
+        assertTrue(box.contains(44.036, 15.253))
+        val (px, py) = ParcelCache.pixel(box.north, box.west, z, x, y, 512)
+        assertEquals(0f, px, 0.01f)
+        assertEquals(0f, py, 0.01f)
+        val (qx, qy) = ParcelCache.pixel(box.south, box.east, z, x, y, 512)
+        assertEquals(512f, qx, 0.01f)
+        assertEquals(512f, qy, 0.01f)
+    }
+
+    @Test fun aCacheIsNamedAfterItsPlaceAndDay() {
+        assertEquals("Kukljica 30.9.2026", ParcelCache.defaultName("KUKLJICA", "30.9.2026"))
+        assertEquals("30.9.2026", ParcelCache.defaultName("", "30.9.2026"))
+        assertEquals("KUKLJICA, PREKO", ParcelCache.places(listOf(baka, baka, baka.copy(municipalityName = "PREKO"))))
+    }
 }

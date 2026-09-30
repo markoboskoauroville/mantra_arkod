@@ -245,7 +245,7 @@ class MainActivity : ComponentActivity() {
 
     private fun testTiles() {
         val layer = Layers.byId(store.layerId)
-        Trail.say("Tražim jednu pločicu od ${layer.name}…")
+        Trail.say("Asking ${layer.name} for one map tile…")
         lifecycleScope.launch {
             val googleKey = store.key(Keys.Provider.GOOGLE)
             val session = if (layer.kind == LayerKind.GOOGLE_TILES && googleKey != null) {
@@ -268,6 +268,7 @@ class MainActivity : ComponentActivity() {
         GoogleTiles.context = applicationContext
         // THE CADASTRE KEPT ON THE PHONE (29.9.2026), held under its limit from the first moment.
         ArkodCache.init(applicationContext)
+        ParcelCaches.init(applicationContext)
         lifecycleScope.launch(Dispatchers.IO) { ArkodCache.prune() }
         // From targetSdk 35 Android draws every app edge to edge and insets nothing for us, so
         // the window is the whole glass and the bars are painted over whatever is under them.

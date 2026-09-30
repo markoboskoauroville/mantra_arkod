@@ -98,6 +98,15 @@ object Geo {
         return y.coerceIn(0, n - 1)
     }
 
+    /** The west edge of tile column [x] at [zoom], in degrees. */
+    fun tileLon(x: Int, zoom: Int): Double = x.toDouble() / (1 shl zoom) * 360.0 - 180.0
+
+    /** The north edge of tile row [y] at [zoom], in degrees. */
+    fun tileLat(y: Int, zoom: Int): Double {
+        val n = Math.PI - 2.0 * Math.PI * y / (1 shl zoom)
+        return Math.toDegrees(Math.atan(Math.sinh(n)))
+    }
+
     // --- How things are written on the screen ---------------------------------------------------
 
     /**

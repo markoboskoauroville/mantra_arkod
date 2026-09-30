@@ -36,7 +36,7 @@ object TileTest {
                     code == 200 && type.startsWith("image") && bytes > 500 ->
                         "${layer.name}: poslužitelj je poslao sliku od $bytes bajtova. Karta je u redu."
                     code == 200 ->
-                        "${layer.name}: odgovor 200, ali poslano $type, $bytes bajtova — nije pločica."
+                        "${layer.name}: answered 200 but sent $type, $bytes bytes, not a map image."
                     code == 401 || code == 403 -> {
                         // Google's own sentence when there is one: it names the project and the
                         // API to switch on, which is what he actually needs (17.9.2026).
@@ -52,7 +52,7 @@ object TileTest {
                     code == 429 ->
                         "${layer.name}: previše zahtjeva (429). Kvota ključa je potrošena."
                     code == 404 ->
-                        "${layer.name}: nema pločice (404). Adresa ne odgovara usluzi."
+                        "${layer.name}: nothing there (404). The address does not fit the service."
                     else -> "${layer.name}: poslužitelj je odgovorio $code."
                 }
             } catch (e: Exception) {

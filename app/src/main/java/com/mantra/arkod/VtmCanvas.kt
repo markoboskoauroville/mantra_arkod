@@ -61,7 +61,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
     private var headingDeg: Double = Double.NaN
     private var lastFix: Fix? = null
     private var cadastreLayer: BitmapTileLayer? = null
-    private var cadastreInk: Long = 0L
+    private var cadastreLook: String = ""
     private val markPaths = ArrayList<PathLayer>()
     private var pinLayer: ItemizedLayer? = null
 
@@ -284,7 +284,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
             if (under >= 0 && under + 1 <= map.layers().size) map.layers().add(under + 1, layer)
             else map.layers().add(layer)
             cadastreLayer = layer
-            cadastreInk = ParcelsShown.ink
+            cadastreLook = ParcelsShown.look()
         }
         drawMarks(ParcelsShown.drawn())
         drawPin(ParcelsShown.pin)
@@ -292,7 +292,7 @@ class VtmCanvas(private val context: Context, private val store: Store) {
 
     /** The switch in the parcels panel, and a change of ink: the layer is made again or taken off. */
     fun refreshCadastre() {
-        if (ParcelsShown.on == (cadastreLayer != null) && cadastreInk == ParcelsShown.ink) return
+        if (ParcelsShown.on == (cadastreLayer != null) && cadastreLook == ParcelsShown.look()) return
         placeCadastre()
         map.clearMap()
         map.updateMap(true)
@@ -521,6 +521,16 @@ class VtmCanvas(private val context: Context, private val store: Store) {
 
     fun centre(): Pair<Double, Double> =
         map.mapPosition.let { it.getLatitude() to it.getLongitude() }
+
+    /** What is on the screen, as a box in degrees: the area a parcel cache takes (v5). */
+    fun viewBox(): ParcelCache.Box? = runCatching {
+        // The four corners of the view, so a turned map still gives the whole of what is seen.
+        val w = map.width.toFloat()
+        val h = map.height.toFloat()
+        if (w <= 0f || h <= 0f) return@runCatching null
+        val corners = listOf(0f to 0f, w to 0f, 0f to h, w to h).map { (x, y) -> map.viewport().fromScreenPoint(x, y) }
+        ParcelCache.Box(corners.minOf { it.latitude }, corners.minOf { it.longitude }, corners.maxOf { it.latitude }, corners.maxOf { it.longitude })
+    }.getOrNull()
 
     fun centreOn(fix: Fix) {
         // Where-am-I from far out (TEST_RESULTS A, v1): close enough to see the parcels.

@@ -33,7 +33,7 @@ class TileHttp(private val source: UrlTileSource) : HttpEngine {
         // THE CADASTRE (27.9.2026): the state's WMS, asked by box, recoloured into our ink on the
         // way in; and since 29.9.2026 kept on the phone, so a place seen once draws at once.
         if (Parcels.isCadastre(url)) {
-            stream = java.io.ByteArrayInputStream(ParcelNet.tile(tile.zoomLevel.toInt(), tile.tileX, tile.tileY, ParcelsShown.ink))
+            stream = java.io.ByteArrayInputStream(ParcelNet.tile(tile.zoomLevel.toInt(), tile.tileX, tile.tileY))
             return
         }
         val open = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -77,7 +77,7 @@ class TileHttp(private val source: UrlTileSource) : HttpEngine {
     }
 
     override fun requestCompleted(success: Boolean): Boolean {
-        if (success) Report.tiles("pločice stižu")
+        if (success) Report.tiles("the map is arriving")
         close()
         return success
     }
@@ -96,5 +96,5 @@ object Report {
         lastTiles = line
     }
 
-    fun tileReport(): String = lastTiles ?: "još nije tražena nijedna pločica"
+    fun tileReport(): String = lastTiles ?: "nothing asked yet"
 }

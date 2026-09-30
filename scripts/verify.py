@@ -17,11 +17,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # segments, OpenAndroMaps, kept imagery, Google's polyline), 11 came with my parcels and the
 # cadastre kept ahead. The floor is what is here, and it ratchets from here.
 # v3, 29.9.2026: six cases came with the parcels key, the parcel field's suggestions and Imenik.
-TEST_FLOOR = 200
+# v5, 30.9.2026: ten cases came with the restyled lines and the parcel caches.
+TEST_FLOOR = 210
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt"]
 
 failures, checks = [], []
 
@@ -533,7 +534,7 @@ check("a row that opens a list shows whether it is open",
       "open = keysOpen" in settings_src and "ic_chevron_down" in (MAIN / "Look.kt").read_text(),
       "the chevron points right when closed and down when open")
 check("a setting is one word and its control shows the state",
-      'Toggle("Fetch ahead"' in settings_src and 'Toggle("Parcels on the map"' in settings_src
+      'Toggle("Fetch ahead"' in settings_src and 'Toggle("ARKOD layer"' in settings_src
       and 'Toggle("Only Moje čestice"' in settings_src and 'Toggle("Parcel search"' in settings_src,
       "the switch is the state; no sentence")
 check("the version opens the latest build",
@@ -761,7 +762,7 @@ check("a dropdown he opened stays open",
       "store.opened(" in settings_src and "fun setOpened(" in (MAIN / "Store.kt").read_text(),
       "between sessions, as he asked")
 check("the version rides on the credits and the app's name is not a row",
-      '"Mantra ARKOD · version $version"' in settings_src,
+      '"ARKOD Layer · version $version"' in settings_src,
       "the launcher already says what the app is called")
 check("each key can be tested from its own row",
       'IconAction(R.drawable.ic_play, "test"' in settings_src and "onTestKey" in settings_src,
@@ -803,8 +804,9 @@ check("the engine is built once, where the view is",
 parcels_src = (MAIN / "Parcels.kt").read_text()
 check("the cadastre's tiles are resolved and recoloured in the tile fetcher",
       "Parcels.resolve(source.getTileUrl(tile))" in (MAIN / "TileHttp.kt").read_text()
-      and "ParcelNet.tile(tile.zoomLevel.toInt(), tile.tileX, tile.tileY, ParcelsShown.ink)" in (MAIN / "TileHttp.kt").read_text(),
-      "TileHttp.kt examined")
+      and "ParcelNet.tile(tile.zoomLevel.toInt(), tile.tileX, tile.tileY)" in (MAIN / "TileHttp.kt").read_text()
+      and "ParcelStyle.restyle(" in (MAIN / "ParcelNet.kt").read_text(),
+      "TileHttp.kt and ParcelNet.kt examined: restyled as Parcel view says (v5)")
 check("a tap anywhere reaches the cadastre, the middle included",
       "ParcelsShown.tap(at.latitude, at.longitude)" in canvas_src and "onSingleTapConfirmed" in canvas_src
       and ".size(72.dp)\n                .clickable" not in screens_src,
@@ -926,10 +928,6 @@ check("the sheet says what TXT and CPY did",
       "Trail.note.collectAsState()" in screens_src.split("private fun ParcelCardView")[1][:4000],
       "the note line is under the sheet (E3)")
 
-print(f"\n{len(checks)} checks, {len(failures)} failed")
-if failures:
-    print("failed: " + ", ".join(failures))
-    sys.exit(1)
 
 
 # V3, HIS EVENING REQUEST OF 29.9.2026 (momentaryupdates.md).
@@ -939,11 +937,11 @@ check("the parcels key hides the cadastre and a long press opens Parcel view",
       "a tap is the overlay, a hold is its view settings")
 check("only my parcels wins over the key, in one rule both engines read",
       "fun visibility(cadastreOn: Boolean, onlyMine: Boolean)" in (MAIN / "Parcels.kt").read_text()
-      and "if (mineOn) marks + listOfNotNull(selection) else emptyList()" in (MAIN / "ParcelNet.kt").read_text(),
+      and "(if (mineOn) marks else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
       "Parcels.visibility decides; ParcelsShown draws it")
 check("Google's field is on all three maps when there is a key, the parcel field under it",
-      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(book)" in screens
-      and screens.index("PlaceField(store)") < screens.index("ParcelField(book)"),
+      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(book, caches)" in screens
+      and screens.index("PlaceField(store)") < screens.index("ParcelField(book, caches)"),
       "not tied to the Google map; the parcel field shown or hidden in Parcel view")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
@@ -951,3 +949,35 @@ check("both fields answer as he types",
 check("the top line shows the middle of the map, not the fix",
       "FixLine(centre, fix, zoom, layer)" in screens and "Geo.formatLat(it.first)" in screens,
       "it updates while he pans; where-am-I puts the middle on him")
+
+
+# V5, 30.9.2026 (momentaryupdates.md): lines, caches, the key that always brings them back.
+check("the Show/hide ARKOD layer key brings every parcel back, even from Only Moje čestice",
+      "if (onlyMine) {\n                            onlyMine = false" in screens and '"ARKOD layer shown"' in screens,
+      "he could not get them back from the key (30.9.2026)")
+check("a tap outlines the parcel under it even with the layer hidden",
+      "(if (mineOn) marks else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text()
+      and "select(null)\n            return\n        }\n        if (Canvases.currentZoom()" not in screens,
+      "the selection is drawn whatever the layer shows")
+check("no pločice anywhere the user reads",
+      not any(re.search(r'"[^"\n]*ploči[^"\n]*"', code_only(f.read_text())) for f in MAIN.glob("*.kt")),
+      "ARKOD's things are čestice (30.9.2026)")
+check("the state's lines have a colour, a transparency and a weight",
+      "LinesControls(lines, onLines)" in (MAIN / "Settings.kt").read_text() and "ParcelStyle.OPACITIES" in (MAIN / "Settings.kt").read_text(),
+      "Parcel view, Lines")
+check("a cache is filled with a verbose status and kept under a name",
+      "fun start(name: String" in (MAIN / "ParcelCaches.kt").read_text() and "HarvestLine(" in screens
+      and "ParcelCachesFace(" in screens and 'title = "name of the cache"' in screens,
+      "stage, done/total, rate, time left, failures")
+check("inside a cache its own lines replace the state's",
+      "PorterDuff.Mode.CLEAR" in (MAIN / "CacheTiles.kt").read_text() and "CacheTiles.draw(" in (MAIN / "ParcelNet.kt").read_text(),
+      "the box cleared, the cache drawn in its colour, dashes and weight")
+check("the app is called ARKOD Layer",
+      "<string name=\"app_name\">ARKOD Layer</string>" in (ROOT / "app/src/main/res/values/strings.xml").read_text(),
+      "his choice, 30.9.2026")
+
+
+print(f"\n{len(checks)} checks, {len(failures)} failed")
+if failures:
+    print("failed: " + ", ".join(failures))
+    sys.exit(1)

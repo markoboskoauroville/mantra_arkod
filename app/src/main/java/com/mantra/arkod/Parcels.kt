@@ -574,7 +574,7 @@ object Parcels {
             ring.forEach { appendLine("  %.6f, %.6f".format(java.util.Locale.ROOT, it.first, it.second)) }
         }
         appendLine()
-        appendLine("izvor: Državna geodetska uprava, oss.uredjenazemlja.hr; spremljeno $madeAt, Mantra ARKOD")
+        appendLine("izvor: Državna geodetska uprava, oss.uredjenazemlja.hr; spremljeno $madeAt, ARKOD Layer")
     }
 
     /**

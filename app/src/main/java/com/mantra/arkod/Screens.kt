@@ -146,6 +146,13 @@ fun ArkodApp(
     var centre by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     // IMENIK (v3): the holders and owners of every sheet opened on this phone.
     var book by remember { mutableStateOf(store.ownerBook) }
+    // v5 (30.9.2026): the state's lines as he styled them, and the parcel caches with their own.
+    var lines by remember { mutableStateOf(store.lines) }
+    var ownLines by remember { mutableStateOf(store.ownLines) }
+    val caches by ParcelCaches.all.collectAsState()
+    val harvest by ParcelCaches.progress.collectAsState()
+    var showCaches by remember { mutableStateOf(false) }
+    var namingCache by remember { mutableStateOf<ParcelCache.Box?>(null) }
 
     val fix by Trail.fix.collectAsState()
     val stats by Trail.stats.collectAsState()
@@ -286,6 +293,17 @@ fun ArkodApp(
      */
     suspend fun showFoundParcel(hit: Finding.Hit) {
         val ref = hit.ref ?: return
+        // FROM A CACHE (v5): the outline is on the phone, so the map goes there at once.
+        ParcelCache.byReference(caches, ref)?.let { item ->
+            val p = item.parcel()
+            select(p)
+            val (lat, lon) = item.middle
+            ParcelsShown.pin = lat to lon
+            Canvases.refreshParcels()
+            Canvases.goTo(lat, lon, 18)
+            openCard(p)
+            return
+        }
         val parcel = Parcels.Parcel(hit.id.toLongOrNull() ?: 0L, ref.substringAfter('-'), ref, null, emptyList())
         scope.launch { openCard(parcel) }
         Trail.say("tražim ${parcel.number} na karti (državna usluga treba oko pola minute)…")
@@ -314,25 +332,26 @@ fun ArkodApp(
 
     suspend fun tapped(lat: Double, lon: Double) {
         val (stateShown, mineShown) = Parcels.visibility(cadastreOn, onlyMine)
-        if (!mineShown) {
-            Trail.say("Čestice su skrivene · tipka čestica ih vraća")
-            return
-        }
+        // EVEN WITH THE LAYER HIDDEN A TAP OUTLINES THE PARCEL UNDER IT (v5): only the outline is
+        // drawn, and the line says the layer is hidden.
+        val hidden = if (stateShown) "" else " · ARKOD layer hidden"
         val current = selected
         if (current != null && current.rings.any { Parcels.contains(it, lat, lon) }) {
             Trail.say(null)
             openCard(current)
             return
         }
-        marks.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }?.let { m ->
+        marks.takeIf { mineShown }?.firstOrNull { m -> m.rings.any { Parcels.contains(it, lat, lon) } }?.let { m ->
             card = null
             select(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
             Trail.say("${m.number}${if (m.name.isNotBlank()) " · ${m.name}" else ""} · dodirnite ponovno za list")
             return
         }
-        // ONLY MY PARCELS: a tap anywhere else picks nothing, because nothing else is drawn.
-        if (!stateShown) {
-            select(null)
+        // A CACHED PARCEL IS FOUND ON THE PHONE (v5): at once, and with no signal.
+        ParcelCache.at(caches, lat, lon)?.let { item ->
+            card = null
+            select(item.parcel())
+            Trail.say("${item.number}$hidden · dodirnite ponovno za list")
             return
         }
         if (Canvases.currentZoom() < Parcels.TAP_ZOOM) {
@@ -353,7 +372,7 @@ fun ArkodApp(
         card = null
         val rings = runCatching { ParcelNet.outline(lat, lon) }.getOrNull()
         select(parcel.copy(rings = rings.orEmpty()))
-        Trail.say("${parcel.number} · dodirnite ponovno za list")
+        Trail.say("${parcel.number}$hidden · dodirnite ponovno za list")
     }
 
     /** One of the three maps, chosen by its key. The choice is remembered for the next run. */
@@ -385,6 +404,14 @@ fun ArkodApp(
         val (state, mine) = Parcels.visibility(cadastreOn, onlyMine)
         ParcelsShown.on = state
         ParcelsShown.mineOn = mine
+        Canvases.refreshParcels()
+    }
+
+    // THE LOOK OF THE ARKOD LAYER (v5): his lines and the caches, told to the map when either changes.
+    LaunchedEffect(lines, ownLines, caches, ready) {
+        ParcelsShown.lines = lines
+        ParcelsShown.ownLines = ownLines
+        ParcelsShown.caches = caches
         Canvases.refreshParcels()
     }
 
@@ -479,7 +506,7 @@ fun ArkodApp(
             // TWO FIELDS ON THE MAP (29.9.2026, v3): Google's on all three maps when there is a
             // key, the answer pinned on whichever map is up; the parcel field under it.
             if (googleUsable) PlaceField(store) { hit -> showPlace(hit) }
-            if (parcelSearchOn) ParcelField(book) { hit -> scope.launch { showFoundParcel(hit) } }
+            if (parcelSearchOn) ParcelField(book, caches) { hit -> scope.launch { showFoundParcel(hit) } }
         }
 
         Column(
@@ -492,6 +519,10 @@ fun ArkodApp(
             // The download goes on while he looks at another map; its line stays with him.
             if (download?.running == true && layer.kind != LayerKind.VECTOR_FILE) {
                 StatusLine("offline map: " + (download?.progress?.let { MapDownload.line(it) } ?: "starting…"))
+            }
+            // THE CACHE BEING FILLED, said as it goes (v5: "with verbose status showing what's going on").
+            harvest?.let { h ->
+                HarvestLine(h, onStop = { ParcelCaches.cancel() }, onClose = { ParcelCaches.dismiss() })
             }
             if (note != null) NoteLine(note)
             if (recording) TrackLine(stats, recording = !paused)
@@ -539,22 +570,24 @@ fun ArkodApp(
                     up = layer.family == MapLayer.Family.OSM,
                     onClick = { choose(Layers.OSM) },
                 )
-                // THE PARCELS KEY (29.9.2026, v3): *"It should hide parcels overlay completely from
-                // the map. And long press on it ... open the settings dialog."* Lit while anything of
-                // the cadastre is drawn; Moje čestice are reached from Parcel view and the settings.
+                // THE SHOW/HIDE ARKOD LAYER KEY (v3; named so at his word, 30.9.2026): *"It should
+                // hide parcels overlay completely from the map. And long press on it ... open the
+                // settings dialog."* Lit while the state's parcels are drawn. v5: with "Only Moje
+                // čestice" on, a tap brings every parcel back and turns that off: he could not get
+                // them back from the key (30.9.2026).
                 Key(
                     glyph = "▦",
-                    lit = Parcels.visibility(cadastreOn, onlyMine).second,
+                    lit = Parcels.visibility(cadastreOn, onlyMine).first,
                     onClick = {
-                        cadastreOn = !cadastreOn
+                        if (onlyMine) {
+                            onlyMine = false
+                            store.onlyMine = false
+                            cadastreOn = true
+                        } else {
+                            cadastreOn = !cadastreOn
+                        }
                         store.cadastreOn = cadastreOn
-                        Trail.say(
-                            when {
-                                onlyMine -> "Samo moje čestice · dugi pritisak: Parcel view"
-                                cadastreOn -> "Čestice na karti"
-                                else -> "Čestice skrivene · dugi pritisak: Parcel view"
-                            }
-                        )
+                        Trail.say(if (cadastreOn) "ARKOD layer shown" else "ARKOD layer hidden · long press: Parcel view")
                     },
                     onLongClick = { parcelView = true },
                     icon = R.drawable.ic_parcels,
@@ -696,8 +729,23 @@ fun ArkodApp(
         if (parcelView) {
             ParcelViewFace(
                 cadastreOn = cadastreOn,
-                // A switch here makes the key's last line stale ("Čestice skrivene"): it goes.
+                // A switch here makes the key's last line stale ("ARKOD layer hidden"): it goes.
                 onCadastre = { cadastreOn = it; store.cadastreOn = it; Trail.say(null) },
+                lines = lines,
+                onLines = { lines = it; store.lines = it },
+                ownLines = ownLines,
+                onOwnLines = { ownLines = it; store.ownLines = it },
+                cacheCount = caches.size,
+                caching = harvest?.finished == false,
+                onCacheView = {
+                    val box = CanvasHolder.canvas?.viewBox()
+                    when {
+                        box == null -> Trail.say("The map is not ready yet")
+                        Canvases.currentZoom() < 13 -> Trail.say("Zoom in: at this zoom the view is a county, not a place")
+                        else -> { parcelView = false; namingCache = box }
+                    }
+                },
+                onCaches = { parcelView = false; showCaches = true },
                 onlyMine = onlyMine,
                 onOnlyMine = { onlyMine = it; store.onlyMine = it; Trail.say(null) },
                 parcelSearchOn = parcelSearchOn,
@@ -707,6 +755,43 @@ fun ArkodApp(
                 bookSize = book.size,
                 onClearBook = { book = emptyList(); store.ownerBook = emptyList() },
                 onClose = { parcelView = false },
+            )
+        }
+
+        namingCache?.let { box ->
+            // The k.o. under the middle names the cache until he types his own.
+            var place by remember(box) { mutableStateOf("") }
+            LaunchedEffect(box) {
+                place = runCatching { ParcelNet.municipality(box.middle.first, box.middle.second)?.second }.getOrNull().orEmpty()
+            }
+            NameBox(
+                current = ParcelCache.defaultName(place, java.text.SimpleDateFormat("d.M.yyyy", java.util.Locale.ROOT).format(java.util.Date())),
+                title = "name of the cache",
+                fallbackToCurrent = true,
+                onCancel = { namingCache = null },
+                onOk = { name ->
+                    namingCache = null
+                    ParcelCaches.start(
+                        name = name,
+                        box = box,
+                        zoom = Canvases.currentZoom(),
+                        colour = ParcelCache.COLOURS[caches.size % ParcelCache.COLOURS.size],
+                        owners = store.cacheOwners,
+                    )
+                },
+            )
+        }
+
+        if (showCaches) {
+            ParcelCachesFace(
+                caches = caches,
+                store = store,
+                onGo = { c ->
+                    showCaches = false
+                    val (lat, lon) = c.info.box.middle
+                    Canvases.goTo(lat, lon, c.info.zoom.coerceIn(14, 18))
+                },
+                onClose = { showCaches = false },
             )
         }
 
@@ -723,6 +808,11 @@ fun ArkodApp(
                 onParcelView = {
                     settings = false
                     parcelView = true
+                },
+                cacheCount = caches.size,
+                onCaches = {
+                    settings = false
+                    showCaches = true
                 },
                 hasOffline = hasOffline,
                 download = download,
@@ -1319,7 +1409,14 @@ private fun RowScope.RecordKey(
  * grey text behind, so cancel is never a guess about what it will be left as.
  */
 @Composable
-private fun NameBox(current: String, onCancel: () -> Unit, onOk: (String) -> Unit) {
+private fun NameBox(
+    current: String,
+    onCancel: () -> Unit,
+    onOk: (String) -> Unit,
+    title: String = "novo ime",
+    // v5, a cache's name: OK with the box empty takes the name offered.
+    fallbackToCurrent: Boolean = false,
+) {
     var text by remember(current) { mutableStateOf("") }
     val focus = remember { FocusRequester() }
 
@@ -1341,7 +1438,7 @@ private fun NameBox(current: String, onCancel: () -> Unit, onOk: (String) -> Uni
             verticalArrangement = Arrangement.spacedBy(GAP),
         ) {
             Label("sada: $current", Paint.Dim, size = 11, align = TextAlign.Start)
-            Label("novo ime", Paint.Amber, size = 11, align = TextAlign.Start)
+            Label(title, Paint.Amber, size = 11, align = TextAlign.Start)
             BasicTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -1366,7 +1463,8 @@ private fun NameBox(current: String, onCancel: () -> Unit, onOk: (String) -> Uni
             // discard in red and quiet, OK the one solid button; his two words kept (27.9.2026, the visual language).
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(GAP), verticalAlignment = Alignment.CenterVertically) {
                 Action("Odbaci", R.drawable.ic_trash, onClick = onCancel, quiet = true, danger = true, modifier = Modifier.weight(1f))
-                Action("OK", R.drawable.ic_check, onClick = { if (text.isNotBlank()) onOk(text.trim()) }, enabled = text.isNotBlank(), modifier = Modifier.weight(1f))
+                val usable = text.isNotBlank() || (fallbackToCurrent && current.isNotBlank())
+                Action("OK", R.drawable.ic_check, onClick = { if (usable) onOk(text.trim().ifBlank { current }) }, enabled = usable, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1485,6 +1583,152 @@ private fun TracksFace(
                 onOk = { name ->
                     renaming = null
                     onRename(track, name)
+                },
+            )
+        }
+    }
+}
+
+/**
+ * THE CACHE BEING FILLED, ON THE MAP (30.9.2026, v5): *"with verbose status showing what's going
+ * on"*. What stage, how many of how many, how fast, how long is left, what failed; the cross
+ * stops it (what was read is kept) and, once it is finished, puts the line away.
+ */
+@Composable
+private fun HarvestLine(h: ParcelCaches.Progress, onStop: () -> Unit, onClose: () -> Unit) {
+    Panel {
+        Row(
+            Modifier.fillMaxWidth().background(Paint.Bar).padding(start = GAP, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                Label(h.line, if (h.problem != null) Paint.Red else Paint.Sand, size = 11, align = TextAlign.Start, lines = 3)
+            }
+            IconAction(R.drawable.ic_close, if (h.finished) null else "stop", onClick = if (h.finished) onClose else onStop, tint = Paint.Sand)
+        }
+    }
+}
+
+/**
+ * THE PARCEL CACHES (30.9.2026, v5), kept like the tracks: *"we have tracks to store where we were
+ * walking and we have parcel cache to store under different name what we have cached."* Each one
+ * with its name, what it holds, whether it is drawn, its colour, line and weight, and a way to go
+ * there, rename it or delete it (asking once).
+ */
+@Composable
+private fun ParcelCachesFace(
+    caches: List<ParcelCache.Cache>,
+    store: Store,
+    onGo: (ParcelCache.Cache) -> Unit,
+    onClose: () -> Unit,
+) {
+    var owners by remember { mutableStateOf(store.cacheOwners) }
+    var open by remember { mutableStateOf<String?>(null) }
+    var renaming by remember { mutableStateOf<ParcelCache.Info?>(null) }
+    var confirming by remember { mutableStateOf<String?>(null) }
+    val day = remember { java.text.SimpleDateFormat("d.M.yyyy", java.util.Locale.ROOT) }
+
+    Box(Modifier.fillMaxSize().background(Paint.Ground)) {
+        Column(
+            Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(GAP),
+            verticalArrangement = Arrangement.spacedBy(GAP),
+        ) {
+            Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(R.drawable.ic_save, Paint.Sand)
+                Spacer(Modifier.width(12.dp))
+                Label("Parcel caches", Paint.Sand, size = 17, align = TextAlign.Start)
+                Spacer(Modifier.width(10.dp))
+                Label("${caches.size}", Paint.Dim, size = 13, align = TextAlign.Start, modifier = Modifier.weight(1f))
+                IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
+            }
+            Label(
+                "A new cache takes everything on the screen: long press the Show/hide ARKOD layer key, then " +
+                    "Cache this view. Search the caches by name, number, \"pl 1984\" or address in the čestica field.",
+                Paint.Dim, size = 12, align = TextAlign.Start, lines = 4,
+            )
+            Box(Modifier.clip(RoundedCornerShape(16.dp)).background(Paint.Card)) {
+                Toggle("Also vlasnički listovi", R.drawable.ic_text, on = owners, onChange = { owners = it; store.cacheOwners = it })
+            }
+
+            caches.forEach { cache ->
+                val info = cache.info
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Paint.Card)
+                        .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(18.dp).clip(RoundedCornerShape(4.dp)).background(Color(info.colour)))
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f).clickable { open = if (open == info.id) null else info.id }) {
+                            Label(info.name, Paint.Sand, size = 15, align = TextAlign.Start)
+                            Label(
+                                "${info.count} čestica · ${cache.items.count { it.read }} listova · " +
+                                    "${cache.items.sumOf { it.holders.size }} imena · ${day.format(java.util.Date(info.createdMs))}",
+                                Paint.Dim, size = 11, align = TextAlign.Start, lines = 2,
+                            )
+                            if (info.places.isNotBlank()) Label("k.o. ${info.places}", Paint.Dim, size = 11, align = TextAlign.Start, lines = 2)
+                        }
+                        IconAction(
+                            if (info.visible) R.drawable.ic_eye else R.drawable.ic_eye_off,
+                            if (info.visible) "shown" else "hidden",
+                            onClick = { ParcelCaches.update(info.copy(visible = !info.visible)) },
+                        )
+                        IconAction(R.drawable.ic_pin, "go", onClick = { onGo(cache) })
+                    }
+                    if (open == info.id) {
+                        Row(Modifier.fillMaxWidth().padding(end = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ParcelCache.COLOURS.forEach { option ->
+                                Box(
+                                    Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(8.dp)).background(Color(option))
+                                        .clickable { ParcelCaches.update(info.copy(colour = option)) },
+                                    contentAlignment = Alignment.Center,
+                                ) { if (option == info.colour) Glyph(R.drawable.ic_check, Paint.Ground, size = 18.dp) }
+                            }
+                        }
+                        Choice(
+                            parts = Parcels.LineStyle.entries.map { Part(it.word) },
+                            chosen = Parcels.LineStyle.entries.indexOf(info.style),
+                            onChoose = { ParcelCaches.update(info.copy(style = Parcels.LineStyle.entries[it])) },
+                            modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
+                        )
+                        Choice(
+                            parts = ParcelStyle.Weight.entries.map { Part(it.word) },
+                            chosen = ParcelStyle.Weight.entries.indexOf(info.weight),
+                            onChoose = { ParcelCaches.update(info.copy(weight = ParcelStyle.Weight.entries[it])) },
+                            modifier = Modifier.fillMaxWidth().padding(end = 10.dp),
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Spacer(Modifier.weight(1f))
+                            IconAction(R.drawable.ic_edit, "name", onClick = { renaming = info })
+                            IconAction(
+                                R.drawable.ic_trash,
+                                if (confirming == info.id) "sure?" else "delete",
+                                onClick = {
+                                    if (confirming == info.id) {
+                                        ParcelCaches.delete(info.id)
+                                        confirming = null
+                                    } else {
+                                        confirming = info.id
+                                    }
+                                },
+                                tint = Paint.Red,
+                            )
+                        }
+                    }
+                }
+            }
+            if (caches.isEmpty()) Label("No caches yet.", Paint.Dim, size = 13, align = TextAlign.Start)
+        }
+
+        renaming?.let { info ->
+            NameBox(
+                current = info.name,
+                title = "new name",
+                onCancel = { renaming = null },
+                onOk = { name ->
+                    renaming = null
+                    ParcelCaches.update(info.copy(name = name))
                 },
             )
         }
@@ -2244,7 +2488,7 @@ private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
  *  - a name, "jaša anica": Imenik, the holders and owners of every sheet opened on this phone.
  */
 @Composable
-private fun ParcelField(book: List<OwnerBook.Entry>, onParcel: (Finding.Hit) -> Unit) {
+private fun ParcelField(book: List<OwnerBook.Entry>, caches: List<ParcelCache.Cache>, onParcel: (Finding.Hit) -> Unit) {
     var text by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
     var line by remember { mutableStateOf<String?>(null) }
@@ -2261,32 +2505,38 @@ private fun ParcelField(book: List<OwnerBook.Entry>, onParcel: (Finding.Hit) -> 
         return found
     }
 
-    LaunchedEffect(text, book.size) {
+    LaunchedEffect(text, book.size, caches) {
         val words = text.trim()
         if (words.isEmpty()) { hits = emptyList(); line = null; return@LaunchedEffect }
         delay(250)
+        // THE CACHES FIRST (v5): on the phone, every name, number and sheet, with no signal.
+        val cached = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { ParcelCache.search(caches, words) }
+        val cachedLine = if (caches.isEmpty()) null else "caches: ${cached.size}"
         val sheet = Regex("""^p\.?\s*l\.?\s*(\d+)$""", RegexOption.IGNORE_CASE).find(words)?.groupValues?.get(1)
         val answer = runCatching {
             when {
                 sheet != null -> {
                     val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
-                    ParcelNet.ossSearch(k.third, sheet = sheet).also { line = "k.o. ${k.second} · posjedovni list $sheet: ${it.size}" }
+                    ParcelNet.ossSearch(k.third, sheet = sheet).also { line = listOfNotNull(cachedLine, "k.o. ${k.second} · posjedovni list $sheet: ${it.size}").joinToString(" · ") }
                 }
                 Regex("""^\*?\d+(/\d*)?$""").matches(words) -> {
                     val k = municipality() ?: error("pomaknite kartu iznad katastarske općine")
-                    ParcelNet.suggest(k.first, k.second, words).also { line = "k.o. ${k.second} · ${it.size}" }
+                    ParcelNet.suggest(k.first, k.second, words).also { line = listOfNotNull(cachedLine, "k.o. ${k.second} · ${it.size}").joinToString(" · ") }
                 }
                 words.any { it.isLetter() } -> {
                     OwnerBook.search(book, words).map { OwnerBook.hit(it) }.also {
-                        line = "Imenik: ${it.size} · iz ${book.size} imena s listova otvorenih na ovom telefonu"
+                        line = listOfNotNull(cachedLine, "Imenik: ${it.size} · iz ${book.size} imena s listova otvorenih na ovom telefonu").joinToString(" · ")
                     }
                 }
                 else -> emptyList()
             }
         }
         if (text.trim() != words) return@LaunchedEffect
-        hits = answer.getOrNull().orEmpty()
-        answer.exceptionOrNull()?.let { line = it.message ?: "katastar nije odgovorio" }
+        // Cached answers first; the state's after them, each parcel once.
+        hits = (cached + answer.getOrNull().orEmpty().filter { h -> cached.none { it.ref == h.ref && it.title == h.title } }).take(60)
+        answer.exceptionOrNull()?.let { e ->
+            line = listOfNotNull(cachedLine, e.message ?: "katastar nije odgovorio").joinToString(" · ")
+        }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

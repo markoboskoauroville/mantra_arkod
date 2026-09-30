@@ -56,6 +56,8 @@ fun SettingsFace(
     myParcelCount: Int,
     onMyParcels: () -> Unit,
     onParcelView: () -> Unit,
+    cacheCount: Int,
+    onCaches: () -> Unit,
     hasOffline: Boolean,
     download: MapDownload.Live?,
     onFetchOfflineMap: () -> Unit,
@@ -119,7 +121,9 @@ fun SettingsFace(
             Group("Moje čestice") {
                 Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
                 Hairline()
-                Opens("Parcel view", R.drawable.ic_layers, under = "what the parcels key shows", onClick = onParcelView)
+                Opens("Parcel view", R.drawable.ic_layers, under = "the Show/hide ARKOD layer key: lines, caches", onClick = onParcelView)
+                Hairline()
+                Opens("Parcel caches", R.drawable.ic_save, under = if (cacheCount == 0) "none yet" else "$cacheCount kept", onClick = onCaches)
             }
 
             Group("Offline map") {
@@ -298,7 +302,7 @@ fun SettingsFace(
                 ) {
                     Glyph(R.drawable.ic_info, Paint.Dim)
                     Column {
-                        Words("Mantra ARKOD · version $version", Paint.Sand, 15, TextAlign.Start)
+                        Words("ARKOD Layer · version $version", Paint.Sand, 15, TextAlign.Start)
                         Words(
                             "Cadastre: Državna geodetska uprava (uredjenazemlja.hr) · © OpenStreetMap contributors · mapsforge · Google",
                             Paint.Dim, 12, TextAlign.Start,
@@ -354,6 +358,14 @@ private fun Words(
 fun ParcelViewFace(
     cadastreOn: Boolean,
     onCadastre: (Boolean) -> Unit,
+    lines: ParcelStyle.Lines,
+    onLines: (ParcelStyle.Lines) -> Unit,
+    ownLines: Boolean,
+    onOwnLines: (Boolean) -> Unit,
+    cacheCount: Int,
+    caching: Boolean,
+    onCacheView: () -> Unit,
+    onCaches: () -> Unit,
     onlyMine: Boolean,
     onOnlyMine: (Boolean) -> Unit,
     parcelSearchOn: Boolean,
@@ -392,14 +404,34 @@ fun ParcelViewFace(
             }
             Column(Modifier.padding(horizontal = 12.dp)) {
                 Group("On the map") {
-                    Toggle("Parcels on the map", R.drawable.ic_parcels, on = cadastreOn, onChange = onCadastre)
-                    Hint("The same as a tap on the parcels key: off hides the cadastre completely.")
+                    Toggle("ARKOD layer", R.drawable.ic_parcels, on = cadastreOn, onChange = onCadastre)
+                    Hint("The same as a tap on the Show/hide ARKOD layer key: off hides the cadastre completely. A tap on the map still outlines the čestica under it.")
                     Hairline()
                     Toggle("Only Moje čestice", R.drawable.ic_pin, on = onlyMine, onChange = onOnlyMine)
-                    Hint("Always, whatever the parcels key says: your parcels are drawn and every other parcel is hidden.")
+                    Hint("Your parcels are drawn and every other parcel is hidden. A tap on the Show/hide ARKOD layer key brings them all back.")
                     Hairline()
                     Toggle("Parcel search", R.drawable.ic_search, on = parcelSearchOn, onChange = onParcelSearch)
                     Hint("The čestica field under Google's search: a number, \"pl 1984\" or a name.")
+                }
+                // THE LINES (v5): *"different styles of lines and transparency of lines ... and thickness
+                // of lines, because lines are covering the map too much."*
+                Group("Lines") {
+                    LinesControls(lines, onLines)
+                }
+                Group("Parcel caches") {
+                    Action(
+                        verb = if (caching) "Caching…" else "Cache this view",
+                        icon = R.drawable.ic_save,
+                        onClick = onCacheView,
+                        enabled = !caching,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Hint("Every čestica on the screen with its posjedovni and vlasnički list, kept under a name, searchable with no signal. Zoom decides the area.")
+                    Hairline()
+                    Toggle("Own lines in caches", R.drawable.ic_layers, on = ownLines, onChange = onOwnLines)
+                    Hint("Inside a cache the state's lines are taken away and the cache's own drawn: its colour, dashes and weight.")
+                    Hairline()
+                    Opens("Parcel caches", R.drawable.ic_save, under = if (cacheCount == 0) "none yet" else "$cacheCount kept", onClick = onCaches)
                 }
                 Group("Moje čestice") {
                     Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
@@ -426,6 +458,51 @@ fun ParcelViewFace(
         }
     }
 }
+
+/**
+ * THE STATE'S LINES, AS HE WANTS THEM (v5): a colour (auto follows the map), how much of the ink is
+ * kept, and the weight. Each choice redraws the ARKOD layer; the restyled tiles are kept per style.
+ */
+@Composable
+private fun LinesControls(lines: ParcelStyle.Lines, onLines: (ParcelStyle.Lines) -> Unit) {
+    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.weight(1.4f).height(32.dp).clip(RoundedCornerShape(8.dp))
+                    .background(if (lines.colour == null) Look.Raised else Color.Transparent)
+                    .border(1.dp, Look.Outline, RoundedCornerShape(8.dp))
+                    .clickable { onLines(lines.copy(colour = null)) },
+                contentAlignment = Alignment.Center,
+            ) { Words("auto", if (lines.colour == null) Paint.Sand else Paint.Dim, 13) }
+            LINE_COLOURS.forEach { option ->
+                Box(
+                    Modifier.weight(1f).height(32.dp).clip(RoundedCornerShape(8.dp)).background(Color(option))
+                        .border(1.dp, Look.Outline, RoundedCornerShape(8.dp))
+                        .clickable { onLines(lines.copy(colour = option)) },
+                    contentAlignment = Alignment.Center,
+                ) { if (lines.colour == option) Glyph(R.drawable.ic_check, if (option == 0xFF111111L) Paint.Sand else Paint.Ground, size = 18.dp) }
+            }
+        }
+        Words("transparency: how much of the line is kept", Paint.Dim, 12, TextAlign.Start)
+        Choice(
+            parts = ParcelStyle.OPACITIES.map { Part("$it") },
+            chosen = ParcelStyle.OPACITIES.indexOf(lines.opacity).coerceAtLeast(0),
+            onChoose = { onLines(lines.copy(opacity = ParcelStyle.OPACITIES[it])) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Words("thickness", Paint.Dim, 12, TextAlign.Start)
+        Choice(
+            parts = ParcelStyle.Weight.entries.map { Part(it.word) },
+            chosen = ParcelStyle.Weight.entries.indexOf(lines.weight),
+            onChoose = { onLines(lines.copy(weight = ParcelStyle.Weight.entries[it])) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Words("Dashed and dotted lines are drawn where a parcel cache is: the state sends its lines as pictures.", Paint.Dim, 12, TextAlign.Start)
+    }
+}
+
+/** The state's lines in any of these, or auto: dark ink, sand, white, and four that no map is. */
+private val LINE_COLOURS = listOf(0xFF111111L, 0xFFF2DDB4L, 0xFFFFFFFFL, 0xFFEF4444L, 0xFFFACC15L, 0xFF60A5FAL)
 
 @Composable
 private fun Hint(text: String) {

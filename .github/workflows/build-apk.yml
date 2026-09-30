@@ -8,7 +8,7 @@
 # secrets over the whole history, the structural checks, the loops counted, Test 1, the built APK
 # scanned, the three numbers compared, then publish and keep two.
 
-name: Build Mantra ARKOD
+name: Build ARKOD Layer
 
 on:
   workflow_dispatch:
@@ -131,7 +131,7 @@ jobs:
               total += int(r.get("tests", 0)); fails += int(r.get("failures", 0)); errors += int(r.get("errors", 0))
           print(f"result files: {len(files)}   tests run: {total}   failures: {fails}   errors: {errors}")
           if len(files) == 0: sys.exit("no test results at all: the suite did not run")
-          if total < 200: sys.exit(f"expected at least 200 cases, found {total}")
+          if total < 210: sys.exit(f"expected at least 210 cases, found {total}")
           sys.exit(1 if (fails or errors) else 0)
           EOF
 
@@ -204,7 +204,7 @@ jobs:
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
-          OUT="${V}-mantra-arkod-v${V}.apk"
+          OUT="${V}-arkod-layer-v${V}.apk"
           cp "$APK" "$OUT"
           if gh release view "v${V}" >/dev/null 2>&1; then
             echo "NOTHING WAS PUBLISHED: release v${V} already exists. Bump appVersion in gradle.properties if the app changed."
@@ -212,7 +212,7 @@ jobs:
           fi
           NOTE="Katastarske čestice Hrvatske (ARKOD) na tri karte, s posjedovnim i vlasničkim listom, i Moje čestice. Build ${GITHUB_RUN_NUMBER} from $(git rev-parse --short HEAD)."
           if [ "$KIND" = "throwaway" ]; then NOTE="TEST BUILD, signed with a throwaway key (ARKOD_KEYSTORE not set): uninstall before installing a later build. $NOTE"; fi
-          gh release create "v${V}" "$OUT" --title "Mantra ARKOD v${V}" --notes "$NOTE"
+          gh release create "v${V}" "$OUT" --title "ARKOD Layer v${V}" --notes "$NOTE"
           echo "published=true" >> "$GITHUB_OUTPUT"
           echo "download: https://github.com/${GITHUB_REPOSITORY}/releases/download/v${V}/${OUT}"
           echo "### Download: [${OUT}](https://github.com/${GITHUB_REPOSITORY}/releases/download/v${V}/${OUT})" >> "$GITHUB_STEP_SUMMARY"

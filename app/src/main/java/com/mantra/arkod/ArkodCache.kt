@@ -53,8 +53,9 @@ object ArkodCache {
     private fun tileFile(z: Int, x: Int, y: Int): File? =
         root?.let { File(it, "raw/$z/$x/$y.png") }
 
-    private fun inkedFile(z: Int, x: Int, y: Int, ink: Long): File? =
-        root?.let { File(it, "ink-${java.lang.Long.toHexString(ink)}/$z/$x/$y.png") }
+    /** A restyled tile, kept per style: [key] is ParcelStyle.key (ink, transparency, weight). */
+    private fun inkedFile(z: Int, x: Int, y: Int, key: String): File? =
+        root?.let { File(it, "ink-$key/$z/$x/$y.png") }
 
     private fun write(file: File, bytes: ByteArray) {
         file.parentFile?.mkdirs()
@@ -80,16 +81,16 @@ object ArkodCache {
         root?.listFiles()?.filter { it.name.startsWith("ink-") }?.forEach { File(it, "$z/$x/$y.png").delete() }
     }
 
-    fun inked(z: Int, x: Int, y: Int, ink: Long): ByteArray? {
-        val f = inkedFile(z, x, y, ink) ?: return null
+    fun inked(z: Int, x: Int, y: Int, key: String): ByteArray? {
+        val f = inkedFile(z, x, y, key) ?: return null
         if (!f.exists()) return null
         // Touched, so the pruning keeps what is looked at.
         f.setLastModified(System.currentTimeMillis())
         return runCatching { f.readBytes() }.getOrNull()
     }
 
-    fun keepInked(z: Int, x: Int, y: Int, ink: Long, bytes: ByteArray) {
-        val f = inkedFile(z, x, y, ink) ?: return
+    fun keepInked(z: Int, x: Int, y: Int, key: String, bytes: ByteArray) {
+        val f = inkedFile(z, x, y, key) ?: return
         runCatching { write(f, bytes) }
     }
 
@@ -145,7 +146,7 @@ object ArkodCache {
 
     fun label(): String {
         val mb = bytes() / 1_000_000
-        return "${tileCount()} pločica · $mb MB"
+        return "ARKOD čestice kept · $mb MB"
     }
 }
 
@@ -204,7 +205,7 @@ object ArkodPrefetch {
                     }
                 }.awaitAll()
                 done += batch.size
-                _state.value = "ARKOD: spremljeno $done od ${tiles.size} pločica"
+                _state.value = "ARKOD čestice oko vas: spremljeno ${done * 100 / tiles.size.coerceAtLeast(1)} %"
             }
             _state.value = null
             ArkodCache.prune()
