@@ -520,3 +520,15 @@ Read: "playground" is the app as a whole, the map and everything on it.
    fly-through, the services and their lights, the three maps and Google, what happens underneath,
    when something does not work). The text is written once, in arkod_web/public/help/; FEATURES.md says
    how it is copied here. Every new feature goes into both pages.
+
+## 30.9.2026, v19: "Check now" on every service that is down, and what waited is done when it is back
+
+> please, next to the offline services inside the settings, and you said it's offline, just add the button
+> check now so it can be checked now and maybe make online and make it work
+
+1. In Settings → Services, a "Check now" button on each red (or grey) service: it asks that service
+   again, up to three times (5 s, then 10 s apart), says each try on the row, and the light turns green
+   the moment it answers. **Status:** in progress.
+2. "Make it work": when a service comes back (from the button or by itself), what was waiting for it is
+   done at once: the ARKOD layer redrawn (WMS), outlines still missing fetched (WFS), an open sheet that
+   could not be read read again (KAT, ZK). **Status:** in progress.
