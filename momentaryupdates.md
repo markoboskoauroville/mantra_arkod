@@ -273,3 +273,10 @@ great-grandparents' name did not come through to the session (asked again).
 7. The actual file of his family's parcels, sent to him to open in the app. **Status:** the
    possession sheets of k.o. Kukljica are being read on the Mac (the state's WFS was failing with
    ORA-01000, so the sheets are read through OSS's search by sheet number instead).
+
+> Make sure that you save the settings of the styling together with this parcels file. So if user
+> export this file from the list in the settings, then the styling is also preserved.
+
+8. The styling travels in the file. **Status:** done in v8: the file carries the group's colour,
+   line and weight; sending a group writes its current look; Test 1 checks the round trip
+   (aGroupGoesOutAsAFileAndComesBackUnderTheFilesName).
