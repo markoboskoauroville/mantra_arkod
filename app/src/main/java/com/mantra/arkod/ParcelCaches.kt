@@ -176,14 +176,19 @@ object ParcelCaches {
                     say(Progress(name, if (page == 0) "asking the state for the parcels in the view (≈15 s)" else "outlines", found.size, total))
                     var text: String? = null
                     var lastProblem: Exception? = null
-                    for (attempt in 1..3) {
+                    // THE STATE'S WFS FAILS IN SPELLS (30.9.2026: every request refused for its
+                    // database's "maximum open cursors" an hour after it answered in fifteen
+                    // seconds), so the job waits it out, about five minutes, and says so.
+                    for (attempt in 1..TRIES) {
                         try {
                             text = ParcelNet.boxPage(box, found.size, PAGE)
                             break
                         } catch (e: Exception) {
                             lastProblem = e
-                            say(Progress(name, "outlines, try ${attempt + 1} of 3", found.size, total, problem = e.message))
-                            delay(3_000L * attempt)
+                            if (attempt == TRIES) break
+                            val wait = WAITS[(attempt - 1).coerceAtMost(WAITS.size - 1)]
+                            say(Progress(name, "the state's parcel service is failing; again in $wait s (try ${attempt + 1} of $TRIES)", found.size, total, problem = e.message))
+                            delay(wait * 1000L)
                         }
                     }
                     val answer = text ?: throw lastProblem ?: IllegalStateException("the state did not answer")
@@ -281,6 +286,8 @@ object ParcelCaches {
     }
 
     private const val PAGE = 500
+    private const val TRIES = 8
+    private val WAITS = listOf(5, 10, 20, 30, 60, 60, 90)
     private const val PARALLEL = 6
     private const val CHECKPOINT = 300
 

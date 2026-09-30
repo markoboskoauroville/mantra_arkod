@@ -25,7 +25,13 @@ object ParcelNet {
         }
         try {
             val code = open.responseCode
-            if (code != HttpURLConnection.HTTP_OK) throw Refused("katastar je odgovorio $code")
+            if (code != HttpURLConnection.HTTP_OK) {
+                // The state's own reason, when it gives one: "ORA-01000: maximum open cursors
+                // exceeded" was its database failing for every request (30.9.2026, 03:10).
+                val said = runCatching { open.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull().orEmpty()
+                val why = Parcels.stateReason(said)
+                throw Refused("katastar je odgovorio $code" + (why?.let { " ($it)" } ?: ""))
+            }
             return open.inputStream.bufferedReader().use { it.readText() }
         } finally {
             open.disconnect()

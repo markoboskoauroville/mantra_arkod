@@ -139,6 +139,17 @@ object Parcels {
         return (a shl 24) or (ink.toInt() and 0x00FFFFFF)
     }
 
+    /**
+     * WHY THE STATE REFUSED, in one short line, from the exception it sends back: its database's
+     * own error ("ORA-01000: maximum open cursors exceeded") or the first line of its exception.
+     */
+    fun stateReason(body: String): String? {
+        // Oracle names the cause last: "ORA-00604 ... ORA-01000: maximum open cursors exceeded".
+        Regex("""ORA-\d+: [^\n<]+""").findAll(body).lastOrNull()?.let { return it.value.trim() }
+        val text = Regex("""<(?:ows:ExceptionText|ServiceException)[^>]*>\s*([^<\n]+)""").find(body)?.groupValues?.get(1)?.trim()
+        return text?.take(120)?.takeIf { it.isNotBlank() }
+    }
+
     // --- the questions ----------------------------------------------------------------------------
 
     private fun wfs(typeName: String) =

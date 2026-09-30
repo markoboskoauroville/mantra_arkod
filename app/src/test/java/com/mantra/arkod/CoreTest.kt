@@ -1853,4 +1853,15 @@ class CoreTest {
         assertEquals("30.9.2026", ParcelCache.defaultName("", "30.9.2026"))
         assertEquals("KUKLJICA, PREKO", ParcelCache.places(listOf(baka, baka, baka.copy(municipalityName = "PREKO"))))
     }
+
+    @Test fun theStatesReasonIsReadFromItsRefusal() {
+        val oracle = """<ows:ExceptionReport><ows:Exception exceptionCode="NoApplicableCode"><ows:ExceptionText>java.lang.RuntimeException: java.io.IOException
+java.io.IOExceptionORA-00604: error occurred at recursive SQL level 1
+ORA-01000: maximum open cursors exceeded
+</ows:ExceptionText></ows:Exception></ows:ExceptionReport>"""
+        assertEquals("ORA-01000: maximum open cursors exceeded", Parcels.stateReason(oracle))
+        assertEquals("Creating maps using KML is not allowed",
+            Parcels.stateReason("<ServiceExceptionReport><ServiceException code=\"ForbiddenFormat\">\n      Creating maps using KML is not allowed\nDetails:</ServiceException>"))
+        assertNull(Parcels.stateReason(""))
+    }
 }
