@@ -47,6 +47,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 30 | Cache criteria: keywords (surnames, names, places, land uses); with them, a sheet read in the background is kept only when it fits one; what he opens is always kept | yes (v12) | no (opened 30.9.2026) |
 | 31 | The cache key on the map (round, over the key row; long press: settings), and the size of what is kept at the very top of the settings with the Cache switch and the keywords | yes (v12) | no (opened 30.9.2026) |
 | 32 | Every kept parcel listed in the settings: number, surname, place (rudina, k.o.), filtered; a tap opens it from the device | yes (v13) | no (opened 30.9.2026) |
+| 33 | A light for every service (ARKOD WMS, WFS, cadastre OSS, land registry, OSM, Google): green answering, red not, grey not asked; on the map under the coordinates, and in the settings with what each does, since when it is down and why, and what cannot be done meanwhile | yes (v14) | no (opened 30.9.2026) |
 
 ## The file format (.arkod.json), shared
 

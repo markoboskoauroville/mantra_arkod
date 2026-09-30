@@ -172,6 +172,7 @@ fun ArkodApp(
     // the sheets round the map. One switch, the same as "Cache in the background" in the settings.
     var cacheOn by remember { mutableStateOf(store.prefetch) }
     val sniffed by Sniffer.tally.collectAsState()
+    val services by Services.health.collectAsState()
     val download by MapDownload.live.collectAsState()
     val recording = recordingSince != null
     val justFinished by Trail.justFinished.collectAsState()
@@ -552,6 +553,17 @@ fun ArkodApp(
 
     // THE ZOOM, THE MIDDLE, AND WHERE THE MAP HAS SETTLED, four times a second. A place where the map rests is
     // where the cadastre is fetched ahead (29.9.2026). Bounded by the composition.
+    // THE LIGHT CHECK (v14): every minute, a service not heard from for three minutes is asked once.
+    LaunchedEffect(Unit) {
+        while (true) {
+            val now = System.currentTimeMillis()
+            Services.Service.values().filter { it != Services.Service.GOOGLE }
+                .filter { Services.due(Services.health.value[it], now, 180_000L) }
+                .forEach { s -> scope.launch { ParcelNet.check(s) } }
+            delay(60_000)
+        }
+    }
+
     LaunchedEffect(Unit) {
         var restingAt: Pair<Double, Double>? = null
         var restingFor = 0
@@ -611,6 +623,9 @@ fun ArkodApp(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             FixLine(centre, fix, zoom, layer)
+            // A LIGHT FOR EVERY SERVICE (v14), under the line that says where the map is; a tap
+            // opens the settings, where each is described.
+            ServiceLights(services, googleKey = keyring.isNotEmpty()) { settings = true }
             // TWO FIELDS ON THE MAP (29.9.2026, v3): Google's on all three maps when there is a
             // key, the answer pinned on whichever map is up; the parcel field under it.
             if (googleUsable) PlaceField(store) { hit -> showPlace(hit) }
@@ -991,6 +1006,7 @@ fun ArkodApp(
                 onChooseExportFolder = onChooseExportFolder,
                 folderName = store.exportFolderName ?: "not chosen yet",
                 onKeptParcel = { m, n -> settings = false; scope.launch { openKept(m, n) } },
+                onCheckServices = { Services.Service.values().filter { it != Services.Service.GOOGLE }.forEach { s -> scope.launch { ParcelNet.check(s) } } },
                 onClose = {
                     settings = false
                     // The switch and the keywords may have changed there.
@@ -1084,6 +1100,36 @@ private suspend fun attempt(canvas: VtmCanvas, store: Store, layer: MapLayer): S
         return result.token?.let { canvas.show(layer, session = it, key = used) } ?: result.problem
     }
     return canvas.show(layer)
+}
+
+/**
+ * THE SERVICE LIGHTS (v14): *"a short name of that service and a red ... LED if it's offline and green
+ * if it's online."* Grey until it has been asked. GOO only when there is a Google key.
+ */
+@Composable
+private fun ServiceLights(health: Map<Services.Service, Services.Health>, googleKey: Boolean, onClick: () -> Unit) {
+    Panel {
+        Row(
+            Modifier.fillMaxWidth().background(Paint.Bar).clickable(onClick = onClick).padding(horizontal = GAP, vertical = 3.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Services.Service.values().filter { it != Services.Service.GOOGLE || googleKey }.forEach { s ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(9.dp).clip(CircleShape).background(ledColour(Services.light(health[s]))))
+                    Box(Modifier.width(4.dp))
+                    Label(s.short, Paint.Sand, size = 11)
+                }
+            }
+        }
+    }
+}
+
+/** Green answers, red does not, grey not asked yet. */
+fun ledColour(light: Services.Light): Color = when (light) {
+    Services.Light.GREEN -> Color(0xFF34D399)
+    Services.Light.RED -> Color(0xFFEF4444)
+    Services.Light.GREY -> Color(0xFF6B7280)
 }
 
 /** THE CACHE KEY (v12): a round key over the map, lit amber while the app caches in the background. */

@@ -44,8 +44,10 @@ object PlaceSearch {
             val text = (if (code == 200) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
             if (code != 200) {
                 val said = runCatching { JSONObject(text).getJSONObject("error").optString("message") }.getOrNull()
+                Services.failed(url, said ?: "answered $code")
                 throw ParcelNet.Refused("Google: ${said ?: code}")
             }
+            Services.ok(url)
             return JSONObject(text)
         } finally {
             c.disconnect()

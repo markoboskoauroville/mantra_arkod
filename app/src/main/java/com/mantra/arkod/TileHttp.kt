@@ -49,14 +49,21 @@ class TileHttp(private val source: UrlTileSource) : HttpEngine {
             instanceFollowRedirects = true
         }
         connection = open
-        val code = open.responseCode
+        // A LIGHT FOR EVERY SERVICE (v14): OpenStreetMap's and Google's tiles report here.
+        val code = try { open.responseCode } catch (e: java.io.IOException) {
+            Services.failed(url, e.message ?: e.javaClass.simpleName)
+            throw e
+        }
         if (code != HttpURLConnection.HTTP_OK) {
             val said = runCatching {
                 open.errorStream?.bufferedReader()?.use { it.readText().take(200) }
             }.getOrNull().orEmpty()
             Report.tiles("tile ${tile.zoomLevel}/${tile.tileX}/${tile.tileY}: HTTP $code $said")
+            // A tile beyond the map's end (404) is an answer, not the service down.
+            if (code == HttpURLConnection.HTTP_NOT_FOUND) Services.ok(url) else Services.failed(url, "answered $code")
             throw java.io.IOException("tile answered $code")
         }
+        Services.ok(url)
         stream = open.inputStream
     }
 

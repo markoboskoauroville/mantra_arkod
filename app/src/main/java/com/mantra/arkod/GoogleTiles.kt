@@ -109,6 +109,8 @@ object GoogleTiles {
             identify(connection)
             connection.outputStream.use { it.write(body.toString().toByteArray()) }
             val code = connection.responseCode
+            // The GOO light (v14): the session is Google's first answer to the key.
+            if (code == HttpURLConnection.HTTP_OK) Services.ok(CREATE) else Services.failed(CREATE, "answered $code")
             if (code != HttpURLConnection.HTTP_OK) {
                 // GOOGLE'S OWN WORDS, NOT MINE (17.9.2026).
                 //

@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -80,7 +81,11 @@ fun SettingsFace(
     onClose: () -> Unit,
     // A kept parcel tapped in the list (v13): the map goes there and its sheet opens.
     onKeptParcel: (municipality: String, number: String) -> Unit = { _, _ -> },
+    // The Services group's "Check now" (v14): every service but Google asked once.
+    onCheckServices: () -> Unit = {},
 ) {
+    val services by Services.health.collectAsState()
+    val clock = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT) }
     var theme by remember { mutableStateOf(store.themeName) }
     var googleId by remember { mutableStateOf(store.googleViewId) }
     var keysOpen by remember { mutableStateOf(store.opened("keys") || keyring.isEmpty()) }
@@ -213,6 +218,32 @@ fun SettingsFace(
                         Paint.Dim, 12, TextAlign.Start,
                     )
                 }
+            }
+
+            // THE SERVICES (v14): *"in settings we can also describe that certain service what it does
+            // and it's offline and what cannot be done because of that."* The same lights as on the map.
+            Group("Services") {
+                val now = System.currentTimeMillis()
+                Services.Service.values().forEachIndexed { i, sv ->
+                    if (i > 0) Hairline()
+                    val h = services[sv]
+                    val light = Services.light(h)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                        Box(Modifier.padding(top = 5.dp).size(11.dp).clip(CircleShape).background(ledColour(light)))
+                        Column(Modifier.padding(start = 12.dp).weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Words("${sv.short} · ${sv.title}", Paint.Sand, 14, TextAlign.Start)
+                            Words(
+                                if (sv == Services.Service.GOOGLE && light == Services.Light.GREY) "not asked yet (never checked on its own: every request is on your key)"
+                                else Services.said(h, now) { clock.format(java.util.Date(it)) },
+                                if (light == Services.Light.RED) Color(0xFFEF4444) else Paint.Dim, 12, TextAlign.Start,
+                            )
+                            Words(sv.does, Paint.Dim, 12, TextAlign.Start)
+                            if (light == Services.Light.RED) Words("While it is down: ${sv.whenDown}", Paint.Sand, 12, TextAlign.Start)
+                        }
+                    }
+                }
+                Hairline()
+                Action("Check now", R.drawable.ic_play, onClick = onCheckServices, quiet = true, modifier = Modifier.fillMaxWidth())
             }
 
             // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings

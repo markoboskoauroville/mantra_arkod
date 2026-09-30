@@ -2074,4 +2074,31 @@ ORA-01000: maximum open cursors exceeded
         assertEquals(4, Sniff.filterKept(list, "bosko").size)
         assertEquals(4, Sniff.filterKept(list, "").size)
     }
+
+    // --- v14: a light for every service ------------------------------------------------------
+
+    @Test fun everyRequestIsTheRightServices() {
+        assertEquals(Services.Service.WMS, Services.of(Parcels.infoUrl(44.0, 15.0)))
+        assertEquals(Services.Service.WFS, Services.of(Parcels.byReferenceUrl(listOf("334723-1358/3"))))
+        assertEquals(Services.Service.OSS, Services.of(Parcels.recordUrl(6436001L)))
+        assertEquals(Services.Service.OSS, Services.of(Parcels.searchUrl("1358/3", "334723")))
+        assertEquals(Services.Service.ZK, Services.of(Parcels.folioUrl("21400", "250")))
+        assertEquals(Services.Service.ZK, Services.of(Parcels.booksUrl("KUKLJICA")))
+        assertEquals(Services.Service.OSM, Services.of("https://tile.openstreetmap.org/17/1/2.png"))
+        assertEquals(Services.Service.GOOGLE, Services.of("https://tile.googleapis.com/v1/2dtiles/1/2/3?session=x"))
+        assertNull(Services.of("https://example.com/"))
+    }
+
+    @Test fun theLightIsWhatTheServiceLastDid() {
+        assertEquals(Services.Light.GREY, Services.light(null))
+        assertEquals(Services.Light.GREEN, Services.light(Services.Health(okAt = 20, failAt = 10)))
+        assertEquals(Services.Light.RED, Services.light(Services.Health(okAt = 10, failAt = 20, reason = "ORA-01000")))
+        val clock = { _: Long -> "16:20" }
+        assertEquals("offline since 16:20 · ORA-01000", Services.said(Services.Health(10, 20, "ORA-01000"), 30, clock))
+        assertEquals("online · answered 12 s ago", Services.said(Services.Health(okAt = 1_000), 13_000, clock))
+        assertEquals("not asked yet", Services.said(null, 0, clock))
+        assertEquals("5 min ago", Services.ago(300_000))
+        assertTrue(Services.due(null, 0, 180_000))
+        assertFalse(Services.due(Services.Health(okAt = 100_000), 200_000, 180_000))
+    }
 }

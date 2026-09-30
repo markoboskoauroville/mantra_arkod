@@ -457,6 +457,11 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
 > and it's offline and what cannot be done because of that.
 
 1. On the map, one short line: every service by a short name with a light, green when it answers, red
-   when it does not (grey until it has been asked). **Status:** in progress.
+   when it does not (grey until it has been asked). **Status:** done in v14 (Services.kt, 2 cases): under
+   the coordinates line, WMS · WFS · KAT · ZK · OSM (· GOO with a key), a tap opens the settings. Every
+   request the app makes reports its answer; every minute a service not heard from for three minutes
+   is asked one small question about Kukljica's 1358/3 (never Google: every request is on his key).
 2. The same lights in the settings, each service with what it does, since when it is down and why (the
-   state's own words), and what cannot be done while it is down. **Status:** in progress.
+   state's own words), and what cannot be done while it is down. **Status:** done in v14: "Services",
+   second in the settings, each with its light, "online · answered 12 s ago" or "offline since 16:20 ·
+   ORA-01000 …", what it does, and while red what cannot be done; "Check now" asks them all.

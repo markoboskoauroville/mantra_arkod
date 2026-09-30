@@ -22,11 +22,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v11, 30.9.2026: six cases for the parcel field that finds a number wherever the map is, one for outlines kept one by one.
 # v12, 30.9.2026: five cases for the sniffer and its cache criteria.
 # v13, 30.9.2026: two cases for every kept parcel listed in three words.
-TEST_FLOOR = 229
+# v14, 30.9.2026: two cases for the service lights.
+TEST_FLOOR = 231
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt", "ParcelQuery.kt", "Sniff.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt", "ParcelQuery.kt", "Sniff.kt", "Services.kt"]
 
 failures, checks = [], []
 
@@ -531,7 +532,7 @@ check("two taps in a row are what lock it",
 # Croatian" -- the groups are English; Moje čestice keeps its Croatian name.
 # v12, 30.9.2026: what the phone keeps goes to the very top, at his word ("always show at the top the
 # size of the cache file"); "ARKOD on the phone" is that group now. Moje čestice right under it.
-order = ['Group("Kept on this phone")', 'Group("Moje čestice")', 'Group("Offline map")', 'Group("Google map")',
+order = ['Group("Kept on this phone")', 'Group("Services")', 'Group("Moje čestice")', 'Group("Offline map")', 'Group("Google map")',
          'Group("API keys")', 'Group("Tracks")', 'Group("About")']
 check("my parcels come first and every group is in its place",
       all(g in settings_src for g in order) and [settings_src.index(g) for g in order] == sorted(settings_src.index(g) for g in order),
@@ -976,6 +977,12 @@ check("every kept parcel is listed in the settings in three words (v13): number,
       and "Sniff.filterKept(all, keptFilter)" in settings_src and "suspend fun openKept(" in screens
       and "scope.launch { openKept(m, n) }" in screens,
       "surname = the word the kept sheets use most; ordered by k.o. and number")
+check("a light for every service (v14): every request reports, a light check asks the quiet ones (never Google), the lights on the map and described in the settings",
+      "Services.failed(url" in (MAIN / "ParcelNet.kt").read_text() and "Services.ok(url)" in (MAIN / "TileHttp.kt").read_text()
+      and "Services.Service.GOOGLE -> Unit" in (MAIN / "ParcelNet.kt").read_text()
+      and "ServiceLights(services, googleKey = keyring.isNotEmpty())" in screens
+      and 'Group("Services")' in settings_src and "While it is down: ${sv.whenDown}" in settings_src,
+      "WMS, WFS, KAT, ZK, OSM, GOO; green answered, red failed, grey not asked")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

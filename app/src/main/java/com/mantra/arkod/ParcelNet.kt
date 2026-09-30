@@ -30,9 +30,15 @@ object ParcelNet {
                 // exceeded" was its database failing for every request (30.9.2026, 03:10).
                 val said = runCatching { open.errorStream?.bufferedReader()?.use { it.readText() } }.getOrNull().orEmpty()
                 val why = Parcels.stateReason(said)
+                // A 404 is an answer (the land registry has no such folio), not a service down.
+                if (code == HttpURLConnection.HTTP_NOT_FOUND) Services.ok(url) else Services.failed(url, why ?: "answered $code")
                 throw Refused("katastar je odgovorio $code" + (why?.let { " ($it)" } ?: ""))
             }
-            return open.inputStream.bufferedReader().use { it.readText() }
+            return open.inputStream.bufferedReader().use { it.readText() }.also { Services.ok(url) }
+        } catch (e: java.io.IOException) {
+            // No connection, a timeout: the service did not answer (v14, its light goes red).
+            Services.failed(url, e.message ?: e.javaClass.simpleName)
+            throw e
         } finally {
             open.disconnect()
         }
@@ -68,6 +74,25 @@ object ParcelNet {
         get(url, readMs).also { ArkodCache.keepAnswer(url, it) }
     } catch (e: Exception) {
         ArkodCache.answer(url)?.first ?: ParcelCaches.answer(url)?.first ?: throw e
+    }
+
+    /**
+     * THE LIGHT CHECK (v14): one small question to a service that has been quiet, so its light says
+     * how it is now. Kukljica's own parcel 1358/3 is the question. Never Google: every request there
+     * is on his key. The answer is not kept; [get] reports it to [Services].
+     */
+    suspend fun check(service: Services.Service) = withContext(Dispatchers.IO) {
+        runCatching {
+            when (service) {
+                Services.Service.WMS -> get(Parcels.infoUrl(44.01732, 15.24945), readMs = 15_000)
+                Services.Service.OSS -> get(Parcels.recordUrl(6436001L), readMs = 15_000)
+                Services.Service.ZK -> get(Parcels.booksUrl("KUKLJICA"), readMs = 15_000)
+                Services.Service.WFS -> get(Parcels.byReferenceUrl(listOf("334723-1358/3")), readMs = 45_000)
+                Services.Service.OSM -> get("https://tile.openstreetmap.org/0/0/0.png", readMs = 15_000)
+                Services.Service.GOOGLE -> Unit
+            }
+        }
+        Unit
     }
 
     /**
@@ -161,8 +186,14 @@ object ParcelNet {
             }
             try {
                 c.outputStream.use { it.write(Parcels.searchBody(municipalityId, number, sheet).toByteArray()) }
-                if (c.responseCode != HttpURLConnection.HTTP_OK) throw Refused("katastar je odgovorio ${c.responseCode}")
-                Parcels.parseSearch(c.inputStream.bufferedReader().use { it.readText() })
+                if (c.responseCode != HttpURLConnection.HTTP_OK) {
+                    Services.failed(Parcels.OSS_SEARCH, "answered ${c.responseCode}")
+                    throw Refused("katastar je odgovorio ${c.responseCode}")
+                }
+                Parcels.parseSearch(c.inputStream.bufferedReader().use { it.readText() }).also { Services.ok(Parcels.OSS_SEARCH) }
+            } catch (e: java.io.IOException) {
+                Services.failed(Parcels.OSS_SEARCH, e.message ?: e.javaClass.simpleName)
+                throw e
             } finally {
                 c.disconnect()
             }
@@ -232,8 +263,14 @@ object ParcelNet {
                 readTimeout = 20_000
                 setRequestProperty("User-Agent", Layers.USER_AGENT)
                 try {
-                    if (responseCode != HttpURLConnection.HTTP_OK) return@withContext null
-                    inputStream.use { it.readBytes() }
+                    if (responseCode != HttpURLConnection.HTTP_OK) {
+                        Services.failed(url, "answered $responseCode")
+                        return@withContext null
+                    }
+                    inputStream.use { it.readBytes() }.also { Services.ok(url) }
+                } catch (e: java.io.IOException) {
+                    Services.failed(url, e.message ?: e.javaClass.simpleName)
+                    return@withContext null
                 } finally {
                     disconnect()
                 }
@@ -276,9 +313,15 @@ object ParcelNet {
             val code = open.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
                 Report.tiles("ARKOD: HTTP $code")
+                Services.failed(url, "answered $code")
                 throw java.io.IOException("cadastre tile answered $code")
             }
-            open.inputStream.use { it.readBytes() }
+            open.inputStream.use { it.readBytes() }.also { Services.ok(url) }
+        } catch (e: java.io.IOException) {
+            // No connection or a refusal: the ARKOD light goes red (v14). Still an IOException,
+            // which is what the map's tile loader expects.
+            Services.failed(url, e.message ?: e.javaClass.simpleName)
+            throw e
         } finally {
             open.disconnect()
         }
