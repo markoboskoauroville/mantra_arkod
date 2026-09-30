@@ -434,3 +434,12 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
    What he opens himself is always kept. **Status:** done in v12 (Sniff.kt, 5 cases): one criterion per
    comma, each of its words must begin a word of a name, the place or a land use on the sheet or its
    owner sheets ("bosk" finds BOŠKO; "ana" does not find IVANA).
+
+## 30.9.2026, v13: every kept parcel listed in the settings
+
+> in setting all what is cached, all parcels should be listed by its numbers and some data, maybe in 3
+> words: last name of the owner/user and the place of Croatia
+
+1. Under "Kept on this phone", every parcel whose sheet is kept, by its number, with three words: the
+   surname on it (holder or owner) and the place (rudina and k.o.). A filter; a tap goes to the parcel
+   and opens its sheet. **Status:** in progress.
