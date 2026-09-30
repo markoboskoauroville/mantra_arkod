@@ -8,6 +8,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 ICONS = {
     "plus": "M12 5v14 M5 12h14",
     "minus": "M5 12h14",
+    # FULL SCREEN (v15): the map alone, and the way back; the same corners as the web app's.
+    "fullscreen": "M4 9V4h5 M15 4h5v5 M20 15v5h-5 M9 20H4v-5",
+    "fullscreen_exit": "M9 4v5H4 M20 9h-5V4 M15 20v-5h5 M4 15h5v5",
     # THE CACHE KEY (v12): the sniffer listening round a point; lit while it reads ahead.
     "sniff": "M12 11.2a0.8 0.8 0 1 0 0 1.6a0.8 0.8 0 1 0 0-1.6z M8.5 8.5a5 5 0 0 0 0 7 M15.5 8.5a5 5 0 0 1 0 7 M5.6 5.6a9 9 0 0 0 0 12.8 M18.4 5.6a9 9 0 0 1 0 12.8",
     "parcels": "M4 4h16v16H4z M4 11h8 M12 4v16 M12 15h8",

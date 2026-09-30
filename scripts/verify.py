@@ -983,6 +983,11 @@ check("a light for every service (v14): every request reports, a light check ask
       and "ServiceLights(services, googleKey = keyring.isNotEmpty())" in screens
       and 'Group("Services")' in settings_src and "While it is down: ${sv.whenDown}" in settings_src,
       "WMS, WFS, KAT, ZK, OSM, GOO; green answered, red failed, grey not asked")
+check("full screen (v15, row 27): a round key over the key row; in full screen only the key that comes back, the system bars hidden, Back leaves it",
+      "if (!full) Column(" in screens and "RoundKey(R.drawable.ic_fullscreen_exit, on = false, onClick = { full = false })" in screens
+      and "bars.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())" in screens
+      and "BackHandler(enabled = full) { full = false }" in screens,
+      "a key, not the Trail's tap in the middle (v1 removed that at his word)")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

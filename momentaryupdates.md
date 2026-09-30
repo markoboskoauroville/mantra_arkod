@@ -368,7 +368,9 @@ The web app (arkod_web v2) got it at Marko's word, and FEATURES.md row 27 opens 
 
 1. A full-screen key on the map. In full screen, only the map and that key are visible; the same key
    leaves. It is not the Trail's tap-in-the-middle full screen, which v1 removed at his word: a tap in
-   the middle still selects the parcel. **Status:** open, for the next Android session.
+   the middle still selects the parcel. **Status:** done in v15: a round key beside the cache key, over
+   the right end of the key row; in full screen only the map and the key that comes back (the lines,
+   fields, lights and keys hidden, the phone's own bars too); Back leaves it as well.
 
 ## 30.9.2026, v11: a parcel number finds the parcel, wherever the map is
 

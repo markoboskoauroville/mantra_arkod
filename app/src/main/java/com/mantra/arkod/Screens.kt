@@ -173,6 +173,24 @@ fun ArkodApp(
     var cacheOn by remember { mutableStateOf(store.prefetch) }
     val sniffed by Sniffer.tally.collectAsState()
     val services by Services.health.collectAsState()
+    // FULL SCREEN (v15, FEATURES row 27, from the web app): the map alone with one key to come back.
+    // Not the Trail's tap in the middle, which v1 removed at his word: a key.
+    var full by remember { mutableStateOf(false) }
+    val hostView = androidx.compose.ui.platform.LocalView.current
+    LaunchedEffect(full) {
+        var c: android.content.Context? = hostView.context
+        while (c is android.content.ContextWrapper && c !is android.app.Activity) c = c.baseContext
+        (c as? android.app.Activity)?.window?.let { w ->
+            val bars = androidx.core.view.WindowCompat.getInsetsController(w, hostView)
+            if (full) {
+                bars.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                bars.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            } else {
+                bars.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+    androidx.activity.compose.BackHandler(enabled = full) { full = false }
     val download by MapDownload.live.collectAsState()
     val recording = recordingSince != null
     val justFinished by Trail.justFinished.collectAsState()
@@ -618,7 +636,7 @@ fun ArkodApp(
             )
         }
 
-        Column(
+        if (!full) Column(
             Modifier.fillMaxWidth().align(Alignment.TopCenter).safeDrawingPadding(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -632,7 +650,12 @@ fun ArkodApp(
             if (parcelSearchOn) ParcelField(store, book, caches, marks) { hit -> scope.launch { showFoundParcel(hit) } }
         }
 
-        Column(
+        // IN FULL SCREEN, ONLY THE KEY THAT BRINGS EVERYTHING BACK (v15), where the full-screen key was.
+        if (full) Box(Modifier.align(Alignment.BottomEnd).safeDrawingPadding().padding(8.dp)) {
+            RoundKey(R.drawable.ic_fullscreen_exit, on = false, onClick = { full = false })
+        }
+
+        if (!full) Column(
             Modifier.fillMaxWidth().align(Alignment.BottomCenter).safeDrawingPadding(),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
@@ -644,7 +667,9 @@ fun ArkodApp(
             // disable it while i'm going through the map."* Round, on its own at the right, over the
             // key row (which holds nine at most); lit while the app caches in the background. A long
             // press opens the settings, where the size and the cache criteria are, at the top.
-            Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End) {
+            Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                // FULL SCREEN (v15): the map alone; the same place brings everything back.
+                RoundKey(R.drawable.ic_fullscreen, on = false, onClick = { full = true; Trail.say(null) })
                 CacheKey(
                     on = cacheOn,
                     onClick = {
@@ -1134,16 +1159,21 @@ fun ledColour(light: Services.Light): Color = when (light) {
 
 /** THE CACHE KEY (v12): a round key over the map, lit amber while the app caches in the background. */
 @Composable
-private fun CacheKey(on: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+private fun CacheKey(on: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) =
+    RoundKey(R.drawable.ic_sniff, on, onClick, onLongClick)
+
+/** A round key over the map (v12, v15): the cache key and the full-screen key. */
+@Composable
+private fun RoundKey(@androidx.annotation.DrawableRes icon: Int, on: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
     val tap by androidx.compose.runtime.rememberUpdatedState(onClick)
     val hold by androidx.compose.runtime.rememberUpdatedState(onLongClick)
     Box(
         Modifier.size(46.dp).clip(CircleShape)
             .background(if (on) Paint.Amber.copy(alpha = 0.30f) else Paint.Ground.copy(alpha = 0.86f))
-            .pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold() }) },
+            .pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold?.invoke() }) },
         contentAlignment = Alignment.Center,
     ) {
-        Glyph(R.drawable.ic_sniff, if (on) Paint.AmberBright else Paint.Sand, size = 24.dp)
+        Glyph(icon, if (on) Paint.AmberBright else Paint.Sand, size = 24.dp)
     }
 }
 

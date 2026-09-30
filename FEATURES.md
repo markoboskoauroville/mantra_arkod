@@ -41,7 +41,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 24 | Settings in English; the cadastre's words in Croatian (čestica, posjedovni list, vlasnički list, k.o.) | yes (v3) | yes (web v1) |
 | 25 | Track recording to GPX, tracks list | yes | n/a (a browser cannot record in the background) |
 | 26 | Compass | n/a (removed at his word, v3) | n/a |
-| 27 | Full-screen key on the map: only the map and that key are visible; the same key leaves full screen (a key, never a tap in the middle, which v1 removed) | no (opened 30.9.2026) | yes (web v2) |
+| 27 | Full-screen key on the map: only the map and that key are visible; the same key leaves full screen (a key, never a tap in the middle, which v1 removed) | yes (v15) | yes (web v2) |
 | 28 | Cache king: every answer from the state kept on the device and used when the state fails: sheets, searches, suggestions, land books, and every parcel outline one by one (from the WFS, a cache, a file), so an outline read once is never asked again | yes (v11) | no (opened 30.9.2026; the service worker keeps OSS answers and tiles, not outlines) |
 | 29 | The sniffer: with the cache key on, the sheets round the resting map (z16+) and the other parcels of a sheet's folio are read in the background; kept with their owner sheets and outline, into Imenik too | yes (v12) | no (opened 30.9.2026) |
 | 30 | Cache criteria: keywords (surnames, names, places, land uses); with them, a sheet read in the background is kept only when it fits one; what he opens is always kept | yes (v12) | no (opened 30.9.2026) |
