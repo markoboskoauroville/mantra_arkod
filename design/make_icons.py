@@ -33,6 +33,9 @@ ICONS = {
     "eye_off": "M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M4 4l16 16",
     "play": "M7 5l12 7-12 7z",
     "folder": "M3 6h6l2 2h10v11H3z",
+    # THE GOO KEY (30.9.2026): "a simple Google logo". The G in the same single line: a ring open at
+    # the top right, and its bar coming in from the right to the middle.
+    "google": "M17.66 6.34A8 8 0 1 0 20 12H12.5",
     "satellite": "M9 9l6 6 M3.5 8.5l5-5 3 3-5 5z M12.5 17.5l5-5 3 3-5 5z M10.5 10.5l3 3 M15 5a4 4 0 0 1 4 4 M15 2a7 7 0 0 1 7 7",
 }
 SVG = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{d}"/></svg>

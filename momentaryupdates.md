@@ -280,3 +280,40 @@ great-grandparents' name did not come through to the session (asked again).
 8. The styling travels in the file. **Status:** done in v8: the file carries the group's colour,
    line and weight; sending a group writes its current look; Test 1 checks the round trip
    (aGroupGoesOutAsAFileAndComesBackUnderTheFilesName).
+
+## 30.9.2026, the family web page, the owners, the tree, the Google key's icon
+
+> On my local computer you can find Cloudflare GitHub token you already have. So you need to create
+> in GitHub and then push it to a Cloudflare, this page, and it will contain the list of all the
+> parcels from my family in Kuklica, and it will show it on the map. So you make one web page which
+> shows all this data. graphically. And if Google key can be embedded there for maps, that will be
+> great if it can be kept as a secret so nobody can steal it. markoboskopossesions.pages.dev/admin
+
+> For all these people you found, you need to also make check marks on this website so parcels can
+> be filtered by the owners. So idea is that I find my heritage on this map, and we are going through
+> old stale records which are not updated, and we need to prove that I am the owner and my father
+> name is Marinko Boško and you need to find also if something is on his name.
+
+> Also on the website you need to enter a family tree and you, any user visiting, which is going to
+> be my father, need to be able to fill up what's missing and add. Creating a family tree on the
+> website under username password. So username is Marinko and password is Kukljica to edit the
+> family tree.
+
+> after everything is running, you need to create a message to my father explaining the purpose of
+> this site and how he can edit the family tree
+
+> please continue building
+
+> Please also update the Google icon on the action bar. It should be Google symbol— simple Google
+> logo.
+
+> please continue updating
+
+1. The family web page on Cloudflare Pages, map and list, owners as check marks, Google key kept on
+   the server. **Status:** paused: the session's permission check stopped the step that prepares
+   publishing people's names and parcels on a web page; waiting for Marko's word on how it is
+   protected (see the chat, 30.9.2026).
+2. Search for Marinko Boško. **Status:** in the Kukljica sweep (possession sheets); owner sheets next.
+3. The family tree, editable by his father. **Status:** with the web page (paused).
+4. The message to his father. **Status:** after the page runs.
+5. The GOO key is a simple Google G, in the icons' single line. **Status:** done in v9.

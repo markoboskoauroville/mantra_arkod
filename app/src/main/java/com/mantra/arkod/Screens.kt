@@ -589,7 +589,7 @@ fun ArkodApp(
                 )
                 MapKey(
                     word = "GOO",
-                    icon = R.drawable.ic_satellite,
+                    icon = R.drawable.ic_google,
                     up = layer.family == MapLayer.Family.GOOGLE,
                     onClick = { choose(Layers.byId(store.googleViewId)) },
                 )
