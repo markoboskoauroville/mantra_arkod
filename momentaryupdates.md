@@ -467,3 +467,30 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
    state's own words), and what cannot be done while it is down. **Status:** done in v14: "Services",
    second in the settings, each with its light, "online · answered 12 s ago" or "offline since 16:20 ·
    ORA-01000 …", what it does, and while red what cannot be done; "Check now" asks them all.
+
+## 30.9.2026, v16: fly-through scanning, a service log, and the web app brought level
+
+> I want to add one more feature, and then you need to update both apps, APK and web app, and that is
+> fly-through scanning. So in fly-through scanning, user can write anything, and if some, some of this
+> text is mentioned in the, uh, parcels I see in my view, they will auto-select. So for example, in
+> Kuklica, we can test. You can write Yasha, and then fly through Kuklitsa. And then when Yasha is in
+> some of those parcels, they will just auto-select. So there should be also verbose indicator. I, I—
+> there will be small airplane, and then I click fly-through scanning, and then, uh, it will just give
+> me status scanning, scanning, scanning. Found selecting. So the whole app should be more verbose and
+> we always need to know what's going on there. So we are kind of in trace with that when we are
+> testing all these services, R-Code and other services you are using. I'm not familiar still what you
+> are using everything, but it works. But sometimes looks like this morning when we tested until 9, it
+> was not working. And late afternoon after 4:30, this service, one service was out of service. So we
+> need to understand what's going on. And how to go around these limitations.
+
+Read: "Yasha" is Jaša, a name on Kukljica's sheets; "R-Code" is ARKOD.
+
+1. Fly-through scanning: a small airplane key; he writes anything, flies over the map, and every parcel
+   in view whose sheet mentions it is selected by itself; the line says what it does ("scanning 14/25 …
+   found 2 · selecting 2449/2"). **Status:** in progress.
+2. More verbose: every service going down or coming back is said on the map as it happens, and kept in
+   a service log (the settings), so the times (the morning until 9, after 16:30) can be read back.
+   **Status:** in progress.
+3. What the services are, why they fail, and how the app goes round it: answered in the chat and kept
+   in the settings' Services group. **Status:** in progress.
+4. The web app brought level with v11 to v16 (FEATURES rows 14, 28 to 34). **Status:** in progress.
