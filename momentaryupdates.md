@@ -447,3 +447,16 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
    surname or place), 200 at a time. The surname is the word the kept sheets use most, because the
    state writes "BOŠKO DENIS" and "Marinko Boško" on the same sheet. A tap goes there with the kept
    outline and opens the sheet from the phone, with no signal.
+
+## 30.9.2026, v14: a light for every service
+
+> Please continue upgrade it with new feature. And another feature in the main display, there should be
+> status for every service if it's online or offline. So there will be a short name of that service and
+> a red button, if it's red LED if it's offline and green if it's online. And in setting we're going to
+> say have the same indicator, but in settings we can also describe that certain service what it does
+> and it's offline and what cannot be done because of that.
+
+1. On the map, one short line: every service by a short name with a light, green when it answers, red
+   when it does not (grey until it has been asked). **Status:** in progress.
+2. The same lights in the settings, each service with what it does, since when it is down and why (the
+   state's own words), and what cannot be done while it is down. **Status:** in progress.
