@@ -405,3 +405,24 @@ maximum open cursors exceeded)", try 4 of 8.)
 4. Cache king, second part: the sniffer, reading ahead in the background what he will open next (the
    parcels of a sheet he opened, the folio's list A, the parcels round the map's middle) when the
    signal is good. **Status:** next, v12.
+
+## 30.9.2026, v12: the sniffer, its key, its keywords, and the size on top of the settings
+
+> There is always a mistake in transcription. QR always means arkod
+> Inside the settings, always show at the top the size of the cache file. I am aware because we are
+> now sniffing, we are caching everything.app should actually have cache action button so i can
+> enable or disable it while i'm going through the map
+> Also caching can be through filter. If user types the search terms, so all the last names, first
+> names, what he is interested in, then you don't cache if something is don't fit the criteria of
+> caching. So you can call this cache criteria, write keywords.
+
+Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code", "Arcode" or
+"Mantra Barcode". **"QR" always means ARKOD.** (Kept in MANTRA_MANIFEST too.)
+
+1. The settings show, at the very top, how much the phone keeps: the size of the cache, and what is in
+   it (ARKOD tiles, sheets and answers, outlines). **Status:** in progress.
+2. A cache key on the map, beside the others: on, the app sniffs (reads ahead in the background and
+   keeps what it reads); off, it keeps only what he opens himself. **Status:** in progress.
+3. Cache criteria: keywords he writes (surnames, first names, anything). With keywords, what the
+   sniffer reads is kept only when a name or word on it fits one of them; without, everything is kept.
+   What he opens himself is always kept. **Status:** in progress.
