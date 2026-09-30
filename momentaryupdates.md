@@ -197,3 +197,33 @@ Moje čestice; "Kuklica" is Kukljica.
    sheet. **Status:** pending.
 6. Cached parcels in their own colour / line style. **Status:** pending.
 7. More in the settings. **Status:** pending.
+
+## 30.9.2026, v5, the messages that came while it was being built
+
+> After you finish, rewrite message for my friend with new features and write it as the human would
+> write it with Ashaya Afterman style. See in Tantra Manifest what is Ashaya Afterman style and write
+> it in Croatia-friendly casual language without any signs of AI and without bullet points and any
+> special formatting. And it must be in code box always for easy copy-paste.
+
+> the button of the map on the map action bar which hides and shows the ar code, please refer to it
+> everywhere in the app as show/hide ar code layer
+
+> also change the icon of the app so it looks like that button
+
+> Even when tiles are hidden, when user clicks on the image, you will outline the invisible tile. And
+> don't call it as in app you call it in Croatian language, pločice. That is not the right
+> translation. Please find the right translation. We call it actually in Croatian language čestice
+
+> and we are going to rename the app in ARKOD layer
+
+Read: "Ashaya Afterman" / "Tantra Manifest" are the Yshai Afterman style in MANTRA_MANIFEST
+`modules/writing-styles.md`; "ar code" is ARKOD; "tiles" in the fourth message are parcels
+(čestice). Asked: the name is **ARKOD Layer** (his choice, 30.9.2026).
+
+8. The friend's message in the Yshai Afterman style, Croatian, casual, no bullets, in a code box.
+   **Status:** after v5.
+9. The key is the **Show/hide ARKOD layer** key, in every word of the app. **Status:** pending.
+10. The launcher icon is that key's glyph. **Status:** drawn.
+11. A tap outlines the parcel under the finger even with the layer hidden. **Status:** pending.
+12. No "pločice" anywhere in the app; ARKOD's things are čestice. **Status:** done.
+13. The app is called ARKOD Layer. **Status:** pending.
