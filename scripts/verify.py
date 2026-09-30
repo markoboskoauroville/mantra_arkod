@@ -23,7 +23,8 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v12, 30.9.2026: five cases for the sniffer and its cache criteria.
 # v13, 30.9.2026: two cases for every kept parcel listed in three words.
 # v14, 30.9.2026: two cases for the service lights.
-TEST_FLOOR = 231
+# v16, 30.9.2026: three cases for fly-through scanning and the service log.
+TEST_FLOOR = 234
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -944,7 +945,7 @@ check("the parcels key hides the cadastre and a long press opens Parcel view",
       "a tap is the overlay, a hold is its view settings")
 check("only my parcels wins over the key, in one rule both engines read",
       "fun visibility(cadastreOn: Boolean, onlyMine: Boolean)" in (MAIN / "Parcels.kt").read_text()
-      and "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
+      and "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + found + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
       "Parcels.visibility decides; ParcelsShown draws it")
 check("Google's field is on all three maps when there is a key, the parcel field under it",
       "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(store, book, caches, marks)" in screens
@@ -988,6 +989,16 @@ check("full screen (v15, row 27): a round key over the key row; in full screen o
       and "bars.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())" in screens
       and "BackHandler(enabled = full) { full = false }" in screens,
       "a key, not the Trail's tap in the middle (v1 removed that at his word)")
+flyer = (MAIN / "Flyer.kt").read_text()
+check("fly-through scanning (v16): the airplane key, a 5 x 5 grid where the map rests, a parcel whose sheet mentions his words is outlined and selected, every step on the line",
+      "RoundKey(R.drawable.ic_plane, on = flying.on" in screens and "Flyer.viewSettled(here.first, here.second, now)" in screens
+      and "if (flying.on) StatusLine(Fly.line(flying))" in screens and "Fly.why(record, emptyList(), criteria)" in flyer
+      and "onFound?.invoke(p.copy(rings = rings), why)" in flyer and "+ found + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
+      "jaša over Kukljica selects the parcels with JAŠA on their sheets")
+check("the service log (v16): every service going down or coming back is said on the map and kept, and read back in the settings",
+      "Services.onChange = { e ->" in screens and "store.serviceLog = Services.encodeLog(Services.log.value)" in screens
+      and 'Opens("Service log"' in settings_src and "ORA-01000: maximum open cursors exceeded" in settings_src,
+      "with the time and the state's reason; why they fail and what the app does about it")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")
@@ -1001,7 +1012,7 @@ check("the Show/hide ARKOD layer key brings every parcel back, even from Only Mo
       "if (onlyMine) {\n                            onlyMine = false" in screens and '"ARKOD layer shown"' in screens,
       "he could not get them back from the key (30.9.2026)")
 check("a tap outlines the parcel under it even with the layer hidden",
-      "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text()
+      "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + found + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text()
       and "select(null)\n            return\n        }\n        if (Canvases.currentZoom()" not in screens,
       "the selection is drawn whatever the layer shows")
 check("no pločice anywhere the user reads",

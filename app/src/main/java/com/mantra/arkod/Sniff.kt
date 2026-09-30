@@ -124,3 +124,49 @@ object Sniff {
         return list.filter { k -> Finding.fold("${k.number} ${k.surname} ${k.place} ${k.municipality}").contains(q) }
     }
 }
+
+/**
+ * FLY-THROUGH SCANNING (30.9.2026, v16): *"user can write anything, and if some of this text is
+ * mentioned in the parcels I see in my view, they will auto-select ... there will be small airplane
+ * ... it will just give me status scanning, scanning, scanning. Found selecting."*
+ *
+ * The words are matched as the cache criteria are ([Sniff.criteria], [Sniff.fits]): "jaša" finds
+ * JAŠA ANICA, "bosko ivana" finds Ivana Boško. Pure; [Flyer] asks the state.
+ */
+object Fly {
+
+    /** Where the flight is, for the line over the keys. */
+    data class State(
+        val query: String = "",
+        val on: Boolean = false,
+        val stage: Stage = Stage.WAITING,
+        val asked: Int = 0,
+        val total: Int = 0,
+        val read: Int = 0,
+        /** Found so far: the number and what on its sheet fitted. */
+        val found: List<Pair<String, String>> = emptyList(),
+        val selecting: String? = null,
+        val problem: String? = null,
+    )
+
+    enum class Stage { WAITING, ZOOM, SCANNING, DONE }
+
+    /** The text on a sheet that fits what he wrote, or null: a holder, an owner, the place, a land use. */
+    fun why(record: Parcels.Record?, folios: List<Parcels.Folio>, criteria: List<List<String>>): String? =
+        if (criteria.isEmpty()) null
+        else Sniff.wordsOf(record, folios).firstOrNull { Sniff.fits(listOf(it), criteria) }?.trim()
+
+    fun line(s: State): String {
+        val q = "✈ \"${s.query}\""
+        val found = s.found.size.takeIf { it > 0 }?.let { " · found $it" }.orEmpty()
+        val trouble = s.problem?.let { " · $it" }.orEmpty()
+        return when (s.stage) {
+            Stage.WAITING -> "$q: fly over the map, it scans where it rests$found$trouble"
+            Stage.ZOOM -> "$q: zoom to 16 or closer to scan$found$trouble"
+            Stage.SCANNING -> s.selecting?.let { "$q: found $it · selecting$found$trouble" }
+                ?: "$q: scanning ${s.asked}/${s.total} · ${s.read} sheets read$found$trouble"
+            Stage.DONE -> "$q: this view scanned · ${s.read} sheets read$found · move on$trouble"
+        }
+    }
+}
+

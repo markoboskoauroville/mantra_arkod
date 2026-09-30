@@ -2101,4 +2101,48 @@ ORA-01000: maximum open cursors exceeded
         assertTrue(Services.due(null, 0, 180_000))
         assertFalse(Services.due(Services.Health(okAt = 100_000), 200_000, 180_000))
     }
+
+    // --- v16: fly-through scanning and the service log ---------------------------------------
+
+    @Test fun flyThroughSaysWhatOnTheSheetFittedAndNothingWithoutWords() {
+        val sheet = Parcels.Record("2449/2", "KUKLJICA", "334723", "DRAGE", "1324", emptyList(),
+            listOf(Parcels.Sheet("1984", listOf(Parcels.Owner("JAŠA ANICA", "1/2", ""), Parcels.Owner("BOŠKO DENIS", "1/2", "")))))
+        assertEquals("JAŠA ANICA", Fly.why(sheet, emptyList(), Sniff.criteria("jaša")))
+        assertEquals("JAŠA ANICA", Fly.why(sheet, emptyList(), Sniff.criteria("Jasa")))
+        assertEquals("DRAGE", Fly.why(sheet, emptyList(), Sniff.criteria("drage")))
+        assertNull(Fly.why(sheet, emptyList(), Sniff.criteria("gobić")))
+        assertNull(Fly.why(sheet, emptyList(), emptyList()))
+    }
+
+    @Test fun flyThroughIsVerboseAtEveryStage() {
+        val s = Fly.State(query = "jaša", on = true)
+        assertEquals("✈ \"jaša\": zoom to 16 or closer to scan", Fly.line(s.copy(stage = Fly.Stage.ZOOM)))
+        assertEquals("✈ \"jaša\": scanning 14/25 · 9 sheets read · found 1",
+            Fly.line(s.copy(stage = Fly.Stage.SCANNING, asked = 14, total = 25, read = 9, found = listOf("2449/2" to "JAŠA ANICA"))))
+        assertEquals("✈ \"jaša\": found 2449/2 · selecting · found 1",
+            Fly.line(s.copy(stage = Fly.Stage.SCANNING, selecting = "2449/2", found = listOf("2449/2" to "JAŠA ANICA"))))
+        assertTrue(Fly.line(s.copy(stage = Fly.Stage.DONE, read = 25)).contains("this view scanned · 25 sheets read"))
+    }
+
+    @Test fun aServiceGoingDownAndComingBackIsLoggedOnceEachWithItsReason() {
+        Services.restore(emptyList())
+        val seen = mutableListOf<Services.Event>()
+        Services.onChange = { seen += it }
+        val url = Parcels.byReferenceUrl(listOf("334723-1358/3"))
+        Services.ok(url, now = 1_000)
+        Services.ok(url, now = 2_000)                       // still online: nothing new
+        Services.failed(url, "ORA-01000", now = 3_000)      // down
+        Services.failed(url, "ORA-01000", now = 4_000)      // still down: nothing new
+        Services.ok(url, now = 5_000)                       // back
+        Services.onChange = null
+        val wfs = seen.filter { it.service == Services.Service.WFS }
+        assertEquals(listOf(true, false, true), wfs.map { it.online })
+        assertEquals("ORA-01000", wfs[1].reason)
+        val clock = { t: Long -> "t$t" }
+        assertEquals("t3000 WFS offline · ORA-01000", Services.said(wfs[1], clock))
+        assertEquals("t5000 WFS back online", Services.said(wfs[2], clock))
+        val back = Services.decodeLog(Services.encodeLog(Services.log.value))
+        assertEquals(Services.log.value, back)
+        assertTrue(Services.decodeLog("rubbish\n1|NOPE|1|x").isEmpty())
+    }
 }

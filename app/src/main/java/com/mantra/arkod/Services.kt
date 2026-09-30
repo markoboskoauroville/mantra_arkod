@@ -106,6 +106,52 @@ object Services {
     }
 
     private fun update(s: Service, change: (Health) -> Health) {
-        synchronized(this) { _health.value = _health.value + (s to change(_health.value[s] ?: Health())) }
+        var event: Event? = null
+        synchronized(this) {
+            val before = _health.value[s]
+            val after = change(before ?: Health())
+            _health.value = _health.value + (s to after)
+            val was = light(before)
+            val now = light(after)
+            // THE LOG (v16): a service going down or coming back, with the time and its reason.
+            if (now != was && now != Light.GREY) {
+                event = Event(maxOf(after.okAt, after.failAt), s, now == Light.GREEN, if (now == Light.RED) after.reason else "")
+                _log.value = (listOf(event!!) + _log.value).take(LOG_SIZE)
+            }
+        }
+        event?.let { e -> onChange?.invoke(e) }
     }
+
+    // --- the service log (v16) --------------------------------------------------------------------
+
+    /**
+     * *"this morning when we tested until 9, it was not working. And late afternoon after 4:30, this
+     * service, one service was out of service. So we need to understand what's going on."* Every
+     * service going down or coming back is kept here, newest first, and said on the map.
+     */
+    data class Event(val at: Long, val service: Service, val online: Boolean, val reason: String)
+
+    const val LOG_SIZE = 300
+
+    private val _log = MutableStateFlow<List<Event>>(emptyList())
+    val log: StateFlow<List<Event>> = _log
+
+    /** Called on every change of a light (Screens says it on the map and keeps the log). */
+    @Volatile var onChange: ((Event) -> Unit)? = null
+
+    fun restore(events: List<Event>) { _log.value = events.take(LOG_SIZE) }
+
+    fun encodeLog(events: List<Event>): String =
+        events.take(LOG_SIZE).joinToString("\n") { "${it.at}|${it.service.name}|${if (it.online) 1 else 0}|${it.reason.replace('|', '/').replace('\n', ' ')}" }
+
+    fun decodeLog(text: String?): List<Event> = text.orEmpty().split('\n').mapNotNull { line ->
+        val f = line.split('|', limit = 4)
+        if (f.size < 3) return@mapNotNull null
+        val service = Service.values().firstOrNull { it.name == f[1] } ?: return@mapNotNull null
+        Event(f[0].toLongOrNull() ?: return@mapNotNull null, service, f[2] == "1", f.getOrElse(3) { "" })
+    }
+
+    /** "16:31 WFS offline · ORA-01000 …" or "17:05 WFS back online". */
+    fun said(e: Event, clock: (Long) -> String): String =
+        "${clock(e.at)} ${e.service.short} " + if (e.online) "back online" else "offline" + (e.reason.takeIf { it.isNotBlank() }?.let { " · $it" } ?: "")
 }

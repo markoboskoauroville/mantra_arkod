@@ -487,10 +487,16 @@ Read: "Yasha" is Jaša, a name on Kukljica's sheets; "R-Code" is ARKOD.
 
 1. Fly-through scanning: a small airplane key; he writes anything, flies over the map, and every parcel
    in view whose sheet mentions it is selected by itself; the line says what it does ("scanning 14/25 …
-   found 2 · selecting 2449/2"). **Status:** in progress.
+   found 2 · selecting 2449/2"). **Status:** done in v16 (Fly in Sniff.kt, Flyer.kt, 2 cases): the
+   airplane is a round key beside full screen; a tap asks what to look for (a name, a place, a land use,
+   one per comma) and flies; the map resting at z16 or closer is scanned on a 5 x 5 grid, each new
+   parcel's posjedovni list read (the vlasnički list too when the first says nothing), and every one
+   that mentions the words is outlined magenta and selected; a tap lands; the line says every step.
 2. More verbose: every service going down or coming back is said on the map as it happens, and kept in
    a service log (the settings), so the times (the morning until 9, after 16:30) can be read back.
-   **Status:** in progress.
+   **Status:** done in v16 (1 case): said on the map as "16:31 WFS offline · ORA-01000 …" and "17:05
+   WFS back online", kept across restarts (300 changes), "Service log" in the settings' Services group.
 3. What the services are, why they fail, and how the app goes round it: answered in the chat and kept
-   in the settings' Services group. **Status:** in progress.
+   in the settings' Services group. **Status:** done: a paragraph under the lights (DGU's four services,
+   ORA-01000 is their database out of connections, nothing on the phone can fix it, what the app does).
 4. The web app brought level with v11 to v16 (FEATURES rows 14, 28 to 34). **Status:** in progress.

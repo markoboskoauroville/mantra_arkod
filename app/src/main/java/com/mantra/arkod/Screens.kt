@@ -173,6 +173,10 @@ fun ArkodApp(
     var cacheOn by remember { mutableStateOf(store.prefetch) }
     val sniffed by Sniffer.tally.collectAsState()
     val services by Services.health.collectAsState()
+    // FLY-THROUGH SCANNING (v16): the airplane, what it looks for, and what it found.
+    val flying by Flyer.state.collectAsState()
+    var askFly by remember { mutableStateOf(false) }
+    var found by remember { mutableStateOf<List<Parcels.Parcel>>(emptyList()) }
     // FULL SCREEN (v15, FEATURES row 27, from the web app): the map alone with one key to come back.
     // Not the Trail's tap in the middle, which v1 removed at his word: a key.
     var full by remember { mutableStateOf(false) }
@@ -319,6 +323,32 @@ fun ArkodApp(
         Canvases.refreshParcels()
     }
 
+    fun showFound(next: List<Parcels.Parcel>) {
+        found = next
+        ParcelsShown.found = next.filter { it.rings.isNotEmpty() }
+            .map { Parcels.markOf(it, FOUND_COLOUR, Parcels.LineStyle.SOLID).copy(weight = ParcelStyle.Weight.BOLD) }
+        Canvases.refreshParcels()
+    }
+
+    LaunchedEffect(Unit) {
+        Flyer.onFound = { p, why ->
+            scope.launch {
+                showFound(found.filterNot { it.id == p.id } + p)
+                if (p.rings.isNotEmpty()) select(p)
+                Trail.say("✈ found ${p.number}: $why · selected${if (p.rings.isEmpty()) " (outline not yet)" else ""}")
+            }
+        }
+        // THE SERVICE LOG (v16): kept across restarts, and every change said on the map at once.
+        Services.restore(Services.decodeLog(store.serviceLog))
+        val clock = java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT)
+        Services.onChange = { e ->
+            scope.launch {
+                store.serviceLog = Services.encodeLog(Services.log.value)
+                Trail.say(Services.said(e) { clock.format(java.util.Date(it)) })
+            }
+        }
+    }
+
     /** A place found by a search: the map goes there and the cyan pin marks it. */
     fun showPlace(hit: Finding.Hit) {
         val lat = hit.lat ?: return
@@ -450,6 +480,13 @@ fun ArkodApp(
             card = null
             select(Parcels.Parcel(m.id, m.number, m.reference, null, m.rings))
             Trail.say("${m.number}${if (m.name.isNotBlank()) " · ${m.name}" else ""} · dodirnite ponovno za list")
+            return
+        }
+        // A PARCEL FLY-THROUGH FOUND (v16): selected at once, its sheet on the next tap.
+        found.firstOrNull { p -> p.rings.any { Parcels.contains(it, lat, lon) } }?.let { p ->
+            card = null
+            select(p)
+            Trail.say("${p.number} · found by ✈ · dodirnite ponovno za list")
             return
         }
         // A CACHED PARCEL IS FOUND ON THE PHONE (v5): at once, and with no signal.
@@ -594,6 +631,7 @@ fun ArkodApp(
                 restingFor += 1
                 if (restingFor == 4 && store.prefetch) ArkodPrefetch.viewSettled(here.first, here.second, now)
                 if (restingFor == 4 && store.prefetch) Sniffer.viewSettled(here.first, here.second, now)
+                if (restingFor == 3) Flyer.viewSettled(here.first, here.second, now)
             } else {
                 restingAt = here
                 restingFor = 0
@@ -663,11 +701,19 @@ fun ArkodApp(
             val moving = listOfNotNull(net, kept).joinToString(" · ").ifBlank { null }
             if (moving != null) StatusLine(moving)
             if (cacheOn && sniffed.busy) StatusLine(Sniff.line(sniffed, Sniffer.criteria))
+            // FLY-THROUGH, SAID AT EVERY STEP (v16): "scanning 14/25 · 9 sheets read · found 1".
+            if (flying.on) StatusLine(Fly.line(flying))
             // THE CACHE KEY (v12): *"app should actually have cache action button so i can enable or
             // disable it while i'm going through the map."* Round, on its own at the right, over the
             // key row (which holds nine at most); lit while the app caches in the background. A long
             // press opens the settings, where the size and the cache criteria are, at the top.
             Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
+                // FLY-THROUGH SCANNING (v16): the small airplane. Off: asks what to look for, then
+                // flies. On: lands (stops) and the found ones stay drawn until the next flight.
+                // A long press asks for other words.
+                RoundKey(R.drawable.ic_plane, on = flying.on, onClick = {
+                    if (flying.on) { Flyer.stop(); Trail.say("✈ landed · found ${found.size}") } else askFly = true
+                }, onLongClick = { askFly = true })
                 // FULL SCREEN (v15): the map alone; the same place brings everything back.
                 RoundKey(R.drawable.ic_fullscreen, on = false, onClick = { full = true; Trail.say(null) })
                 CacheKey(
@@ -944,6 +990,24 @@ fun ArkodApp(
             )
         }
 
+        if (askFly) {
+            NameBox(
+                current = store.flyQuery.ifBlank { "jaša" },
+                title = "✈ fly-through: what to look for (a name, a place, a land use; one per comma)",
+                fallbackToCurrent = true,
+                onCancel = { askFly = false },
+                onOk = { q ->
+                    askFly = false
+                    store.flyQuery = q
+                    showFound(emptyList())
+                    Flyer.start(q)
+                    // Where the map is now is scanned at once, not only after the next move.
+                    Canvases.centre()?.let { (la, lo) -> Flyer.viewSettled(la, lo, Canvases.currentZoom()) }
+                    Trail.say("✈ flying: \"$q\" · scanning where the map rests")
+                },
+            )
+        }
+
         namingCache?.let { box ->
             // The k.o. under the middle names the cache until he types his own.
             var place by remember(box) { mutableStateOf("") }
@@ -1149,6 +1213,9 @@ private fun ServiceLights(health: Map<Services.Service, Services.Health>, google
         }
     }
 }
+
+/** What fly-through found is drawn in this, bold (v16): magenta, apart from every other line. */
+const val FOUND_COLOUR = 0xFFE040FBL
 
 /** Green answers, red does not, grey not asked yet. */
 fun ledColour(light: Services.Light): Color = when (light) {

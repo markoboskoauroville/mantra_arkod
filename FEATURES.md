@@ -48,6 +48,8 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 31 | The cache key on the map (round, over the key row; long press: settings), and the size of what is kept at the very top of the settings with the Cache switch and the keywords | yes (v12) | no (opened 30.9.2026) |
 | 32 | Every kept parcel listed in the settings: number, surname, place (rudina, k.o.), filtered; a tap opens it from the device | yes (v13) | no (opened 30.9.2026) |
 | 33 | A light for every service (ARKOD WMS, WFS, cadastre OSS, land registry, OSM, Google): green answering, red not, grey not asked; on the map under the coordinates, and in the settings with what each does, since when it is down and why, and what cannot be done meanwhile | yes (v14) | no (opened 30.9.2026) |
+| 34 | Fly-through scanning: the airplane key; he writes any words; wherever the map rests (z16+) the parcels in view are read and every one whose sheet mentions them is outlined (magenta, bold) and selected; every step on the line ("scanning 14/25 · 9 sheets read · found 1", "found 2449/2 · selecting") | yes (v16) | no (opened 30.9.2026) |
+| 35 | The service log: every service going down or coming back said on the map at once and kept with the time and the reason; read back in the settings, with why the state's services fail and what the app does about it | yes (v16) | no (opened 30.9.2026) |
 
 ## The file format (.arkod.json), shared
 

@@ -8,6 +8,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 ICONS = {
     "plus": "M12 5v14 M5 12h14",
     "minus": "M5 12h14",
+    # FLY-THROUGH SCANNING (v16): a small airplane.
+    "plane": "M12 3c.8 0 1.4.7 1.4 1.6V9.5l7.6 4.6v2l-7.6-2.3v4.4l2.2 1.6V21.5L12 20.6l-3.6.9v-1.7l2.2-1.6v-4.4L3 16.1v-2l7.6-4.6V4.6C10.6 3.7 11.2 3 12 3z",
     # FULL SCREEN (v15): the map alone, and the way back; the same corners as the web app's.
     "fullscreen": "M4 9V4h5 M15 4h5v5 M20 15v5h-5 M9 20H4v-5",
     "fullscreen_exit": "M9 4v5H4 M20 9h-5V4 M15 20v-5h5 M4 15h5v5",

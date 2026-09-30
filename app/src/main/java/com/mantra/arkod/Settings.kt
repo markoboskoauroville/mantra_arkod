@@ -85,6 +85,8 @@ fun SettingsFace(
     onCheckServices: () -> Unit = {},
 ) {
     val services by Services.health.collectAsState()
+    val serviceLog by Services.log.collectAsState()
+    var logOpen by remember { mutableStateOf(false) }
     val clock = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT) }
     var theme by remember { mutableStateOf(store.themeName) }
     var googleId by remember { mutableStateOf(store.googleViewId) }
@@ -244,6 +246,27 @@ fun SettingsFace(
                 }
                 Hairline()
                 Action("Check now", R.drawable.ic_play, onClick = onCheckServices, quiet = true, modifier = Modifier.fillMaxWidth())
+                Hairline()
+                // THE SERVICE LOG (v16): *"this morning ... until 9, it was not working. And late
+                // afternoon after 4:30 ... one service was out of service. So we need to understand."*
+                Opens("Service log", R.drawable.ic_text, under = if (serviceLog.isEmpty()) "nothing yet" else "${serviceLog.size} changes", onClick = { logOpen = !logOpen }, open = logOpen)
+                if (logOpen) {
+                    val day = remember { java.text.SimpleDateFormat("d.M. HH:mm", java.util.Locale.ROOT) }
+                    serviceLog.take(100).forEach { e ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(8.dp).clip(CircleShape).background(ledColour(if (e.online) Services.Light.GREEN else Services.Light.RED)))
+                            Words(Services.said(e) { day.format(java.util.Date(it)) }, Paint.Dim, 12, TextAlign.Start, Modifier.padding(start = 10.dp))
+                        }
+                    }
+                }
+                Hairline()
+                // WHY THEY FAIL, AND WHAT THE APP DOES ABOUT IT (v16).
+                Words(
+                    "All four ARKOD services are the State Geodetic Administration's (DGU): the map (WMS) and the outlines (WFS) at api.uredjenazemlja.hr, the cadastre and the land registry at oss.uredjenazemlja.hr. " +
+                        "They fail on their side: \"ORA-01000: maximum open cursors exceeded\" is their Oracle database running out of connections, which lasts until they restart it, and they are slow or down at some hours. Nothing on the phone can fix that. " +
+                        "What the app does: everything read is kept (tiles, sheets, outlines, searches) and used when a service is red; the cache key reads ahead while they answer; a failing request is tried again; every change is in the log above, so the hours can be seen.",
+                    Paint.Dim, 12, TextAlign.Start, Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                )
             }
 
             // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings

@@ -107,6 +107,16 @@ class Store(context: Context) {
 
     fun forget(box: String) = prefs.edit().remove("history-$box").apply()
 
+    /** What fly-through scanning looked for last (v16). */
+    var flyQuery: String
+        get() = prefs.getString("fly-query", "").orEmpty()
+        set(v) = prefs.edit().putString("fly-query", v).apply()
+
+    /** The service log (v16): every service going down or coming back, newest first. */
+    var serviceLog: String
+        get() = prefs.getString("service-log", "").orEmpty()
+        set(v) = prefs.edit().putString("service-log", v).apply()
+
     /** Cache criteria (v12): his keywords, one per comma or line; empty keeps everything. */
     var cacheKeywords: String
         get() = prefs.getString("cache-keywords", "").orEmpty()
