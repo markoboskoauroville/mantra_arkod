@@ -131,10 +131,10 @@ object Layers {
     data class OfflineView(val label: String, val theme: String, val about: String)
 
     val OFFLINE_VIEWS: List<OfflineView> = listOf(
-        OfflineView("Obična", "DEFAULT", "ceste i mjesta, mirno"),
-        OfflineView("Planinarska", "MANTRA", "izohipse i staze"),
-        OfflineView("Obris", "OSMARENDER", "tanke linije, jaki natpisi"),
-        OfflineView("Noćna", "NEWTRON", "tamna podloga, svijetle ceste"),
+        OfflineView("Plain", "DEFAULT", "roads and places, calm"),
+        OfflineView("Hiking", "MANTRA", "contours and paths"),
+        OfflineView("Outline", "OSMARENDER", "thin lines, strong labels"),
+        OfflineView("Night", "NEWTRON", "dark ground, light roads"),
     )
 
     fun offlineViewFor(theme: String): OfflineView =

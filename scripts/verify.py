@@ -19,7 +19,7 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v3, 29.9.2026: six cases came with the parcels key, the parcel field's suggestions and Imenik.
 # v5, 30.9.2026: ten cases came with the restyled lines and the parcel caches.
 # v8, 30.9.2026: three cases for Moje čestice as files; one came with the state's reason (v6).
-TEST_FLOOR = 214
+TEST_FLOOR = 215
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -992,6 +992,17 @@ check("each group has its colour, line, weight and can be hidden",
 check("every search box offers what was searched before",
       screens.count("history = history,") >= 2 and 'store.history("mine-" + by.name)' in screens,
       "Google's field, the čestica field, Moje čestice")
+
+
+# V10, 30.9.2026: the numbers on a sheet are links; a sheet goes out as a file.
+check("a parcel number on an owner sheet goes to that parcel on the map",
+      "onNumber = { number -> card = null; scope.launch { goToNumber(" in screens and "fun numberIn(row: SheetRow)" in (MAIN / "Parcels.kt").read_text(),
+      "the folio's own parcels (list A)")
+check("a sheet goes out as a file the app opens",
+      'IconAction(R.drawable.ic_save, "FILE", onClick = onFile)' in screens and "onShareMarks(group, listOf(one))" in screens,
+      "one parcel, one .arkod.json, opened like a group of Moje čestice")
+check("Google's map opens on the road map, which EEA accounts are served",
+      "Layers.GOOGLE.id) ?: Layers.GOOGLE.id" in (MAIN / "Store.kt").read_text(), "satellite is refused in the EEA")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

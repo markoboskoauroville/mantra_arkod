@@ -327,7 +327,14 @@ great-grandparents' name did not come through to the session (asked again).
 > the numbers of the parcel they own. Please build it.
 
 1. Every parcel number on a sheet (the owner sheet lists its folio's parcels) is a link: a tap closes
-   the sheet, goes to the parcel on the map and outlines it. **Status:** pending.
+   the sheet, goes to the parcel on the map and outlines it. **Status:** written in v10.
 2. Seen on the way: the GOO key opens satellite, which Google refuses to EEA accounts; the default
    becomes the road map. The offline map's style names in the settings are still Croatian; English.
-   **Status:** pending.
+   **Status:** written in v10 (Plain, Hiking, Outline, Night).
+
+> also for each individual sheet we have text we should have a file also, so file also can be exported
+> and sent to somebody, and then he can import in this app and see where the parcel
+
+3. FILE beside TXT and CPY on every sheet: the parcel as one .arkod.json, sent through the phone's
+   share sheet; opened in the app it becomes a group named "Čestica 2449-2 k.o. KUKLJICA".
+   **Status:** written in v10.

@@ -142,7 +142,9 @@ class Store(context: Context) {
      * ground, the hedges and the walls, better than against a road map.
      */
     var googleViewId: String
-        get() = prefs.getString(KEY_GOOGLE_VIEW, Layers.GOOGLE_SATELLITE.id) ?: Layers.GOOGLE_SATELLITE.id
+        // THE ROAD MAP FIRST (v10): Google refuses satellite tiles to EEA accounts (measured 30.9.2026,
+        // "not available for your account and region"), so a new install opens what works.
+        get() = prefs.getString(KEY_GOOGLE_VIEW, Layers.GOOGLE.id) ?: Layers.GOOGLE.id
         set(v) = prefs.edit().putString(KEY_GOOGLE_VIEW, v).apply()
 
     /** The keyring, as one line per key. */

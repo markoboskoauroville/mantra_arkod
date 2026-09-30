@@ -1917,4 +1917,14 @@ ORA-01000: maximum open cursors exceeded
         assertEquals("Obitelj", back.group)
         assertEquals(ParcelStyle.Weight.FINE, back.weight)
     }
+
+    // --- v10 (30.9.2026): the numbers on an owner sheet are links ------------------------------
+
+    @Test fun aFoliosParcelNumberIsALinkAndNothingElseIs() {
+        assertEquals("2449/2", Parcels.numberIn(Parcels.SheetRow("${Parcels.HEAD_FOLIO_PARCELS} · uložak 182", "2449/2  DRAGE  1324 m²")))
+        assertEquals("*28", Parcels.numberIn(Parcels.SheetRow("${Parcels.HEAD_FOLIO_PARCELS} · uložak 869", "*28  KUKLJICA  65 m²")))
+        assertEquals("530", Parcels.numberIn(Parcels.SheetRow("${Parcels.HEAD_FOLIO_PARCELS} · uložak 869", "530")))
+        assertNull(Parcels.numberIn(Parcels.SheetRow("VLASNIČKI LIST · z.k. uložak 182", "2449/2 is not a link here")))
+        assertNull(Parcels.numberIn(Parcels.SheetRow("${Parcels.HEAD_FOLIO_PARCELS} · uložak 182", "DRAGE")))
+    }
 }

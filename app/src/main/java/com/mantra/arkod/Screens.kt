@@ -329,6 +329,40 @@ fun ArkodApp(
         Trail.say("${parcel.number} je na karti")
     }
 
+    /**
+     * A NUMBER ON A SHEET, TAPPED (v10): *"When I click it, it just jumps to the map and outlines
+     * that parcel."* Its outline from the phone when a cache or Moje čestice has it, else its id from
+     * OSS (a quarter of a second) and its outline from the state's WFS (slow, and sometimes down).
+     */
+    suspend fun goToNumber(municipality: String, number: String) {
+        val ref = "$municipality-$number"
+        val known = ParcelCache.byReference(caches, ref)?.parcel()
+            ?: marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { Parcels.Parcel(it.id, it.number, it.reference, null, it.rings) }
+        if (known != null) {
+            select(known)
+            val (lat, lon) = known.middle
+            Canvases.goTo(lat, lon, 18)
+            Trail.say("$number · dodirnite ponovno za list")
+            return
+        }
+        Trail.say("tražim $number na karti…")
+        val found = runCatching { ParcelNet.find(municipality, listOf(number)) }.getOrNull()?.firstOrNull()
+        if (found == null) {
+            Trail.say("$number: katastar ne zna tu česticu u k.o. $municipality")
+            return
+        }
+        val shape = runCatching { ParcelNet.shapes(listOf(ref)) }.getOrNull()?.firstOrNull { it.reference == ref }
+        if (shape == null || shape.rings.isEmpty()) {
+            Trail.say("$number: državna usluga karte ne odgovara; obris kasnije")
+            return
+        }
+        val p = found.copy(rings = shape.rings, areaM2 = shape.areaM2)
+        select(p)
+        val (lat, lon) = p.middle
+        Canvases.goTo(lat, lon, 18)
+        Trail.say("$number · dodirnite ponovno za list")
+    }
+
     /** One of my parcels, chosen from the list: the map goes to it and its sheet opens. */
     fun openMine(mark: Parcels.Mark) {
         val p = Parcels.Parcel(mark.id, mark.number, mark.reference, null, mark.rings)
@@ -633,6 +667,17 @@ fun ArkodApp(
                 card = shown,
                 mine = mark,
                 onClose = { card = null },
+                onNumber = { number -> card = null; scope.launch { goToNumber(shown.parcel.municipality, number) } },
+                onFile = {
+                    // ONE PARCEL AS A FILE (v10): sent like a group of Moje čestice, opened the same way.
+                    val rings = mark?.rings?.takeIf { it.isNotEmpty() } ?: shown.parcel.rings.takeIf { it.isNotEmpty() }
+                        ?: selected?.takeIf { it.reference == shown.parcel.reference }?.rings
+                        ?: ParcelCache.byReference(caches, shown.parcel.reference)?.rings.orEmpty()
+                    val name = "Čestica ${shown.parcel.number.replace('/', '-')} k.o. ${shown.record?.municipality ?: shown.parcel.municipality}"
+                    val group = MarkFile.Group(name, parcelColour, parcelStyle)
+                    val one = Parcels.markOf(shown.parcel.copy(rings = rings), parcelColour, parcelStyle).copy(group = name, name = mark?.name.orEmpty())
+                    onShareMarks(group, listOf(one))
+                },
                 onCopy = {
                     val stamp = java.text.SimpleDateFormat("d.M.yyyy HH:mm", java.util.Locale.ROOT)
                         .format(java.util.Date())
@@ -1861,6 +1906,9 @@ private fun ParcelCardView(
     onStyle: (Parcels.LineStyle) -> Unit,
     onFindFolio: (String, Boolean) -> Unit,
     onForgetFolio: () -> Unit,
+    // v10: a parcel number on the sheet goes to that parcel; FILE sends this parcel as a file.
+    onNumber: (String) -> Unit,
+    onFile: () -> Unit,
 ) {
     val record = card.record
     var filter by remember(card.parcel.reference) { mutableStateOf("") }
@@ -1897,6 +1945,7 @@ private fun ParcelCardView(
             }
             IconAction(R.drawable.ic_copy, "CPY", onClick = onCopy)
             IconAction(R.drawable.ic_text, "TXT", onClick = onText)
+            IconAction(R.drawable.ic_save, "FILE", onClick = onFile)
             IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
         }
         val area = record?.areaM2?.toIntOrNull() ?: card.parcel.areaM2
@@ -1969,8 +2018,10 @@ private fun ParcelCardView(
                         }
                         // The land registry's entries are legal sentences; they are read whole (29.9.2026).
                         val lines = if (tab == Parcels.Tab.OWNER) 40 else 2
-                        Row(Modifier.fillMaxWidth()) {
-                            Label(r.main, Paint.Sand, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f), lines = lines)
+                        // THE NUMBERS ARE LINKS (v10): a parcel the folio lists goes to the map.
+                        val number = Parcels.numberIn(r)
+                        Row(Modifier.fillMaxWidth().then(if (number != null) Modifier.clickable { onNumber(number) } else Modifier)) {
+                            Label(r.main, if (number != null) Paint.AmberBright else Paint.Sand, size = 15, align = TextAlign.Start, modifier = Modifier.weight(1f), lines = lines)
                             if (r.side.isNotBlank()) Label(r.side, Paint.AmberBright, size = 14)
                         }
                         if (r.under.isNotBlank()) Label(r.under, Paint.Dim, size = 12, align = TextAlign.Start, lines = lines)

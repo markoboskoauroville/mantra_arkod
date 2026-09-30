@@ -525,7 +525,7 @@ object Parcels {
         }
         if (f.burdens.isNotEmpty()) f.burdens.forEach { add(SheetRow("TERETI · uložak ${f.unit}", it)) }
         else add(SheetRow("TERETI · uložak ${f.unit}", "nema upisa", ""))
-        f.parcels.forEach { add(SheetRow("ZK ČESTICE · uložak ${f.unit}", it)) }
+        f.parcels.forEach { add(SheetRow("$HEAD_FOLIO_PARCELS · uložak ${f.unit}", it)) }
     }
 
     fun folioText(f: Folio): String = buildString {
@@ -595,6 +595,14 @@ object Parcels {
      * unit. A heading stays when anything under it matches.
      */
     data class SheetRow(val heading: String, val main: String, val side: String = "", val under: String = "")
+
+    /** The heading of a folio's own parcels (list A), whose numbers are links (v10). */
+    const val HEAD_FOLIO_PARCELS = "ZK ČESTICE"
+
+    /** The parcel number a row of a folio's parcels begins with, "2449/2  DRAGE  1324 m²" → "2449/2". */
+    fun numberIn(row: SheetRow): String? =
+        if (!row.heading.startsWith(HEAD_FOLIO_PARCELS)) null
+        else Regex("""^\*?\d+(/\d+)?""").find(row.main.trim())?.value
 
     fun sheetRows(record: Record): List<SheetRow> = buildList {
         record.uses.forEach { add(SheetRow(HEAD_USE, "${it.name}  ${it.areaM2} m²", "p.l. ${it.sheet}")) }
