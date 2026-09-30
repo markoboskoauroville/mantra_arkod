@@ -337,7 +337,11 @@ object ParcelsShown {
      * with the ARKOD layer hidden (v5: "even when [they] are hidden, when user clicks ... you will
      * outline the invisible [parcel]").
      */
-    fun drawn(): List<Parcels.Mark> = (if (mineOn) marks else emptyList()) + listOfNotNull(selection)
+    fun drawn(): List<Parcels.Mark> = (if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)
+
+    /** The groups of Moje čestice he hid (v8): their parcels stay kept and are not drawn. */
+    @Volatile
+    var hiddenGroups: Set<String> = emptySet()
 
     /** Set by the screen; called by either engine with where the finger landed. */
     @Volatile

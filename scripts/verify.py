@@ -18,11 +18,12 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # cadastre kept ahead. The floor is what is here, and it ratchets from here.
 # v3, 29.9.2026: six cases came with the parcels key, the parcel field's suggestions and Imenik.
 # v5, 30.9.2026: ten cases came with the restyled lines and the parcel caches.
-TEST_FLOOR = 210
+# v8, 30.9.2026: three cases for Moje čestice as files; one came with the state's reason (v6).
+TEST_FLOOR = 214
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
-PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt"]
+PURE = ["Geo.kt", "Track.kt", "Gpx.kt", "GpxRead.kt", "Layers.kt", "Keys.kt", "Tracks.kt", "Parcels.kt", "Outline.kt", "Finding.kt", "OwnerBook.kt", "ParcelStyle.kt", "ParcelCache.kt", "MarkFile.kt"]
 
 failures, checks = [], []
 
@@ -937,11 +938,11 @@ check("the parcels key hides the cadastre and a long press opens Parcel view",
       "a tap is the overlay, a hold is its view settings")
 check("only my parcels wins over the key, in one rule both engines read",
       "fun visibility(cadastreOn: Boolean, onlyMine: Boolean)" in (MAIN / "Parcels.kt").read_text()
-      and "(if (mineOn) marks else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
+      and "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text(),
       "Parcels.visibility decides; ParcelsShown draws it")
 check("Google's field is on all three maps when there is a key, the parcel field under it",
-      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(book, caches)" in screens
-      and screens.index("PlaceField(store)") < screens.index("ParcelField(book, caches)"),
+      "if (googleUsable) PlaceField(store)" in screens and "if (parcelSearchOn) ParcelField(store, book, caches)" in screens
+      and screens.index("PlaceField(store)") < screens.index("ParcelField(store, book, caches)"),
       "not tied to the Google map; the parcel field shown or hidden in Parcel view")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
@@ -956,7 +957,7 @@ check("the Show/hide ARKOD layer key brings every parcel back, even from Only Mo
       "if (onlyMine) {\n                            onlyMine = false" in screens and '"ARKOD layer shown"' in screens,
       "he could not get them back from the key (30.9.2026)")
 check("a tap outlines the parcel under it even with the layer hidden",
-      "(if (mineOn) marks else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text()
+      "(if (mineOn) marks.filter { it.group !in hiddenGroups } else emptyList()) + listOfNotNull(selection)" in (MAIN / "ParcelNet.kt").read_text()
       and "select(null)\n            return\n        }\n        if (Canvases.currentZoom()" not in screens,
       "the selection is drawn whatever the layer shows")
 check("no pločice anywhere the user reads",
@@ -976,6 +977,21 @@ check("the app is called ARKOD Layer",
       "<string name=\"app_name\">ARKOD Layer</string>" in (ROOT / "app/src/main/res/values/strings.xml").read_text(),
       "his choice, 30.9.2026")
 
+
+
+# V8, 30.9.2026: Moje čestice as files, groups with their look, the history of every search box.
+check("Moje čestice go out as a file and come in from one, as a group named after it",
+      "MarkImports.share(this, group, marks)" in activity and "MarkImports.uriOf(intent)" in activity
+      and "androidx.core.content.FileProvider" in (ROOT / "app/src/main/AndroidManifest.xml").read_text()
+      and 'Action("Import a file"' in screens,
+      "share sheet out; picker, VIEW and SEND in")
+check("each group has its colour, line, weight and can be hidden",
+      "onGroup(group.copy(colour = option))" in screens and "onGroup(group.copy(visible = !group.visible))" in screens
+      and "it.group !in hiddenGroups" in (MAIN / "ParcelNet.kt").read_text(),
+      "the file's look for all its parcels")
+check("every search box offers what was searched before",
+      screens.count("history = history,") >= 2 and 'store.history("mine-" + by.name)' in screens,
+      "Google's field, the čestica field, Moje čestice")
 
 print(f"\n{len(checks)} checks, {len(failures)} failed")
 if failures:

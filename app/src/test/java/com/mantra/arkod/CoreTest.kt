@@ -1864,4 +1864,57 @@ ORA-01000: maximum open cursors exceeded
             Parcels.stateReason("<ServiceExceptionReport><ServiceException code=\"ForbiddenFormat\">\n      Creating maps using KML is not allowed\nDetails:</ServiceException>"))
         assertNull(Parcels.stateReason(""))
     }
+
+    // --- v8 (30.9.2026): Moje čestice as files, in groups, each with its look -------------------
+
+    private val ring = listOf(44.0 to 15.0, 44.0 to 15.001, 44.001 to 15.001, 44.001 to 15.0)
+
+    @Test fun aGroupGoesOutAsAFileAndComesBackUnderTheFilesName() {
+        val g = MarkFile.Group("Obitelj Boško", 0xFFE040FBL, Parcels.LineStyle.DOTTED, ParcelStyle.Weight.BOLD)
+        val marks = listOf(
+            Parcels.Mark("334723-2449/2", "2449/2", 0L, listOf(ring), 99L, name = "baka Ivana", group = "Obitelj Boško"),
+            Parcels.Mark("334723-529/4", "529/4", 0L, emptyList(), 98L, group = "Obitelj Boško"),
+        )
+        val text = MarkFile.encode(g, marks)
+        val read = MarkFile.decode(text, "Obitelj Boško (1).arkod.json")!!
+        assertEquals("Obitelj Boško (1)", read.group.name)
+        assertEquals(0xFFE040FBL, read.group.colour)
+        assertEquals(Parcels.LineStyle.DOTTED, read.group.style)
+        assertEquals(ParcelStyle.Weight.BOLD, read.group.weight)
+        assertEquals(listOf("2449/2", "529/4"), read.marks.map { it.number })
+        assertTrue(read.marks.all { it.group == "Obitelj Boško (1)" && it.colour == 0xFFE040FBL && it.style == Parcels.LineStyle.DOTTED })
+        assertEquals(listOf(ring), read.marks[0].rings)
+        assertEquals("baka Ivana", read.marks[0].name)
+        // No name from the phone: the name inside. Not ours, or empty: nothing.
+        assertEquals("Obitelj Boško", MarkFile.decode(text, null)!!.group.name)
+        assertNull(MarkFile.decode("{\"kind\":\"other\"}", "x.json"))
+        assertNull(MarkFile.decode("not json", "x.json"))
+        assertEquals("Obitelj Boško.arkod.json", MarkFile.fileName("Obitelj Boško"))
+        assertEquals("a b.arkod.json", MarkFile.fileName("a/b"))
+    }
+
+    @Test fun aFileReplacesItsOwnGroupAndTakesItsParcelsFromOthers() {
+        val mine = Parcels.Mark("334723-1", "1", 1L, emptyList())
+        val moving = Parcels.Mark("334723-2", "2", 1L, emptyList())
+        val old = Parcels.Mark("334723-3", "3", 1L, emptyList(), group = "Obitelj")
+        val read = MarkFile.Read(MarkFile.Group("Obitelj"), listOf(moving.copy(group = "Obitelj")))
+        val (marks, groups) = MarkFile.importInto(listOf(mine, moving, old), emptyList(), read)
+        assertEquals(listOf("334723-1" to "", "334723-2" to "Obitelj"), marks.map { it.reference to it.group })
+        assertEquals(listOf("Obitelj"), groups.map { it.name })
+    }
+
+    @Test fun aGroupsLookIsEveryOneOfItsParcelsAndSurvivesThePhone() {
+        val g = MarkFile.Group("Obitelj", 0xFF60A5FAL, Parcels.LineStyle.SOLID, ParcelStyle.Weight.FINE, visible = false)
+        val m = listOf(Parcels.Mark("334723-1", "1", 1L, emptyList(), group = "Obitelj"), Parcels.Mark("334723-2", "2", 1L, emptyList()))
+        val r = MarkFile.restyle(m, g)
+        assertEquals(0xFF60A5FAL, r[0].colour)
+        assertEquals(ParcelStyle.Weight.FINE, r[0].weight)
+        assertEquals(1L, r[1].colour)
+        assertEquals(listOf(g), MarkFile.decodeGroups(MarkFile.encodeGroups(listOf(g))))
+        assertEquals(listOf("", "Obitelj"), MarkFile.groupsIn(m, listOf(g)).map { it.name })
+        // The phone's own line of a mark keeps its group and weight.
+        val back = Parcels.decode(Parcels.encode(r)).first()
+        assertEquals("Obitelj", back.group)
+        assertEquals(ParcelStyle.Weight.FINE, back.weight)
+    }
 }

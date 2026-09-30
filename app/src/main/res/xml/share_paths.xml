@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Moje čestice files go out from the cache folder's "share" directory, and nothing else (v8). -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

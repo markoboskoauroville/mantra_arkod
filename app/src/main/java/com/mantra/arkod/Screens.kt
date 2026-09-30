@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -127,6 +128,9 @@ fun ArkodApp(
     onTestTiles: () -> Unit,
     onTestKey: (Keyring.Key) -> Unit,
     onRemoveKey: (Keyring.Key) -> Unit,
+    // v8: Moje čestice as files, in and out.
+    onImportMarks: () -> Unit,
+    onShareMarks: (MarkFile.Group, List<Parcels.Mark>) -> Unit,
 ) {
     var layer by remember { mutableStateOf(Layers.byId(store.layerId)) }
     var settings by remember { mutableStateOf(false) }
@@ -176,6 +180,9 @@ fun ArkodApp(
     // THE CADASTRE (27.9.2026) and MY PARCELS (29.9.2026). The parcels are always on the map; a
     // tap on one opens its record; the ones he keeps are his, each in its colour and line.
     var marks by remember { mutableStateOf(store.parcelMarks) }
+    // THE GROUPS OF MOJE ČESTICE (v8): his own, and one for every file opened, each in its look.
+    var groups by remember { mutableStateOf(store.markGroups) }
+    val incoming by MarkImports.incoming.collectAsState()
     var parcelColour by remember { mutableLongStateOf(store.parcelColour) }
     var parcelStyle by remember { mutableStateOf(store.parcelStyle) }
     var card by remember { mutableStateOf<ParcelCard?>(null) }
@@ -400,6 +407,27 @@ fun ArkodApp(
 
     LaunchedEffect(myParcels) { if (myParcels) fillShapes() }
 
+    fun setGroups(next: List<MarkFile.Group>) {
+        groups = next
+        store.markGroups = next
+        ParcelsShown.hiddenGroups = next.filter { !it.visible }.map { it.name }.toSet()
+        Canvases.refreshParcels()
+    }
+
+    LaunchedEffect(Unit) { ParcelsShown.hiddenGroups = groups.filter { !it.visible }.map { it.name }.toSet() }
+
+    // A FILE OPENED (v8), from the picker or sent to the app: its parcels become a group.
+    LaunchedEffect(incoming) {
+        val read = incoming ?: return@LaunchedEffect
+        val (m, g) = MarkFile.importInto(marks, groups, read)
+        setMarks(m)
+        setGroups(g)
+        MarkImports.done()
+        Trail.say("Uvezeno: ${read.group.name} · ${read.marks.size} čestica")
+        myParcels = true
+        fillShapes()
+    }
+
     // WHAT THE PARCELS KEY AND PARCEL VIEW SAY IS DRAWN, told to the map whenever either changes.
     LaunchedEffect(cadastreOn, onlyMine, ready) {
         val (state, mine) = Parcels.visibility(cadastreOn, onlyMine)
@@ -507,7 +535,7 @@ fun ArkodApp(
             // TWO FIELDS ON THE MAP (29.9.2026, v3): Google's on all three maps when there is a
             // key, the answer pinned on whichever map is up; the parcel field under it.
             if (googleUsable) PlaceField(store) { hit -> showPlace(hit) }
-            if (parcelSearchOn) ParcelField(book, caches) { hit -> scope.launch { showFoundParcel(hit) } }
+            if (parcelSearchOn) ParcelField(store, book, caches) { hit -> scope.launch { showFoundParcel(hit) } }
         }
 
         Column(
@@ -663,6 +691,17 @@ fun ArkodApp(
             MyParcelsFace(
                 store = store,
                 marks = marks,
+                groups = groups,
+                onGroup = { g ->
+                    setGroups(groups.filterNot { it.name == g.name } + g)
+                    setMarks(MarkFile.restyle(marks, g))
+                },
+                onDeleteGroup = { name ->
+                    setMarks(marks.filterNot { it.group == name })
+                    setGroups(groups.filterNot { it.name == name })
+                },
+                onShareGroup = { name -> onShareMarks(MarkFile.groupOf(name, groups, marks), marks.filter { it.group == name }) },
+                onImport = onImportMarks,
                 onParcel = { hit -> myParcels = false; scope.launch { showFoundParcel(hit) } },
                 onPlace = { hit -> myParcels = false; showPlace(hit) },
                 onOpen = { mark -> openMine(mark) },
@@ -2160,6 +2199,11 @@ private enum class SearchBy(val label: String, val hint: String) {
 private fun MyParcelsFace(
     store: Store,
     marks: List<Parcels.Mark>,
+    groups: List<MarkFile.Group>,
+    onGroup: (MarkFile.Group) -> Unit,
+    onDeleteGroup: (String) -> Unit,
+    onShareGroup: (String) -> Unit,
+    onImport: () -> Unit,
     onParcel: (Finding.Hit) -> Unit,
     onPlace: (Finding.Hit) -> Unit,
     onOpen: (Parcels.Mark) -> Unit,
@@ -2178,6 +2222,8 @@ private fun MyParcelsFace(
     var renaming by remember { mutableStateOf<Parcels.Mark?>(null) }
     var confirming by remember { mutableStateOf<String?>(null) }
     var sureAll by remember { mutableStateOf(false) }
+    var styling by remember { mutableStateOf<String?>(null) }
+    var sureGroup by remember { mutableStateOf<String?>(null) }
     val session = remember { java.util.UUID.randomUUID().toString() }
     val scope = rememberCoroutineScope()
 
@@ -2191,6 +2237,7 @@ private fun MyParcelsFace(
         val ko = here
         val words = text.trim()
         if (words.isEmpty()) { line = "upišite što tražite"; return }
+        store.remember("mine-" + by.name, words)
         busy = true
         line = "tražim…"
         hits = emptyList()
@@ -2244,42 +2291,102 @@ private fun MyParcelsFace(
                     Paint.Dim, size = 13, align = TextAlign.Start, lines = 5,
                 )
             }
-            marks.forEach { mark ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Paint.Card)
-                        .clickable { onOpen(mark) }
+            // A FILE IN, AND EACH GROUP OUT (v8): a group is one file, with one look for its parcels.
+            Action("Import a file", R.drawable.ic_folder, onClick = onImport, quiet = true, modifier = Modifier.fillMaxWidth())
+            MarkFile.groupsIn(marks, groups).forEach { group ->
+                val members = marks.filter { it.group == group.name }
+                val title = group.name.ifBlank { "Moje čestice" }
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Paint.Card)
                         .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LineSample(mark.colour, mark.style)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Label(
-                            mark.number + (if (mark.name.isNotBlank()) " · ${mark.name}" else ""),
-                            Paint.Sand, size = 15, align = TextAlign.Start,
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        LineSample(group.colour, group.style)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f).clickable { styling = if (styling == group.name) null else group.name }) {
+                            Label(title, if (group.visible) Paint.Sand else Paint.Dim, size = 15, align = TextAlign.Start)
+                            Label("${members.size} čestica · ${group.weight.word.lowercase()}", Paint.Dim, size = 11, align = TextAlign.Start)
+                        }
+                        IconAction(
+                            if (group.visible) R.drawable.ic_eye else R.drawable.ic_eye_off,
+                            if (group.visible) "shown" else "hidden",
+                            onClick = { onGroup(group.copy(visible = !group.visible)) },
                         )
-                        Label(
-                            "k.o. ${mark.municipality}" + if (mark.rings.isEmpty()) " · obris stiže" else "",
-                            Paint.Dim, size = 11, align = TextAlign.Start,
+                        IconAction(R.drawable.ic_copy, "send", onClick = { onShareGroup(group.name) })
+                    }
+                    if (styling == group.name) {
+                        Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Parcels.SWATCHES.forEach { option ->
+                                Box(
+                                    Modifier.weight(1f).height(28.dp).clip(RoundedCornerShape(7.dp)).background(Color(option))
+                                        .border(1.dp, Look.Outline, RoundedCornerShape(7.dp))
+                                        .clickable { onGroup(group.copy(colour = option)) },
+                                    contentAlignment = Alignment.Center,
+                                ) { if (option == group.colour) Glyph(R.drawable.ic_check, if (option == 0xFF111111L) Paint.Sand else Paint.Ground, size = 16.dp) }
+                            }
+                        }
+                        Choice(
+                            parts = Parcels.LineStyle.entries.map { Part(it.word) },
+                            chosen = Parcels.LineStyle.entries.indexOf(group.style),
+                            onChoose = { onGroup(group.copy(style = Parcels.LineStyle.entries[it])) },
+                            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+                        )
+                        Choice(
+                            parts = ParcelStyle.Weight.entries.map { Part(it.word) },
+                            chosen = ParcelStyle.Weight.entries.indexOf(group.weight),
+                            onChoose = { onGroup(group.copy(weight = ParcelStyle.Weight.entries[it])) },
+                            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+                        )
+                        if (group.name.isNotBlank()) {
+                            Action(
+                                verb = if (sureGroup == group.name) "again: delete this file's parcels" else "Delete this file's parcels",
+                                icon = R.drawable.ic_trash,
+                                onClick = { if (sureGroup == group.name) { onDeleteGroup(group.name); sureGroup = null } else sureGroup = group.name },
+                                quiet = true,
+                                danger = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                }
+                members.forEach { mark ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Paint.Card)
+                            .clickable { onOpen(mark) }
+                            .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LineSample(mark.colour, mark.style)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Label(
+                                mark.number + (if (mark.name.isNotBlank()) " · ${mark.name}" else ""),
+                                Paint.Sand, size = 15, align = TextAlign.Start,
+                            )
+                            Label(
+                                "k.o. ${mark.municipality}" + if (mark.rings.isEmpty()) " · obris stiže" else "",
+                                Paint.Dim, size = 11, align = TextAlign.Start,
+                            )
+                        }
+                        IconAction(R.drawable.ic_edit, null, onClick = { renaming = mark })
+                        IconAction(
+                            R.drawable.ic_trash,
+                            if (confirming == mark.reference) "sigurno?" else null,
+                            onClick = {
+                                if (confirming == mark.reference) {
+                                    onRemove(mark)
+                                    confirming = null
+                                } else {
+                                    confirming = mark.reference
+                                }
+                            },
+                            tint = Paint.Red,
                         )
                     }
-                    IconAction(R.drawable.ic_edit, null, onClick = { renaming = mark })
-                    IconAction(
-                        R.drawable.ic_trash,
-                        if (confirming == mark.reference) "sigurno?" else null,
-                        onClick = {
-                            if (confirming == mark.reference) {
-                                onRemove(mark)
-                                confirming = null
-                            } else {
-                                confirming = mark.reference
-                            }
-                        },
-                        tint = Paint.Red,
-                    )
                 }
             }
             if (marks.size > 1) {
@@ -2355,6 +2462,20 @@ private fun MyParcelsFace(
                 Action("Traži", R.drawable.ic_search, onClick = { find() }, enabled = !busy)
             }
             Label(by.hint, Paint.Dim, size = 11, align = TextAlign.Start)
+            // THE HISTORY OF THIS BOX (v8): a tap searches it again.
+            if (text.isEmpty()) {
+                store.history("mine-" + by.name).take(6).forEach { past ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { text = past; find() }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Glyph(R.drawable.ic_track, Paint.Dim, size = 16.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Label(past, Paint.Sand, size = 14, align = TextAlign.Start)
+                    }
+                }
+            }
             line?.let { Label(it, Paint.Amber, size = 12, align = TextAlign.Start) }
             if (hits.isNotEmpty()) {
                 ResultsList(hits, light = false) { hit ->
@@ -2388,7 +2509,11 @@ private fun MapField(
     @androidx.annotation.DrawableRes icon: Int,
     light: Boolean,
     onSearch: () -> Unit,
+    // v8: what was searched here before, offered when the box is touched and empty.
+    history: List<String> = emptyList(),
+    onForget: () -> Unit = {},
 ) {
+    var focused by remember { mutableStateOf(false) }
     val ink = if (light) Color(0xFF202124) else Paint.Sand
     val dim = if (light) Color(0xFF70757A) else Paint.Dim
     Row(
@@ -2414,10 +2539,31 @@ private fun MapField(
                 cursorBrush = SolidColor(if (light) Color(0xFF1A73E8) else Paint.AmberBright),
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch() }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
             )
         }
         if (text.isNotEmpty()) IconAction(R.drawable.ic_close, null, onClick = { onText("") }, tint = dim)
+    }
+    // THE HISTORY (v8): a tap puts the words back and asks again; nothing is typed twice.
+    if (focused && text.isEmpty() && history.isNotEmpty()) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = GAP).padding(top = 4.dp).clip(RoundedCornerShape(16.dp))
+                .background(if (light) Color.White else Paint.Card),
+        ) {
+            history.forEach { past ->
+                Row(
+                    Modifier.fillMaxWidth().clickable { onText(past) }.padding(horizontal = 16.dp, vertical = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Glyph(R.drawable.ic_track, dim, size = 18.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(past, color = ink, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Row(Modifier.fillMaxWidth().clickable { onForget() }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text("clear history", color = dim, fontSize = 13.sp)
+            }
+        }
     }
 }
 
@@ -2436,6 +2582,7 @@ private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
     var session by remember { mutableStateOf(java.util.UUID.randomUUID().toString()) }
     val scope = rememberCoroutineScope()
     val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    var history by remember { mutableStateOf(store.history("google")) }
 
     suspend fun ask(full: Boolean) {
         val words = text.trim()
@@ -2460,13 +2607,17 @@ private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
             hint = "Search Google Maps",
             icon = R.drawable.ic_search,
             light = true,
-            onSearch = { scope.launch { ask(full = true) } },
+            onSearch = { store.remember("google", text); history = store.history("google"); scope.launch { ask(full = true) } },
+            history = history,
+            onForget = { store.forget("google"); history = emptyList() },
         )
         line?.let { Box(Modifier.padding(horizontal = GAP)) { NoteLine(it) } }
         if (hits.isNotEmpty()) {
             Box(Modifier.padding(horizontal = GAP)) {
                 ResultsList(hits, light = true) { hit ->
                     hits = emptyList()
+                    store.remember("google", text)
+                    history = store.history("google")
                     focus.clearFocus()
                     scope.launch {
                         val placed = PlaceSearch.locate(hit, store, session)
@@ -2489,7 +2640,8 @@ private fun PlaceField(store: Store, onPlace: (Finding.Hit) -> Unit) {
  *  - a name, "jaša anica": Imenik, the holders and owners of every sheet opened on this phone.
  */
 @Composable
-private fun ParcelField(book: List<OwnerBook.Entry>, caches: List<ParcelCache.Cache>, onParcel: (Finding.Hit) -> Unit) {
+private fun ParcelField(store: Store, book: List<OwnerBook.Entry>, caches: List<ParcelCache.Cache>, onParcel: (Finding.Hit) -> Unit) {
+    var history by remember { mutableStateOf(store.history("parcel")) }
     var text by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<Finding.Hit>>(emptyList()) }
     var line by remember { mutableStateOf<String?>(null) }
@@ -2547,12 +2699,16 @@ private fun ParcelField(book: List<OwnerBook.Entry>, caches: List<ParcelCache.Ca
             hint = "broj čestice, pl 1984 ili ime",
             icon = R.drawable.ic_parcels,
             light = false,
-            onSearch = { focus.clearFocus() },
+            onSearch = { store.remember("parcel", text); history = store.history("parcel"); focus.clearFocus() },
+            history = history,
+            onForget = { store.forget("parcel"); history = emptyList() },
         )
         line?.let { Box(Modifier.padding(horizontal = GAP)) { NoteLine(it) } }
         if (hits.isNotEmpty()) {
             Box(Modifier.padding(horizontal = GAP)) {
                 ResultsList(hits, light = false) { hit ->
+                    store.remember("parcel", text)
+                    history = store.history("parcel")
                     hits = emptyList()
                     line = null
                     focus.clearFocus()

@@ -324,7 +324,11 @@ class VtmCanvas(private val context: Context, private val store: Store) {
      */
     private fun lineFor(mark: Parcels.Mark): org.oscim.theme.styles.LineStyle {
         val colour = mark.colour.toInt()
-        val width = if (mark.colour == Parcels.SELECTION) 5f else 6f
+        val width = if (mark.colour == Parcels.SELECTION) 5f else when (mark.weight) {
+            ParcelStyle.Weight.FINE -> 3f
+            ParcelStyle.Weight.NORMAL -> 6f
+            ParcelStyle.Weight.BOLD -> 9f
+        }
         fun stippled(length: Int) = org.oscim.theme.styles.LineStyle(
             0, "", 0x00000000, width, org.oscim.backend.canvas.Paint.Cap.BUTT, true, 0.0,
             length, colour, 1f, 0, 0f, false, null, false, null,

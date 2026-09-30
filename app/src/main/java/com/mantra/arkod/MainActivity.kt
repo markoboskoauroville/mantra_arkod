@@ -98,6 +98,13 @@ class MainActivity : ComponentActivity() {
         addKeysFrom(found.filter { it.provider == Keys.Provider.GOOGLE }.map { it.key })
     }
 
+    // MOJE ČESTICE FROM A FILE (v8).
+    private val pickMarksFile = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) MarkImports.offer(this, uri)
+    }
+
     private val pickExportFolder = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri: Uri? ->
@@ -278,6 +285,9 @@ class MainActivity : ComponentActivity() {
         locator = Locator(this)
         sensors = Sensors(this)
 
+        // A file sent to the app, when it opens with one (v8).
+        MarkImports.uriOf(intent)?.let { MarkImports.offer(this, it) }
+
         setContent {
             ArkodApp(
                 store = store,
@@ -302,6 +312,8 @@ class MainActivity : ComponentActivity() {
                 onTestTiles = ::testTiles,
                 onTestKey = ::testKey,
                 onRemoveKey = ::removeKey,
+                onImportMarks = { pickMarksFile.launch(arrayOf("application/json", "application/octet-stream", "*/*")) },
+                onShareMarks = { group, marks -> MarkImports.share(this, group, marks) },
             )
         }
 
@@ -401,4 +413,12 @@ class MainActivity : ComponentActivity() {
             if (!granted) askLocation.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
         }
     }
+
+    /** A file sent while the app is already open (singleTask): it arrives here (v8). */
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        MarkImports.uriOf(intent)?.let { MarkImports.offer(this, it) }
+    }
+
 }

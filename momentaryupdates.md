@@ -255,7 +255,21 @@ great-grandparents' name did not come through to the session (asked again).
    chat. **Status:** pending.
 2. A file of them that the app imports into Moje čestice. **Status:** pending.
 3. Export and import of Moje čestice as a file: send it, open it in the app on another phone, and
-   it becomes a group in the list under the file's name. **Status:** pending.
+   it becomes a group in the list under the file's name. **Status:** written in v8 (".arkod.json";
+   Import a file; the share icon on a group; "open with ARKOD Layer" from WhatsApp or Files).
 4. Each file (group) has its own styling: colour, line, weight, for all its parcels on the map.
-   **Status:** pending.
+   **Status:** written in v8 (tap the group's name; the eye hides it).
 5. Test all of it on the emulator with these names. **Status:** pending.
+
+> Please remember the search history for all search boxes here and offer it— person click on the
+> search box, there will be history there. So user does not need to type same thing twice, just
+> needs to click on it.
+
+> i don't know if you understand me, but you need to create actually this file with my parcels, and
+> i will download it and then upload it in the app and see— test the styling and see where is my
+> land in this kuklica
+
+6. Search history in every search box, offered when the box is touched. **Status:** written in v8.
+7. The actual file of his family's parcels, sent to him to open in the app. **Status:** the
+   possession sheets of k.o. Kukljica are being read on the Mac (the state's WFS was failing with
+   ORA-01000, so the sheets are read through OSS's search by sheet number instead).

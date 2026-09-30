@@ -90,6 +90,28 @@ class Store(context: Context) {
         get() = prefs.getBoolean(KEY_PARCEL_SEARCH, true)
         set(v) = prefs.edit().putBoolean(KEY_PARCEL_SEARCH, v).apply()
 
+    /**
+     * WHAT WAS SEARCHED, per search box (v8): *"remember the search history for all search boxes
+     * ... person clicks on the search box, there will be history there."* The newest first, each
+     * once, fifteen at most.
+     */
+    fun history(box: String): List<String> =
+        prefs.getString("history-$box", "").orEmpty().split('\n').filter { it.isNotBlank() }
+
+    fun remember(box: String, text: String) {
+        val t = text.trim().replace('\n', ' ')
+        if (t.isEmpty()) return
+        val next = (listOf(t) + history(box).filterNot { it.equals(t, ignoreCase = true) }).take(15)
+        prefs.edit().putString("history-$box", next.joinToString("\n")).apply()
+    }
+
+    fun forget(box: String) = prefs.edit().remove("history-$box").apply()
+
+    /** The groups of Moje čestice with their look (v8), as [MarkFile.encodeGroups] writes them. */
+    var markGroups: List<MarkFile.Group>
+        get() = MarkFile.decodeGroups(prefs.getString(KEY_MARK_GROUPS, null))
+        set(v) = prefs.edit().putString(KEY_MARK_GROUPS, MarkFile.encodeGroups(v)).apply()
+
     /** THE STATE'S LINES (v5): colour (or auto), transparency, weight, from Parcel view. */
     var lines: ParcelStyle.Lines
         get() = ParcelStyle.decode(prefs.getString(KEY_LINES, null))
@@ -198,6 +220,7 @@ class Store(context: Context) {
         private const val KEY_PARCEL_SEARCH = "parcelSearchOn"
         private const val KEY_OWNER_BOOK = "ownerBook"
         private const val KEY_LINES = "lines"
+        private const val KEY_MARK_GROUPS = "markGroups"
         private const val KEY_OWN_LINES = "ownLines"
         private const val KEY_CACHE_OWNERS = "cacheOwners"
         private const val KEY_THEME = "themeName"

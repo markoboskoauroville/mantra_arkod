@@ -710,6 +710,9 @@ object Parcels {
         val id: Long = 0L,
         val style: LineStyle = LineStyle.DASHED,
         val name: String = "",
+        /** The group it is in (v8): blank for the ones he kept himself, else the file it came from. */
+        val group: String = "",
+        val weight: ParcelStyle.Weight = ParcelStyle.Weight.NORMAL,
     ) {
         /** "334723", the cadastral municipality's register number. */
         val municipality: String get() = reference.substringBefore('-', "")
@@ -723,7 +726,8 @@ object Parcels {
     }
 
     /**
-     * One mark a line: reference | number | colour | id | rings | style | name. Corners are
+     * One mark a line: reference | number | colour | id | rings | style | name | group | weight (the
+     * last two since v8; older lines of five or seven fields still read). Corners are
      * "lat,lon" joined by ';', rings by '#'. Six decimals is ten centimetres, finer than the
      * cadastre draws. A line of five fields (no style, no name) is read as dashed and unnamed.
      */
@@ -733,12 +737,12 @@ object Parcels {
         }
         listOf(m.reference.replace("|", ""), m.number.replace("|", ""),
             java.lang.Long.toHexString(m.colour), m.id.toString(), rings, m.style.name,
-            m.name.replace("|", " ").replace("\n", " ")).joinToString("|")
+            m.name.replace("|", " ").replace("\n", " "), m.group.replace("|", " ").replace("\n", " "), m.weight.name).joinToString("|")
     }
 
     fun decode(text: String): List<Mark> = text.split("\n").mapNotNull { line ->
         val f = line.split("|")
-        if ((f.size != 5 && f.size != 7) || f[0].isBlank()) return@mapNotNull null
+        if ((f.size != 5 && f.size != 7 && f.size != 9) || f[0].isBlank()) return@mapNotNull null
         val colour = f[2].toLongOrNull(16) ?: return@mapNotNull null
         val rings = f[4].split("#").filter { it.isNotBlank() }.map { ring ->
             ring.split(";").mapNotNull { pt ->
@@ -750,7 +754,11 @@ object Parcels {
         }.filter { it.size >= 3 }
         val style = f.getOrNull(5)?.let { s -> LineStyle.entries.firstOrNull { it.name == s } } ?: LineStyle.DASHED
         // A mark may have no shape yet: the WFS was slow when it was made, and it is asked again.
-        Mark(f[0], f[1], colour, rings, f[3].toLongOrNull() ?: 0L, style, f.getOrNull(6).orEmpty())
+        Mark(
+            f[0], f[1], colour, rings, f[3].toLongOrNull() ?: 0L, style, f.getOrNull(6).orEmpty(),
+            group = f.getOrNull(7).orEmpty(),
+            weight = f.getOrNull(8)?.let { w -> ParcelStyle.Weight.entries.firstOrNull { it.name == w } } ?: ParcelStyle.Weight.NORMAL,
+        )
     }
 
     /** Kept, re-coloured or re-styled: one parcel is in the list at most once, in its old place. */
