@@ -317,3 +317,17 @@ great-grandparents' name did not come through to the session (asked again).
 3. The family tree, editable by his father. **Status:** with the web page (paused).
 4. The message to his father. **Status:** after the page runs.
 5. The GOO key is a simple Google G, in the icons' single line. **Status:** done in v9.
+
+## 30.9.2026, v10: the numbers on a sheet are links
+
+> also, please in the sheets of any parcel opened there are many numbers, different parcels or should
+> be clickable. When I click it, it just jumps to the map and outlines that parcel And yes, please
+> build this complete web page with the data we have. Also, the user can import this parcel file from
+> this app and it will be drawn on the map. And also next to the name in the family tree, you add all
+> the numbers of the parcel they own. Please build it.
+
+1. Every parcel number on a sheet (the owner sheet lists its folio's parcels) is a link: a tap closes
+   the sheet, goes to the parcel on the map and outlines it. **Status:** pending.
+2. Seen on the way: the GOO key opens satellite, which Google refuses to EEA accounts; the default
+   becomes the road map. The offline map's style names in the settings are still Croatian; English.
+   **Status:** pending.
