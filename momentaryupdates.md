@@ -232,3 +232,30 @@ Read: "Ashaya Afterman" / "Tantra Manifest" are the Yshai Afterman style in MANT
 11. A tap outlines the parcel under the finger even with the layer hidden. **Status:** done in v5; emulator: 3905/82 outlined with the layer hidden.
 12. No "pločice" anywhere in the app; ARKOD's things are čestice. **Status:** done.
 13. The app is called ARKOD Layer. **Status:** done in v5; the launcher shows it.
+
+## 30.9.2026, v8: his family's parcels, and Moje čestice shared as files
+
+> Ivana Boško is grand mother Also in this— in this screenshot, a name of my great-grandparents. So
+> all these parts belongs to me. I need to find what belongs to me in this kuklica. And another name
+> is my grandfather. You need to also find him. Šime boško
+>
+> these are all test terms to find amd test app in emulator
+
+> Please write here all the parcels belongs to this My Family and create a file to be imported to the
+> parcel section inside the app. And you need to develop export-import for My Parcels so parcels can
+> be shared between applications on different phones. So one can just send the file and loaded that
+> app, and then it become part of the list and with file name. And also for each parcel file, user
+> have a choice to create custom styling, color of this for this file and parcels in the map which
+> are going to be marked, lines and other styling
+
+Read: "parts" are parcels; "kuklica" is k.o. KUKLJICA (334723). The screenshot with the
+great-grandparents' name did not come through to the session (asked again).
+
+1. Find every parcel in k.o. Kukljica held or owned by Ivana Boško and Šime Boško; list them in the
+   chat. **Status:** pending.
+2. A file of them that the app imports into Moje čestice. **Status:** pending.
+3. Export and import of Moje čestice as a file: send it, open it in the app on another phone, and
+   it becomes a group in the list under the file's name. **Status:** pending.
+4. Each file (group) has its own styling: colour, line, weight, for all its parcels on the map.
+   **Status:** pending.
+5. Test all of it on the emulator with these names. **Status:** pending.
