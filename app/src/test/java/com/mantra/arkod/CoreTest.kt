@@ -2047,4 +2047,31 @@ ORA-01000: maximum open cursors exceeded
         assertEquals("123.4 MB", Sniff.megabytes(123_400_000))
         assertEquals("400 MB", Sniff.megabytes(400_000_000))
     }
+
+    // --- v13: every kept parcel listed in the settings, in three words -------------------------
+
+    private fun rec(number: String, place: String, vararg names: String) = Parcels.Record(
+        number, "KUKLJICA", "334723", place, "100", emptyList(),
+        listOf(Parcels.Sheet("1", names.map { Parcels.Owner(it, "1/1", "") })),
+    )
+
+    @Test fun theSurnameIsTheWordTheSheetsUseMostWhicheverWayRoundTheNameIsWritten() {
+        val list = Sniff.kept(listOf(
+            rec("2449/2", "DRAGE", "Marinko  Boško"),
+            rec("1358/3", "TESNO MALO", "BOŠKO DENIS, POK. ANTE", "Ivana Boško"),
+            rec("*28", "KUKLJICA", "Edison Boško"),
+            rec("2926/22", "PODFARČE", "GOBIĆ MIROSLAVA, P. KRSTE"),
+        ))
+        assertEquals(listOf("Boško", "Boško", "Boško", "Gobić"), list.map { it.surname })
+        assertEquals("Boško · Drage · KUKLJICA", list.first { it.number == "2449/2" }.words)
+    }
+
+    @Test fun keptParcelsAreInNumberOrderAndNarrowedByAnyOfTheirWords() {
+        val list = Sniff.kept(listOf(rec("2450", "DRAGE", "BOŠKO ANA"), rec("2449/10", "DRAGE", "BOŠKO ANA"), rec("2449/2", "DRAGE", "BOŠKO ANA"), rec("*27", "KUKLJICA", "BOŠKO ANA")))
+        assertEquals(listOf("*27", "2449/2", "2449/10", "2450"), list.map { it.number })
+        assertEquals(listOf("2449/2", "2449/10"), Sniff.filterKept(list, "2449").map { it.number })
+        assertEquals(3, Sniff.filterKept(list, "drage").size)
+        assertEquals(4, Sniff.filterKept(list, "bosko").size)
+        assertEquals(4, Sniff.filterKept(list, "").size)
+    }
 }

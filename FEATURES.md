@@ -46,6 +46,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 29 | The sniffer: with the cache key on, the sheets round the resting map (z16+) and the other parcels of a sheet's folio are read in the background; kept with their owner sheets and outline, into Imenik too | yes (v12) | no (opened 30.9.2026) |
 | 30 | Cache criteria: keywords (surnames, names, places, land uses); with them, a sheet read in the background is kept only when it fits one; what he opens is always kept | yes (v12) | no (opened 30.9.2026) |
 | 31 | The cache key on the map (round, over the key row; long press: settings), and the size of what is kept at the very top of the settings with the Cache switch and the keywords | yes (v12) | no (opened 30.9.2026) |
+| 32 | Every kept parcel listed in the settings: number, surname, place (rudina, k.o.), filtered; a tap opens it from the device | yes (v13) | no (opened 30.9.2026) |
 
 ## The file format (.arkod.json), shared
 

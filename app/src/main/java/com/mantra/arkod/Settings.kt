@@ -78,6 +78,8 @@ fun SettingsFace(
     onChooseExportFolder: () -> Unit,
     folderName: String,
     onClose: () -> Unit,
+    // A kept parcel tapped in the list (v13): the map goes there and its sheet opens.
+    onKeptParcel: (municipality: String, number: String) -> Unit = { _, _ -> },
 ) {
     var theme by remember { mutableStateOf(store.themeName) }
     var googleId by remember { mutableStateOf(store.googleViewId) }
@@ -85,6 +87,9 @@ fun SettingsFace(
     var prefetch by remember { mutableStateOf(store.prefetch) }
     var cacheLabel by remember { mutableStateOf("…") }
     var keywords by remember { mutableStateOf(store.cacheKeywords) }
+    var keptOpen by remember { mutableStateOf(false) }
+    var kept by remember { mutableStateOf<List<Sniff.Kept>?>(null) }
+    var keptFilter by remember { mutableStateOf("") }
     var sureClear by remember { mutableStateOf(false) }
     var pasted by remember { mutableStateOf("") }
     val open = androidx.compose.ui.platform.LocalUriHandler.current
@@ -92,6 +97,9 @@ fun SettingsFace(
 
     LaunchedEffect(Unit) {
         cacheLabel = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { inventoryLine() }
+    }
+    LaunchedEffect(keptOpen) {
+        if (keptOpen && kept == null) kept = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { Sniff.kept(ArkodCache.keptRecords()) }
     }
 
     Box(Modifier.fillMaxSize().background(Paint.Ground)) {
@@ -132,6 +140,7 @@ fun SettingsFace(
                             if (sureClear) {
                                 ArkodCache.clear()
                                 cacheLabel = inventoryLine()
+                                kept = emptyList()
                                 sureClear = false
                             } else {
                                 sureClear = true
@@ -140,6 +149,43 @@ fun SettingsFace(
                         quiet = true,
                         danger = true,
                     )
+                }
+                Hairline()
+                // EVERY KEPT PARCEL (v13): *"all parcels should be listed by its numbers and some data,
+                // maybe in 3 words: last name of the owner/user and the place of Croatia."*
+                Opens("Kept čestice", R.drawable.ic_parcels, under = kept?.let { "${it.size}" } ?: "number, surname, place", onClick = { keptOpen = !keptOpen }, open = keptOpen)
+                if (keptOpen) {
+                    val all = kept
+                    if (all == null) Words("reading what is kept…", Paint.Dim, 12, TextAlign.Start, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    else {
+                        Box(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(RoundedCornerShape(10.dp))
+                                .border(1.dp, Look.Outline, RoundedCornerShape(10.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+                        ) {
+                            if (keptFilter.isEmpty()) Words("broj, prezime ili mjesto", Paint.Dim, 14, TextAlign.Start)
+                            androidx.compose.foundation.text.BasicTextField(
+                                value = keptFilter,
+                                onValueChange = { keptFilter = it },
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(color = Paint.Sand, fontSize = 14.sp),
+                                cursorBrush = androidx.compose.ui.graphics.SolidColor(Paint.AmberBright),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        val shown = Sniff.filterKept(all, keptFilter)
+                        shown.take(200).forEach { k ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable { onKeptParcel(k.municipalityReg, k.number) }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(k.number, color = Paint.Sand, fontSize = 14.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.width(84.dp))
+                                Words(k.words, Paint.Dim, 13, TextAlign.Start, Modifier.weight(1f))
+                            }
+                        }
+                        if (shown.size > 200) Words("and ${shown.size - 200} more: type to narrow", Paint.Dim, 12, TextAlign.Start, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                        if (all.isEmpty()) Words("none yet: a sheet you open, or one the cache reads, is kept", Paint.Dim, 12, TextAlign.Start, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                    }
                 }
                 Hairline()
                 Toggle("Cache", R.drawable.ic_sniff, on = prefetch, onChange = {

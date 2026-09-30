@@ -134,6 +134,23 @@ object ArkodCache {
 
     fun shape(reference: String): String? = shapeFile(reference)?.takeIf { it.exists() }?.let { runCatching { it.readText() }.getOrNull() }
 
+    /**
+     * EVERY PARCEL WHOSE SHEET IS KEPT (v13), read back from the kept answers for the settings'
+     * list: a possession sheet is the answer with "possessionSheets" in it. Each parcel once.
+     */
+    fun keptRecords(): List<Parcels.Record> {
+        val dir = root?.let { File(it, "answers") } ?: return emptyList()
+        return dir.walkTopDown().filter { it.isFile && it.name.endsWith(".json") }
+            .mapNotNull { f ->
+                runCatching { f.readText() }.getOrNull()
+                    ?.takeIf { it.contains("\"possessionSheets\"") }
+                    ?.let { t -> runCatching { Parcels.parseRecord(t) }.getOrNull() }
+            }
+            .filter { it.number.isNotBlank() && it.municipalityNumber.isNotBlank() }
+            .distinctBy { it.municipalityNumber to it.number }
+            .toList()
+    }
+
     /** What the phone keeps, counted, for the top of the settings (v12). */
     data class Inventory(val bytes: Long, val tiles: Int, val answers: Int, val shapes: Int)
 

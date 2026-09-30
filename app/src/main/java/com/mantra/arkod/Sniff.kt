@@ -76,4 +76,51 @@ object Sniff {
         bytes < 10_000_000_000 -> "%.1f MB".format(java.util.Locale.ROOT, bytes / 1_000_000.0).replace(".0 MB", " MB")
         else -> "${bytes / 1_000_000_000} GB"
     }
+
+    // --- every kept parcel, in three words (v13) -------------------------------------------------
+
+    /**
+     * One kept parcel as the settings list it: *"all parcels should be listed by its numbers and some
+     * data, maybe in 3 words: last name of the owner/user and the place of Croatia."*
+     */
+    data class Kept(val number: String, val municipalityReg: String, val municipality: String, val place: String, val surname: String) {
+        val words: String get() = listOf(surname, place.lowercase().replaceFirstChar { it.uppercase() }, municipality)
+            .filter { it.isNotBlank() }.joinToString(" · ")
+    }
+
+    /** Words on a name that are not a person's: "pok.", "ud.", "r.", "zv.", "p.", "sin", "kći", "ž". */
+    private val NOT_NAMES = setOf("pok", "ud", "r", "rod", "zv", "p", "z", "sin", "kci", "zena", "i", "dr")
+
+    private fun nameWords(name: String): List<String> =
+        Finding.fold(name).split(Regex("""[^a-z]+""")).filter { it.length > 1 && it !in NOT_NAMES }
+
+    /**
+     * THE SURNAME. The state writes "BOŠKO DENIS" and "Marinko Boško" on the same sheet, so the order
+     * says nothing. A surname repeats: across every kept sheet the word used most is the family's
+     * name. Each parcel takes, of its first holder's words, the one used most everywhere.
+     */
+    fun kept(records: List<Parcels.Record>): List<Kept> {
+        val counts = HashMap<String, Int>()
+        records.forEach { r -> r.sheets.flatMap { it.owners }.forEach { o -> nameWords(o.name).distinct().forEach { counts[it] = (counts[it] ?: 0) + 1 } } }
+        return records.map { r ->
+            val first = r.sheets.flatMap { it.owners }.firstOrNull()
+            val word = first?.let { o -> nameWords(o.name).maxByOrNull { counts[it] ?: 0 } }
+            val surname = word?.let { w ->
+                first.name.split(Regex("""[\s,.]+""")).firstOrNull { Finding.fold(it) == w }
+                    ?.lowercase()?.replaceFirstChar { it.uppercase() } ?: w
+            }.orEmpty()
+            Kept(r.number, r.municipalityNumber, r.municipality, r.address, surname)
+        }.sortedWith(compareBy<Kept>({ it.municipality }, { numberKey(it.number) }))
+    }
+
+    /** "2449/2" before "2449/10" before "2450"; "*27" with the numbers. */
+    private fun numberKey(n: String): String =
+        n.trimStart('*').split('/').joinToString("/") { it.padStart(6, '0') }
+
+    /** The list narrowed by what he typed: number, surname, place or k.o., without diacritics. */
+    fun filterKept(list: List<Kept>, text: String): List<Kept> {
+        val q = Finding.fold(text).trim()
+        if (q.isEmpty()) return list
+        return list.filter { k -> Finding.fold("${k.number} ${k.surname} ${k.place} ${k.municipality}").contains(q) }
+    }
 }

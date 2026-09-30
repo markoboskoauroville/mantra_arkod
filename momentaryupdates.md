@@ -442,4 +442,8 @@ Read: he speaks his requests and the transcription writes ARKOD as "QR", "R code
 
 1. Under "Kept on this phone", every parcel whose sheet is kept, by its number, with three words: the
    surname on it (holder or owner) and the place (rudina and k.o.). A filter; a tap goes to the parcel
-   and opens its sheet. **Status:** in progress.
+   and opens its sheet. **Status:** done in v13 (Sniff.kept, 2 cases): "Kept čestice" in "Kept on this
+   phone", ordered by k.o. and number, e.g. "2449/2 · Boško · Drage · KUKLJICA", a filter (number,
+   surname or place), 200 at a time. The surname is the word the kept sheets use most, because the
+   state writes "BOŠKO DENIS" and "Marinko Boško" on the same sheet. A tap goes there with the kept
+   outline and opens the sheet from the phone, with no signal.

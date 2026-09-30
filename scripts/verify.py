@@ -21,7 +21,8 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v8, 30.9.2026: three cases for Moje čestice as files; one came with the state's reason (v6).
 # v11, 30.9.2026: six cases for the parcel field that finds a number wherever the map is, one for outlines kept one by one.
 # v12, 30.9.2026: five cases for the sniffer and its cache criteria.
-TEST_FLOOR = 227
+# v13, 30.9.2026: two cases for every kept parcel listed in three words.
+TEST_FLOOR = 229
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -970,6 +971,11 @@ check("the size of what the phone keeps is the first thing in the settings (v12)
       settings_src.index('Group("Kept on this phone")') < settings_src.index('Group("Moje čestice")')
       and "ArkodCache.inventory()" in settings_src and "Cache criteria (keywords)" in settings_src,
       "MB, ARKOD tiles, sheets and answers, outlines; the Cache switch; the keywords")
+check("every kept parcel is listed in the settings in three words (v13): number, surname, place; a tap opens it from the phone",
+      'Opens("Kept čestice"' in settings_src and "Sniff.kept(ArkodCache.keptRecords())" in settings_src
+      and "Sniff.filterKept(all, keptFilter)" in settings_src and "suspend fun openKept(" in screens
+      and "scope.launch { openKept(m, n) }" in screens,
+      "surname = the word the kept sheets use most; ordered by k.o. and number")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

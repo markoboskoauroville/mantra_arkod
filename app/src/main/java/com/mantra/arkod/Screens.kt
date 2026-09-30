@@ -390,6 +390,23 @@ fun ArkodApp(
         Trail.say("$number · dodirnite ponovno za list")
     }
 
+    /**
+     * A KEPT PARCEL FROM THE SETTINGS' LIST (v13): its outline and id are on the phone, so the map
+     * goes there and the sheet opens from the phone, with no signal. Else as a number on a sheet.
+     */
+    suspend fun openKept(municipality: String, number: String) {
+        val ref = "$municipality-$number"
+        val p = ParcelQuery.decodeShape(kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ArkodCache.shape(ref) })
+            ?: marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { Parcels.Parcel(it.id, it.number, it.reference, null, it.rings) }
+        if (p == null || p.id <= 0L) { goToNumber(municipality, number); return }
+        select(p)
+        val (lat, lon) = p.middle
+        ParcelsShown.pin = lat to lon
+        Canvases.refreshParcels()
+        Canvases.goTo(lat, lon, 18)
+        openCard(p)
+    }
+
     /** One of my parcels, chosen from the list: the map goes to it and its sheet opens. */
     fun openMine(mark: Parcels.Mark) {
         val p = Parcels.Parcel(mark.id, mark.number, mark.reference, null, mark.rings)
@@ -973,6 +990,7 @@ fun ArkodApp(
                 trackCount = remember(UiTick.n, settings) { tracks().size },
                 onChooseExportFolder = onChooseExportFolder,
                 folderName = store.exportFolderName ?: "not chosen yet",
+                onKeptParcel = { m, n -> settings = false; scope.launch { openKept(m, n) } },
                 onClose = {
                     settings = false
                     // The switch and the keywords may have changed there.
