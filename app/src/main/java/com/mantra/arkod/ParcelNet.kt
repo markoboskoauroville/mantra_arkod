@@ -96,6 +96,20 @@ object ParcelNet {
     }
 
     /**
+     * CHECK NOW, UNTIL IT ANSWERS (v19): up to three tries ([Services.CHECK_WAITS]), each said through
+     * [onTry]; true as soon as the service answers.
+     */
+    suspend fun checkUntilBack(service: Services.Service, onTry: (Int) -> Unit): Boolean {
+        Services.CHECK_WAITS.forEachIndexed { i, wait ->
+            if (wait > 0) kotlinx.coroutines.delay(wait)
+            onTry(i + 1)
+            check(service)
+            if (Services.light(Services.health.value[service]) == Services.Light.GREEN) return true
+        }
+        return false
+    }
+
+    /**
      * FOR THE SNIFFER (v12): the state's answer, read but NOT kept; the sniffer keeps it only when
      * it fits his cache criteria. Kept already: from the phone, nothing asked.
      */

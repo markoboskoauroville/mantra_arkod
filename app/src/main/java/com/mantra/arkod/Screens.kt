@@ -348,6 +348,16 @@ fun ArkodApp(
             scope.launch {
                 store.serviceLog = Services.encodeLog(Services.log.value)
                 Trail.say(Services.said(e) { clock.format(java.util.Date(it)) })
+                // MAKE IT WORK (v19): a service back, what waited for it is done at once.
+                if (e.online) when (e.service) {
+                    Services.Service.WMS -> { Canvases.reloadCadastre(); Trail.say("${clock.format(java.util.Date(e.at))} WMS back online · the ARKOD layer is drawn again") }
+                    Services.Service.WFS -> { Trail.say("${clock.format(java.util.Date(e.at))} WFS back online · missing outlines asked"); fillShapes() }
+                    Services.Service.OSS, Services.Service.ZK -> card?.takeIf { it.problem != null || it.folioProblem != null }?.let { c ->
+                        Trail.say("${clock.format(java.util.Date(e.at))} ${e.service.short} back online · the sheet is read again")
+                        openCard(c.parcel)
+                    }
+                    else -> Unit
+                }
             }
         }
     }

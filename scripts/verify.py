@@ -24,7 +24,8 @@ TESTS = ROOT / "app/src/test/java/com/mantra/arkod/CoreTest.kt"
 # v13, 30.9.2026: two cases for every kept parcel listed in three words.
 # v14, 30.9.2026: two cases for the service lights.
 # v16, 30.9.2026: three cases for fly-through scanning and the service log.
-TEST_FLOOR = 234
+# v19, 30.9.2026: one case for Check now.
+TEST_FLOOR = 235
 
 # The files Test 1 runs against on a desk. They may not reach for Android, or the mechanism can
 # only be tested in an emulator and it stops being tested at all.
@@ -1005,6 +1006,10 @@ check("help in English and Croatian (v18): two pages in the assets, 14 sections 
       help_ok and 'Group("Help")' in settings_src and 'onHelp("hr")' in settings_src and "file:///android_asset/help/$lang.html" in settings_src
       and "HelpFace(lang) { help = null }" in screens,
       "assets/help/en.html, hr.html; a WebView with its own close; Back closes it")
+check("Check now next to a service that is down (v19): three tries said on the row; a service back redraws the layer, fetches missing outlines, reads the sheet again",
+      "ParcelNet.checkUntilBack(sv)" in settings_src and "light != Services.Light.GREEN && sv != Services.Service.GOOGLE" in settings_src
+      and "Services.Service.WMS -> { Canvases.reloadCadastre()" in screens and "fillShapes() }" in screens and "openCard(c.parcel)" in screens,
+      "WMS: the ARKOD layer again; WFS: missing outlines; KAT/ZK: the open sheet")
 check("both fields answer as he types",
       "LaunchedEffect(text) {" in screens and "ParcelNet.suggest(" in screens and "OwnerBook.search(book, words)" in screens,
       "Places autocomplete, OSS numbers, and Imenik for names")

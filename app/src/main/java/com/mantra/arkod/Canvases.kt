@@ -73,6 +73,11 @@ object Canvases {
         vtm?.drawPin(ParcelsShown.pin)
     }
 
+    /** The WMS is back (v19): the failed ARKOD tiles are asked again. */
+    fun reloadCadastre() {
+        vtm?.reloadCadastre()
+    }
+
     /** A found parcel: the map goes there. */
     fun goTo(lat: Double, lon: Double, zoom: Int) {
         vtm?.goTo(lat, lon, zoom)

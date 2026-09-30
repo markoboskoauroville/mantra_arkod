@@ -87,6 +87,19 @@ object Services {
         }
     }
 
+    /**
+     * "CHECK NOW" ON ONE SERVICE (v19): *"next to the offline services inside the settings ... just add
+     * the button check now so it can be checked now and maybe make online and make it work."* Three
+     * tries, the second after 5 s and the third after 10 s (the state's database often comes back
+     * within seconds), stopping at the first answer.
+     */
+    val CHECK_WAITS = listOf(0L, 5_000L, 10_000L)
+
+    fun tryLine(attempt: Int, of: Int): String = "checking… try $attempt of $of"
+
+    fun checkedLine(back: Boolean, h: Health?): String =
+        if (back) "back online" else "still offline" + (h?.reason?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: "")
+
     /** Whether a service should be asked by the light check: not heard from for [everyMs]. */
     fun due(h: Health?, now: Long, everyMs: Long): Boolean = h == null || now - maxOf(h.okAt, h.failAt) >= everyMs
 

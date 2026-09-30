@@ -528,7 +528,11 @@ Read: "playground" is the app as a whole, the map and everything on it.
 
 1. In Settings → Services, a "Check now" button on each red (or grey) service: it asks that service
    again, up to three times (5 s, then 10 s apart), says each try on the row, and the light turns green
-   the moment it answers. **Status:** in progress.
+   the moment it answers. **Status:** done in v19 (1 case): the button counts its tries, then says "back
+   online" (green) or "still offline · <the state's reason>". Google has no button (every request is on
+   his key): its row says it is asked again when the GOO map opens.
 2. "Make it work": when a service comes back (from the button or by itself), what was waiting for it is
    done at once: the ARKOD layer redrawn (WMS), outlines still missing fetched (WFS), an open sheet that
-   could not be read read again (KAT, ZK). **Status:** in progress.
+   could not be read read again (KAT, ZK). **Status:** done in v19, each said on the map ("16:40 WFS
+   back online · missing outlines asked"). Both help pages say so (section 11, and "A service is red"
+   in section 14).

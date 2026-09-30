@@ -290,6 +290,17 @@ class VtmCanvas(private val context: Context, private val store: Store) {
         drawPin(ParcelsShown.pin)
     }
 
+    /**
+     * THE ARKOD SERVICE IS BACK (v19): the layer is made again whatever its look, so the tiles that
+     * failed while the WMS was down are asked again at once.
+     */
+    fun reloadCadastre() {
+        if (!ParcelsShown.on) return
+        placeCadastre()
+        map.clearMap()
+        map.updateMap(true)
+    }
+
     /** The switch in the parcels panel, and a change of ink: the layer is made again or taken off. */
     fun refreshCadastre() {
         if (ParcelsShown.on == (cadastreLayer != null) && cadastreLook == ParcelsShown.look()) return

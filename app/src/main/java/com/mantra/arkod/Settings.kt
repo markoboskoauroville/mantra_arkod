@@ -1,5 +1,6 @@
 package com.mantra.arkod
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,6 +89,9 @@ fun SettingsFace(
 ) {
     val services by Services.health.collectAsState()
     val serviceLog by Services.log.collectAsState()
+    // CHECK NOW, ONE SERVICE (v19): what each row's own check is doing.
+    var checking by remember { mutableStateOf<Map<Services.Service, String>>(emptyMap()) }
+    val checkScope = androidx.compose.runtime.rememberCoroutineScope()
     var logOpen by remember { mutableStateOf(false) }
     val clock = remember { java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT) }
     var theme by remember { mutableStateOf(store.themeName) }
@@ -243,6 +247,26 @@ fun SettingsFace(
                             )
                             Words(sv.does, Paint.Dim, 12, TextAlign.Start)
                             if (light == Services.Light.RED) Words("While it is down: ${sv.whenDown}", Paint.Sand, 12, TextAlign.Start)
+                            checking[sv]?.takeIf { !it.startsWith("checking") }?.let { Words(it, if (it == "back online") Color(0xFF34D399) else Paint.AmberBright, 12, TextAlign.Start) }
+                            // CHECK NOW, NEXT TO A SERVICE THAT IS DOWN (v19): asked again, up to three
+                            // times; green the moment it answers, and what waited for it is done then.
+                            if (light != Services.Light.GREEN && sv != Services.Service.GOOGLE) {
+                                val busy = checking[sv]?.startsWith("checking") == true
+                                Action(
+                                    verb = if (busy) checking[sv].orEmpty() else "Check now",
+                                    icon = R.drawable.ic_play,
+                                    onClick = {
+                                        if (!busy) checkScope.launch {
+                                            val back = ParcelNet.checkUntilBack(sv) { i -> checking = checking + (sv to Services.tryLine(i, Services.CHECK_WAITS.size)) }
+                                            checking = checking + (sv to Services.checkedLine(back, Services.health.value[sv]))
+                                        }
+                                    },
+                                    quiet = true,
+                                )
+                            }
+                            if (light == Services.Light.RED && sv == Services.Service.GOOGLE) {
+                                Words("Google is asked again when you open the GOO map (every request is on your key).", Paint.Dim, 12, TextAlign.Start)
+                            }
                         }
                     }
                 }

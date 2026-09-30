@@ -51,6 +51,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 34 | Fly-through scanning: the airplane key; he writes any words; wherever the map rests (z16+) the parcels in view are read and every one whose sheet mentions them is outlined (magenta, bold) and selected; every step on the line ("scanning 14/25 · 9 sheets read · found 1", "found 2449/2 · selecting") | yes (v16) | yes (web v3) |
 | 35 | The service log: every service going down or coming back said on the map at once and kept with the time and the reason; read back in the settings, with why the state's services fail and what the app does about it | yes (v16) | yes (web v3) |
 | 36 | Help in English and Croatian: what every part of the screen is, how it works underneath, how to use it (14 sections), the same two pages in both apps; Settings → Help | yes (v18) | yes (web v4) |
+| 37 | Check now next to every service that is down (Settings → Services): three tries (at once, 5 s, 10 s), each said on the button, green the moment it answers; a service back does what waited for it (WMS: the layer drawn again; WFS: missing outlines; KAT, ZK: the open sheet read again) | yes (v19) | yes (web v5) |
 
 ## The file format (.arkod.json), shared
 

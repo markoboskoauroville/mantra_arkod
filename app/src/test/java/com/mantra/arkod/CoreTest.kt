@@ -2146,4 +2146,14 @@ ORA-01000: maximum open cursors exceeded
         assertEquals(Services.log.value, back)
         assertTrue(Services.decodeLog("rubbish\n1|NOPE|1|x").isEmpty())
     }
+
+    // --- v19: Check now on a service that is down ------------------------------------------
+
+    @Test fun checkNowTriesThreeTimesAndSaysHowItWent() {
+        assertEquals(listOf(0L, 5_000L, 10_000L), Services.CHECK_WAITS)
+        assertEquals("checking… try 2 of 3", Services.tryLine(2, 3))
+        assertEquals("back online", Services.checkedLine(true, null))
+        assertEquals("still offline · ORA-01000", Services.checkedLine(false, Services.Health(failAt = 5, reason = "ORA-01000")))
+        assertEquals("still offline", Services.checkedLine(false, null))
+    }
 }
