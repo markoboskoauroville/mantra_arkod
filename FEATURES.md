@@ -41,6 +41,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 24 | Settings in English; the cadastre's words in Croatian (čestica, posjedovni list, vlasnički list, k.o.) | yes (v3) | yes (web v1) |
 | 25 | Track recording to GPX, tracks list | yes | n/a (a browser cannot record in the background) |
 | 26 | Compass | n/a (removed at his word, v3) | n/a |
+| 27 | Full-screen key on the map: only the map and that key are visible; the same key leaves full screen (a key, never a tap in the middle, which v1 removed) | no (opened 30.9.2026) | yes (web v2) |
 
 ## The file format (.arkod.json), shared
 

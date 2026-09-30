@@ -358,3 +358,14 @@ from Safari. Built in its own repository, `markoboskoauroville/arkod_web`, by a 
 2. The repository `arkod_web`, made here (a cloud session cannot create one), with this request in it.
    **Status:** done.
 3. The prompt for the cloud session. **Status:** written in the chat, 30.9.2026.
+
+## 30.9.2026, from the web app: a full-screen key
+
+The web app (arkod_web v2) got it at Marko's word, and FEATURES.md row 27 opens it here:
+
+> And on the website, please add for map the full screen so it can be spread to the full screen with
+> full screen icon, which will be only thing visible in the full screen. Go out of the full screen.
+
+1. A full-screen key on the map. In full screen, only the map and that key are visible; the same key
+   leaves. It is not the Trail's tap-in-the-middle full screen, which v1 removed at his word: a tap in
+   the middle still selects the parcel. **Status:** open, for the next Android session.
