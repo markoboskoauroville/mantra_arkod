@@ -338,3 +338,23 @@ great-grandparents' name did not come through to the session (asked again).
 3. FILE beside TXT and CPY on every sheet: the parcel as one .arkod.json, sent through the phone's
    share sheet; opened in the app it becomes a group named "Čestica 2449-2 k.o. KUKLJICA".
    **Status:** written in v10.
+
+## 30.9.2026, the web app for the iPhone, built in a cloud session, in step with this one
+
+> Is it possible to convert this app to have 2 installations for iPhone and for Android, which we have,
+> but iPhone is missing? Is it possible to build it in the same page, build page, so user can by
+> himself install it out of their store?
+
+> okay, so let's build the web app then , But I want to build it in CloudSession. Now just write the
+> prompt from CloudSession and I will paste it in CloudSession.and those 2 apps, android app and web
+> app, should be in sync with features
+
+Answered: Apple allows no install from a page; the way is a web app (PWA) added to the home screen
+from Safari. Built in its own repository, `markoboskoauroville/arkod_web`, by a cloud session.
+
+1. `FEATURES.md` in this repository: every feature, numbered, with its state in the Android app and in
+   the web app. Both apps follow it; a feature is not done until it is in both, or marked why not.
+   **Status:** written 30.9.2026.
+2. The repository `arkod_web`, made here (a cloud session cannot create one), with this request in it.
+   **Status:** done.
+3. The prompt for the cloud session. **Status:** written in the chat, 30.9.2026.
