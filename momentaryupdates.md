@@ -676,3 +676,11 @@ button you need to create, fetch when available, and this will be a background s
    `/api/later/wanted`. **Status:** v20: Later.kt (4 cases), ParcelNet.getKept asks the server when the state
    and the phone fail and keeps what it gets; the sheet says "zapis koji je poslužitelj dohvatio kasnije"; the
    button under a sheet that could not be read. Not yet: the Settings list (web only). 240 unit cases, verify 267.
+
+## 1.10.2026, the local Claude Code: LOCAL_TASKS.md section 7
+
+> do LOCAL_TASKS.md section 7
+
+1. §7 GITHUB_TOKEN for "Fetch when available" (the Worker arkod-fetcher and the Pages project arkod-layer).
+   **Status:** waiting for Marko: the fine-grained token is his to make, and this session's guard does not let it
+   write secrets; he runs the two `pbpaste | wrangler … secret put` lines himself (given in the chat).
