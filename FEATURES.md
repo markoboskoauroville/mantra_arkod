@@ -52,7 +52,7 @@ States: **yes** · **no** (not yet) · **n/a** (cannot, and why).
 | 35 | The service log: every service going down or coming back said on the map at once and kept with the time and the reason; read back in the settings, with why the state's services fail and what the app does about it | yes (v16) | yes (web v3) |
 | 36 | Help in English and Croatian: what every part of the screen is, how it works underneath, how to use it (14 sections), the same two pages in both apps; Settings → Help | yes (v18) | yes (web v4) |
 | 37 | Check now next to every service that is down (Settings → Services): three tries (at once, 5 s, 10 s), each said on the button, green the moment it answers; a service back does what waited for it (WMS: the layer drawn again; WFS: missing outlines; KAT, ZK: the open sheet read again) | yes (v19) | yes (web v5) |
-| 38 | Fetch when available: a sheet the state did not answer is handed to the server (`/api/later` on arkod-layer.pages.dev); a Cloudflare Worker asks again every 10 minutes and keeps the answer in ARKOD_cache; the sheet then opens from it, marked fetched later; Settings → Services → Waiting for the state | no (open: ask `https://arkod-layer.pages.dev/api/later/answer` when the state and the device fail, and the button on the sheet) | yes (web v8) |
+| 38 | Fetch when available: a sheet the state did not answer is handed to the server (`/api/later` on arkod-layer.pages.dev); a Cloudflare Worker asks again every 10 minutes and keeps the answer in ARKOD_cache; the sheet then opens from it, marked fetched later; Settings → Services → Waiting for the state | yes (v20): the fallback and the button; the list "Waiting for the state" is web only for now | yes (web v8) |
 
 ## The file format (.arkod.json), shared
 

@@ -271,12 +271,14 @@ fun ArkodApp(
         card = ParcelCard(parcel)
         val answer = runCatching { ParcelNet.record(parcel.id) }
         val keptSince = ParcelNet.kept
+        val keptFar = ParcelNet.keptFar
         if (card?.parcel?.id != parcel.id) return
         card = ParcelCard(
             parcel,
             record = answer.getOrNull(),
             problem = answer.exceptionOrNull()?.let { "vlasnici se nisu mogli pročitati: ${it.message ?: it.javaClass.simpleName}" },
             keptSince = keptSince,
+            keptFar = keptFar && keptSince != null,
         )
         // THE OWNER SHEET (29.9.2026): the folios the cadastre links to, else the one he found by
         // hand for this parcel before; asked after the record, so the first two tabs never wait.
@@ -2125,6 +2127,8 @@ data class ParcelCard(
     val folioProblem: String? = null,
     /** When the record shown was read, if it came off the phone because the state did not answer. */
     val keptSince: Long? = null,
+    /** That record came from the app's server, fetched later (Fetch when available, row 38). */
+    val keptFar: Boolean = false,
 )
 
 /**
@@ -2205,7 +2209,10 @@ private fun ParcelCardView(
         // READ OFF THE PHONE (29.9.2026): the state did not answer, so this is what it said last.
         card.keptSince?.let { since ->
             val day = java.text.SimpleDateFormat("d.M.yyyy.", java.util.Locale.ROOT).format(java.util.Date(since))
-            Label("bez signala: prikazan zapis od $day", Paint.Amber, size = 12, align = TextAlign.Start)
+            if (card.keptFar) {
+                val at = java.text.SimpleDateFormat("d.M.yyyy. HH:mm", java.util.Locale.ROOT).format(java.util.Date(since))
+                Label("država nije odgovorila: zapis koji je poslužitelj dohvatio kasnije, $at", Paint.Amber, size = 12, align = TextAlign.Start, lines = 2)
+            } else Label("bez signala: prikazan zapis od $day", Paint.Amber, size = 12, align = TextAlign.Start)
         }
         // THE FILTER
         Row(
@@ -2283,7 +2290,10 @@ private fun ParcelCardView(
                     if (inTab.isEmpty() && tab != Parcels.Tab.OWNER) Label("ništa nije upisano", Paint.Dim, size = 13, align = TextAlign.Start)
                     else if (inTab.isNotEmpty() && shown.isEmpty()) Label("na ovom listu ništa ne odgovara \"$filter\"", Paint.Dim, size = 13, align = TextAlign.Start)
                 }
-                card.problem != null -> Label(card.problem, Paint.Red, size = 13, align = TextAlign.Start)
+                card.problem != null -> {
+                    Label(card.problem, Paint.Red, size = 13, align = TextAlign.Start)
+                    LaterButton(Parcels.recordUrl(card.parcel.id))
+                }
                 else -> Label("pitam katastar za posjednike…", Paint.Dim, size = 13, align = TextAlign.Start)
             }
         }
@@ -3078,4 +3088,26 @@ private fun Modifier.swallowTouches(): Modifier = this.pointerInput(Unit) {
             awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Final)
         }
     }
+}
+
+/**
+ * FETCH WHEN AVAILABLE (row 38): the record the state did not answer, handed to the app's server, which asks
+ * again every ten minutes and keeps the answer for every phone. The button says what the server said.
+ */
+@Composable
+fun LaterButton(stateUrl: String) {
+    val scope = rememberCoroutineScope()
+    var said by remember(stateUrl) { mutableStateOf<String?>(null) }
+    var busy by remember(stateUrl) { mutableStateOf(false) }
+    Action("Fetch when available", R.drawable.ic_save, onClick = {
+        if (!busy) {
+            busy = true
+            said = "handing it to the server…"
+            scope.launch {
+                said = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ParcelNet.want(stateUrl) }
+                busy = false
+            }
+        }
+    }, quiet = true, enabled = !busy)
+    said?.let { Label(it, Paint.Dim, size = 12, align = TextAlign.Start, lines = 3) }
 }

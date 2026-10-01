@@ -53,18 +53,65 @@ object ParcelNet {
     var kept: Long? = null
         private set
 
+    /** The record shown came from the app's server (Fetch when available), not from the phone. */
+    @Volatile
+    var keptFar: Boolean = false
+        private set
+
     private fun getKept(url: String): String = try {
         get(url).also {
             ArkodCache.keepAnswer(url, it)
             kept = null
+            keptFar = false
         }
     } catch (e: Exception) {
         // A parcel cache keeps the state's answers too (v5): a sheet from it opens with no signal
         // even after the ARKOD tiles on the phone were cleared.
-        val old = ArkodCache.answer(url) ?: ParcelCaches.answer(url) ?: throw e
-        kept = old.second
-        old.first
+        val old = ArkodCache.answer(url) ?: ParcelCaches.answer(url)
+        if (old != null) {
+            kept = old.second
+            keptFar = false
+            old.first
+        } else {
+            // FETCH WHEN AVAILABLE (row 38): what the server fetched later, for anyone; then kept here too
+            val far = later(url) ?: throw e
+            ArkodCache.keepAnswer(url, far.first)
+            kept = far.second
+            keptFar = true
+            far.first
+        }
     }
+
+    /** The server's answer to one of the state's addresses, with when it was fetched; null when it has none. */
+    private fun later(url: String): Pair<String, Long>? = runCatching {
+        val c = (URL(Later.answerUrl(url)).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 20_000
+            setRequestProperty("User-Agent", Layers.USER_AGENT)
+        }
+        try {
+            if (c.responseCode != HttpURLConnection.HTTP_OK) null
+            else c.inputStream.bufferedReader().use { it.readText() } to Later.fetchedAt(c.getHeaderField("X-Fetched-At"))
+        } finally { c.disconnect() }
+    }.getOrNull()
+
+    /** Hand an address the state did not answer to the server; the line the button shows. */
+    fun want(url: String): String = runCatching {
+        val c = (URL(Later.WANT).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 20_000
+            requestMethod = "POST"
+            doOutput = true
+            setRequestProperty("User-Agent", Layers.USER_AGENT)
+            setRequestProperty("Content-Type", "application/json")
+        }
+        try {
+            c.outputStream.use { it.write(Later.wantBody(url).toByteArray()) }
+            val code = c.responseCode
+            val body = (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
+            Later.said(code, body)
+        } finally { c.disconnect() }
+    }.getOrElse { "the server could not take it: no signal" }
 
     /**
      * CACHE KING (v11): searches, suggestions and the land books are kept too, and read off the

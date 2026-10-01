@@ -673,4 +673,6 @@ button you need to create, fetch when available, and this will be a background s
 1. The Android app uses the same server: when the state and the phone's own cache both fail, it asks
    `https://arkod-layer.pages.dev/api/later/answer?url=<the state's address>`; on a sheet that could not be read,
    the button "Fetch when available" POSTs the address to `/api/later/want`; Settings → Services lists
-   `/api/later/wanted`. **Status:** open (the help pages already describe it: copied from arkod_web).
+   `/api/later/wanted`. **Status:** v20: Later.kt (4 cases), ParcelNet.getKept asks the server when the state
+   and the phone fail and keeps what it gets; the sheet says "zapis koji je poslužitelj dohvatio kasnije"; the
+   button under a sheet that could not be read. Not yet: the Settings list (web only). 240 unit cases, verify 267.
