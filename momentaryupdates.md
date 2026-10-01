@@ -682,5 +682,9 @@ button you need to create, fetch when available, and this will be a background s
 > do LOCAL_TASKS.md section 7
 
 1. §7 GITHUB_TOKEN for "Fetch when available" (the Worker arkod-fetcher and the Pages project arkod-layer).
-   **Status:** waiting for Marko: the fine-grained token is his to make, and this session's guard does not let it
-   write secrets; he runs the two `pbpaste | wrangler … secret put` lines himself (given in the chat).
+   **Status:** done 1.10.2026, 13:2x: Marko made the fine-grained token (ARKOD_cache, Contents read and write) and
+   ran `arkod_web/scripts/set-fetcher-token.sh` himself (clipboard → wrangler, nothing printed, clipboard cleared):
+   "worker arkod-fetcher: GITHUB_TOKEN set", "pages arkod-layer: GITHUB_TOKEN set". The deploys on 04da71d were red
+   (the fetcher test's fixed 08:00 clock); the cloud session's fix 1927987 deployed green, and
+   `https://arkod-layer.pages.dev/api/later/` now says `"ready":true`. Cloud session: the secret is in place.
+   (§7 replaces the §6 reader, so §6 needs no answer.)
