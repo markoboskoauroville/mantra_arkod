@@ -627,3 +627,12 @@ is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
    web app's server. **Status:** after 1 and 2; the design is put to Marko.
 4. The question about a Pixel emulator and the monkey: answered in the chat. **Status:** done: not in this
    container (no /dev/kvm, and the emulator needs it); yes on GitHub Actions, whose Linux runners have KVM.
+
+## 1.10.2026, a prompt for the local Claude Code: everything the cloud session could not do
+
+> Now please write a prompt for Claude Code right on my computer, local one, to do everything you cannot do, like creating repository or everything from this chat you were having issue executing my own command. Give a long prompt for Claude Code to either guide me what even Claude Code local cannot do, or to do what it can do. So guide the Claude code local, please.
+
+1. The prompt, in the chat and in LOCAL_TASKS.md (so the local Claude Code can read it from the repository):
+   create ARKOD_cache, deploy the family site, test the web app from Croatia, the emulator and the monkey on
+   the Mac, the signing key and the remote-cache token at Marko's word, and what only Marko can do.
+   **Status:** in progress.
