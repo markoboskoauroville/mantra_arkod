@@ -28,7 +28,7 @@ HALF = 20037508.342789244
 REG, NAME, MUNI = sys.argv[1], sys.argv[2], sys.argv[3]
 STAGES = sys.argv[4:] or ['sheets', 'records', 'folios', 'zoning', 'tiles', 'outlines']
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ko', f'{REG}-{NAME}')
-WORKERS = 6
+WORKERS = int(os.environ.get('SWEEP_WORKERS', '6'))
 
 
 def log(*a):
@@ -45,8 +45,14 @@ def ask(url, body=None, tries=6, binary=False):
                 return r.status, r.read()
         except urllib.error.HTTPError as e:
             data = e.read()
-            if e.code < 500 or n == tries:
+            # OSS's throttle (1.10.2026): a JSON 403 FORBIDDEN after a few thousand quick questions,
+            # gone a minute later. It is waited out; any other 4xx is the answer.
+            throttled = e.code == 403 and b'FORBIDDEN' in data and b'statusCode' in data
+            if (e.code < 500 and not throttled) or n == tries:
                 return e.code, data
+            if throttled:
+                time.sleep(30 * n)
+                continue
         except Exception as e:  # timeouts, resets
             if n == tries:
                 return 0, str(e).encode()
