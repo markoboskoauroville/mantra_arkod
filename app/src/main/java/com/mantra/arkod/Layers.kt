@@ -119,6 +119,30 @@ object Layers {
         maxZoom = 19,
     )
 
+    /**
+     * GOOGLE REFUSES SATELLITE IN THE EU (1.10.2026, Marko's screenshot: "satellite tiles and 3D tiles are not
+     * available for your account and region"). It is Google's rule for accounts in the European Economic Area,
+     * not an outage: the road map and terrain work on the same key. Satellite and hybrid then show this free
+     * aerial photograph instead (Esri World Imagery; its tiles are z/y/x). Not in [ALL]: it is never chosen,
+     * only shown in Google satellite's place.
+     */
+    val AERIAL = MapLayer(
+        family = MapLayer.Family.GOOGLE,
+        id = "aerial",
+        label = "Zračna snimka (Esri)",
+        name = "Zračna snimka",
+        kind = LayerKind.RASTER_XYZ,
+        offline = MapLayer.Offline.NONE,
+        attribution = "© Esri, Maxar",
+        url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maxZoom = 19,
+    )
+
+    /** Google's refusal of satellite and 3D tiles to accounts in the EEA, in its own words. */
+    fun eeaRefusal(said: String?): Boolean =
+        said != null && (said.contains("not available for your account and region", ignoreCase = true) ||
+            said.contains("satellite tiles and 3D tiles", ignoreCase = true))
+
     val ALL: List<MapLayer> = listOf(OFFLINE, OSM) + GOOGLE_ALL
 
     /** The map a fresh install opens on: the one that needs neither a download nor a key. */
@@ -150,8 +174,11 @@ object Layers {
      * refused.
      */
     fun tilePattern(layer: MapLayer, auth: String? = null, key: String? = null): Pair<String, String>? {
-        val sample = tileUrl(layer, 0, 0, 0, auth, key) ?: return null
-        val pattern = sample.replace("/0/0/0", "/{Z}/{X}/{Y}")
+        tileUrl(layer, 0, 0, 0, auth, key) ?: return null
+        // Each placeholder kept where the server wants it: Esri's tiles are z/y/x (1.10.2026), not z/x/y.
+        val pattern = layer.url!!
+            .replace("{z}", "{Z}").replace("{x}", "{X}").replace("{y}", "{Y}")
+            .replace("{key}", key ?: "").replace("{session}", auth ?: "")
         val cut = pattern.indexOf("/{Z}")
         if (cut < 0) return null
         return pattern.substring(0, cut) to pattern.substring(cut)

@@ -688,3 +688,11 @@ button you need to create, fetch when available, and this will be a background s
    (the fetcher test's fixed 08:00 clock); the cloud session's fix 1927987 deployed green, and
    `https://arkod-layer.pages.dev/api/later/` now says `"ready":true`. Cloud session: the secret is in place.
    (§7 replaces the §6 reader, so §6 needs no answer.)
+
+## 1.10.2026, v21: Google refuses satellite in the EU (from Marko's screenshot of the web app)
+
+Marko's words are in arkod_web's momentaryupdates.md ("What this means and how to solve this problem").
+1. Satellite and hybrid show the aerial photograph (Layers.AERIAL, Esri, tiles z/y/x) when Google refuses
+   them; Trail says why; the GOO light stays green (GoogleTiles: the EU refusal is an answer, not an outage).
+   tilePattern keeps each placeholder where the server wants it. **Status:** done in v21 (EuSatelliteTest, 3
+   cases; 243 unit cases, verify 267). Hybrid shows the photograph without street names (web only for now).

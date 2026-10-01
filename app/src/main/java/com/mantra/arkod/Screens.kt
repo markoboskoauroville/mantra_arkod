@@ -1203,6 +1203,13 @@ private suspend fun attempt(canvas: VtmCanvas, store: Store, layer: MapLayer): S
         Trail.say("Tražim sesiju od Googlea…")
         val result = GoogleTiles.sessionFromRing(view, store)
         UiTick.bump()
+        if (result.token == null && Layers.eeaRefusal(result.problem) &&
+            (view == MapLayer.GoogleView.SATELLITE || view == MapLayer.GoogleView.HYBRID)
+        ) {
+            // GOOGLE REFUSES SATELLITE IN THE EU (1.10.2026): the aerial photograph in its place, said once
+            Trail.say("Google ne daje satelit u EU (njegovo pravilo, ne kvar): prikazana je zračna snimka (Esri)")
+            return canvas.show(Layers.AERIAL)
+        }
         val used = Keyring.best(store.keyring)?.value
         return result.token?.let { canvas.show(layer, session = it, key = used) } ?: result.problem
     }
