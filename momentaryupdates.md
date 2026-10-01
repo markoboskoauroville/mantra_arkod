@@ -642,9 +642,25 @@ is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
 
 > Pull MANTRA_MANIFEST and markoboskoauroville/mantra_arkod into ~/Developer, then read mantra_arkod/LOCAL_TASKS.md and follow it from section 0 to the end. It was written by the cloud session on 1.10.2026 for everything it could not do: create the private repository ARKOD_cache, deploy markoboskopossesions with the 275 parcels, test arkod-layer.pages.dev against the real state from Croatia, run the Android app on a Pixel 7 emulator with the monkey and every test in TESTING.md, MANTRA_MANIFEST and MANIFEST_INTRO, and guide me through what only I can do. Sections 5 and 6 (the signing key and the remote cache token) need my yes first, so ask me. Every request of mine goes word for word into momentaryupdates.md before any code. No key or token is ever printed, committed or pasted into a chat. When you finish, write each status into the repositories' momentaryupdates.md, push, and give me one short report.
 
-1. §0 the manifests and the three repositories pulled and read. **Status:** in progress.
-2. §1 ARKOD_cache. **Status:** in progress.
-3. §2 markoboskopossesions deployed with 275 parcels. **Status:** in progress.
-4. §3 arkod-layer.pages.dev against the real state, from Croatia. **Status:** in progress.
-5. §4 the Pixel 7 emulator: the monkey, TESTING.md, the manifest tests. **Status:** in progress.
-6. §5 the permanent signing key, §6 the remote cache token. **Status:** waiting for Marko's yes.
+1. §0 the manifests and the three repositories pulled and read. **Status:** done 1.10.2026 06:05: MANTRA_MANIFEST
+   and MANIFEST_INTRO up to date; mantra_arkod, arkod_web, markoboskopossesions pulled; the manifest modules read.
+2. §1 ARKOD_cache. **Status:** done: created 06:08, private and empty (`gh repo view`: PRIVATE); the cloud session
+   has since pushed KAT for all of Kukljica (9,180 parcel records, 1,985 posjedovni lists) and a first pass of ZK.
+3. §2 markoboskopossesions deployed with 275 parcels. **Status:** deployed from the Mac 06:10 with scripts/deploy.sh;
+   /data/parcels.json is behind the login (302). Waiting for Marko: log in as marko and see 275; and the two
+   Actions secrets (the session's guard refused to write secrets; his own `! gh secret set …`). Its item 21.
+4. §3 arkod-layer.pages.dev against the real state, from Croatia. **Status:** done: three runs (2 of 4, 1 of 2,
+   6 of 11); 0 of 30 connections through arkod-layer answered 200 (all 403, Cloudflare's Ljubljana edge), while the
+   same Mac straight to the state got 10 of 10. The state refuses Cloudflare's addresses, not Croatia. The fix
+   (another address, or the phone asking the state itself) is Marko's choice. arkod_web's momentaryupdates.
+5. §4 the Pixel 7 emulator: the monkey, TESTING.md, the manifest tests. **Status:** done, results in
+   TEST_RESULTS.md (v19): monkey 2 of 3 seeds clean through 20,000 events, no crash in ARKOD in any; seed 1001
+   one ANR in our own main-thread code (obfuscated; CI keeps no mapping.txt). V1 upgrade v18 → v19 PASS with no
+   uninstall. Found: A2 English panels; the Google panel overlapped by the search field; landscape sheet hides
+   the owners; outlines not following the ink; taps through the sheet's empty corner; a fresh install cannot
+   search a k.o. it has not seen. Not run: the 176 MB download (C2–C4), the key tests (D3, D4, J3), F4–F6,
+   G5, J2, K2, U1, U2, U4, U6. The emulator used is Marko's Pixel_7_API_35 (Android 15), not API 33.
+6. §5 the permanent signing key. **Status:** already done on 29.9.2026: ARKOD_KEYSTORE and its password are in the
+   repository's secrets and v18 and v19 carry CN=Mantra ARKOD, SHA-1 49:4A:CC…2B:6B (LOCAL_TASKS.md §5 is out of
+   date). The keystore file is not in ~/.arkod-signing on the Mac: where its backup lives is for Marko to confirm.
+   §6 the remote-cache token: **waiting for Marko's yes**, asked in the chat.

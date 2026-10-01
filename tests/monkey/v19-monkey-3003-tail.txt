@@ -1,0 +1,81 @@
+// KEYCODE_DPAD_LEFT
+:Sending Key (ACTION_UP): 21    // KEYCODE_DPAD_LEFT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 20    // KEYCODE_DPAD_DOWN
+:Sending Key (ACTION_UP): 20    // KEYCODE_DPAD_DOWN
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 128    // KEYCODE_MEDIA_CLOSE
+:Sending Key (ACTION_UP): 128    // KEYCODE_MEDIA_CLOSE
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 22    // KEYCODE_DPAD_RIGHT
+:Sending Key (ACTION_UP): 22    // KEYCODE_DPAD_RIGHT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 22    // KEYCODE_DPAD_RIGHT
+:Sending Key (ACTION_UP): 22    // KEYCODE_DPAD_RIGHT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 77    // KEYCODE_AT
+:Sending Key (ACTION_UP): 77    // KEYCODE_AT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 82    // KEYCODE_MENU
+:Sending Key (ACTION_UP): 82    // KEYCODE_MENU
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 20    // KEYCODE_DPAD_DOWN
+:Sending Key (ACTION_UP): 20    // KEYCODE_DPAD_DOWN
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 19    // KEYCODE_DPAD_UP
+:Sending Key (ACTION_UP): 19    // KEYCODE_DPAD_UP
+Sleeping for 80 milliseconds
+:Sending Trackball (ACTION_MOVE): 0:(3.0,-1.0)
+:Sending Trackball (ACTION_MOVE): 0:(-3.0,4.0)
+:Sending Trackball (ACTION_MOVE): 0:(2.0,-1.0)
+:Sending Trackball (ACTION_MOVE): 0:(-5.0,-3.0)
+:Sending Trackball (ACTION_MOVE): 0:(-3.0,1.0)
+:Sending Trackball (ACTION_MOVE): 0:(0.0,4.0)
+:Sending Trackball (ACTION_MOVE): 0:(4.0,-1.0)
+:Sending Trackball (ACTION_MOVE): 0:(-3.0,-2.0)
+:Sending Trackball (ACTION_MOVE): 0:(4.0,-3.0)
+:Sending Trackball (ACTION_MOVE): 0:(4.0,0.0)
+:Sending Key (ACTION_DOWN): 21    // KEYCODE_DPAD_LEFT
+:Sending Key (ACTION_UP): 21    // KEYCODE_DPAD_LEFT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 21    // KEYCODE_DPAD_LEFT
+:Sending Key (ACTION_UP): 21    // KEYCODE_DPAD_LEFT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 263    // KEYCODE_NAVIGATE_OUT
+:Sending Key (ACTION_UP): 263    // KEYCODE_NAVIGATE_OUT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 241    // KEYCODE_TV_NETWORK
+:Sending Key (ACTION_UP): 241    // KEYCODE_TV_NETWORK
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(824.0,1229.0)
+:Sending Touch (ACTION_UP): 0:(826.8906,1240.5654)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 20    // KEYCODE_DPAD_DOWN
+:Sending Key (ACTION_UP): 20    // KEYCODE_DPAD_DOWN
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(760.0,1387.0)
+:Sending Touch (ACTION_POINTER_DOWN 1): 0:(760.56836,1387.9404) 1:(456.0,479.0)
+:Sending Touch (ACTION_MOVE): 0:(762.8135,1395.5635) 1:(459.04688,477.54102)
+:Sending Touch (ACTION_MOVE): 0:(769.56445,1401.3154) 1:(461.74512,477.31445)
+:Sending Touch (ACTION_MOVE): 0:(770.62305,1408.2021) 1:(462.32324,476.8164)
+:Sending Touch (ACTION_MOVE): 0:(778.29004,1408.8926) 1:(463.97754,475.30762)
+:Sending Touch (ACTION_MOVE): 0:(781.19824,1417.165) 1:(465.00586,474.7461)
+:Sending Touch (ACTION_MOVE): 0:(784.88184,1425.6221) 1:(466.1621,474.41504)
+:Sending Touch (ACTION_MOVE): 0:(791.3262,1435.8174) 1:(466.38867,472.67383)
+:Sending Touch (ACTION_MOVE): 0:(795.7549,1436.6279) 1:(469.32227,471.87793)
+:Sending Touch (ACTION_MOVE): 0:(799.4756,1441.874) 1:(469.51953,471.5869)
+:Sending Touch (ACTION_POINTER_UP 1): 0:(801.7158,1451.1924) 1:(469.52246,470.333)
+:Sending Touch (ACTION_UP): 0:(806.9746,1459.793)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 20    // KEYCODE_DPAD_DOWN
+:Sending Key (ACTION_UP): 20    // KEYCODE_DPAD_DOWN
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 82    // KEYCODE_MENU
+:Sending Key (ACTION_UP): 82    // KEYCODE_MENU
+Sleeping for 80 milliseconds
+:Sending Trackball (ACTION_MOVE): 0:(1.0,-5.0)
+Events injected: 20000
+:Sending rotation degree=0, persist=false
+:Dropped: keys=0 pointers=0 trackballs=0 flips=47 rotations=0
+## Network stats: elapsed time=454966ms (0ms mobile, 0ms wifi, 454966ms not connected)
+// Monkey finished

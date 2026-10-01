@@ -1,0 +1,83 @@
+ACTION_UP): 82    // KEYCODE_MENU
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(730.0,1685.0)
+:Sending Touch (ACTION_UP): 0:(736.1885,1677.7568)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 23    // KEYCODE_DPAD_CENTER
+:Sending Key (ACTION_UP): 23    // KEYCODE_DPAD_CENTER
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 245    // KEYCODE_TV_INPUT_HDMI_3
+:Sending Key (ACTION_UP): 245    // KEYCODE_TV_INPUT_HDMI_3
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(330.0,477.0)
+:Sending Touch (ACTION_UP): 0:(330.48047,470.1455)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 22    // KEYCODE_DPAD_RIGHT
+:Sending Key (ACTION_UP): 22    // KEYCODE_DPAD_RIGHT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 21    // KEYCODE_DPAD_LEFT
+:Sending Key (ACTION_UP): 21    // KEYCODE_DPAD_LEFT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 22    // KEYCODE_DPAD_RIGHT
+:Sending Key (ACTION_UP): 22    // KEYCODE_DPAD_RIGHT
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(721.0,26.0)
+:Sending Touch (ACTION_UP): 0:(714.03516,16.42871)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 176    // KEYCODE_SETTINGS
+    // Rejecting start of Intent { act=android.settings.SETTINGS cmp=com.android.settings/.homepage.SettingsHomepageActivity } in package com.android.settings
+:Sending Key (ACTION_UP): 176    // KEYCODE_SETTINGS
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 20    // KEYCODE_DPAD_DOWN
+:Sending Key (ACTION_UP): 20    // KEYCODE_DPAD_DOWN
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(150.0,765.0)
+:Sending Touch (ACTION_POINTER_DOWN 1): 0:(149.92285,779.9629) 1:(649.0,1282.0)
+:Sending Touch (ACTION_POINTER_UP 1): 0:(149.72852,783.9092) 1:(655.06934,1274.9951)
+:Sending Touch (ACTION_UP): 0:(149.62598,791.5713)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 19    // KEYCODE_DPAD_UP
+:Sending Key (ACTION_UP): 19    // KEYCODE_DPAD_UP
+    //[calendar_time:2026-10-01 06:29:33.291  system_uptime:1211848]
+    // Sending event #13900
+Sleeping for 80 milliseconds
+    //[calendar_time:2026-10-01 06:29:33.414  system_uptime:1211985]
+    // Sending event #13900
+:Sending Key (ACTION_DOWN): 21    // KEYCODE_DPAD_LEFT
+:Sending Key (ACTION_UP): 21    // KEYCODE_DPAD_LEFT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 82    // KEYCODE_MENU
+:Sending Key (ACTION_UP): 82    // KEYCODE_MENU
+Sleeping for 80 milliseconds
+:Sending Trackball (ACTION_MOVE): 0:(1.0,-4.0)
+:Sending Trackball (ACTION_MOVE): 0:(-5.0,-2.0)
+:Sending Trackball (ACTION_MOVE): 0:(-1.0,-4.0)
+:Sending Trackball (ACTION_MOVE): 0:(3.0,-5.0)
+:Sending Trackball (ACTION_MOVE): 0:(3.0,-4.0)
+:Sending Trackball (ACTION_MOVE): 0:(4.0,-5.0)
+:Sending Trackball (ACTION_MOVE): 0:(-4.0,1.0)
+:Sending Trackball (ACTION_MOVE): 0:(0.0,-3.0)
+:Sending Trackball (ACTION_MOVE): 0:(-3.0,1.0)
+:Sending Trackball (ACTION_MOVE): 0:(-5.0,1.0)
+:Sending Key (ACTION_DOWN): 118    // KEYCODE_META_RIGHT
+:Sending Key (ACTION_UP): 118    // KEYCODE_META_RIGHT
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 306    // KEYCODE_KEYBOARD_BACKLIGHT_UP
+:Sending Key (ACTION_UP): 306    // KEYCODE_KEYBOARD_BACKLIGHT_UP
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 23    // KEYCODE_DPAD_CENTER
+:Sending Key (ACTION_UP): 23    // KEYCODE_DPAD_CENTER
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 19    // KEYCODE_DPAD_UP
+:Sending Key (ACTION_UP): 19    // KEYCODE_DPAD_UP
+Sleeping for 80 milliseconds
+:Sending Touch (ACTION_DOWN): 0:(713.0,849.0)
+:Sending Touch (ACTION_MOVE): 0:(698.79297,859.7295)
+:Sending Touch (ACTION_MOVE): 0:(691.12695,870.9971)
+:Sending Touch (ACTION_MOVE): 0:(682.4248,879.0928)
+:Sending Touch (ACTION_UP): 0:(666.38184,880.4912)
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 256    // KEYCODE_TV_CONTENTS_MENU
+:Sending Key (ACTION_UP): 256    // KEYCODE_TV_CONTENTS_MENU
+Sleeping for 80 milliseconds
+:Sending Key (ACTION_DOWN): 82    // KEYCODE_MENU

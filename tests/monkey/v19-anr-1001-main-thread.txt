@@ -1,0 +1,25 @@
+"main" prio=5 tid=1 Runnable
+  | group="main" sCount=0 ucsCount=0 flags=0 obj=0x71c0e9b8 self=0xb400007a36dd4380
+  | sysTid=5324 nice=-10 cgrp=top-app sched=0/0 handle=0x7ce4abed20
+  | state=R schedstat=( 11951623549 13922807399 62568 ) utm=941 stm=253 core=0 HZ=100
+  | stack=0x7ff70f4000-0x7ff70f6000 stackSize=8188KB
+  | held mutexes= "mutator lock"(shared held)
+  at C.D0.i(unavailable:542)
+  at M.n.f(unavailable:67)
+  at M.n.a(unavailable:2)
+  at o0.q0.m(unavailable:100)
+  at S1.a.t(unavailable:8)
+  at j2.H.run(unavailable:112)
+  at o0.Y.l(unavailable:23)
+  at o0.X.run(unavailable:2)
+  at android.os.Handler.handleCallback(Handler.java:959)
+  at android.os.Handler.dispatchMessage(Handler.java:100)
+  at android.os.Looper.loopOnce(Looper.java:232)
+  at android.os.Looper.loop(Looper.java:317)
+  at android.app.ActivityThread.main(ActivityThread.java:8705)
+  at java.lang.reflect.Method.invoke(Native method)
+  at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:580)
+  at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:886)
+DumpLatencyMs: 117.966
+
+"main" prio=5 tid=1 Native

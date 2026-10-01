@@ -1,0 +1,25 @@
+544) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #05 pc 00000000003c2d84  /apex/com.android.btservices/lib64/libbluetooth_jni.so (bluetooth::shim::Stack::Start(bluetooth::ModuleList*)+272) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #06 pc 00000000003c2ad4  /apex/com.android.btservices/lib64/libbluetooth_jni.so (bluetooth::shim::Stack::StartEverything()+492) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #07 pc 000000000055699c  /apex/com.android.btservices/lib64/libbluetooth_jni.so (ShimModuleStartUp()+196) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #08 pc 00000000008d3b58  /apex/com.android.btservices/lib64/libbluetooth_jni.so (module_start_up(module_t const*)+256) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #09 pc 00000000008d2ae0  /apex/com.android.btservices/lib64/libbluetooth_jni.so (init_stack_internal(bluetooth::core::CoreInterface*)+72) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #10 pc 00000000008d2988  /apex/com.android.btservices/lib64/libbluetooth_jni.so (event_init_stack(std::__1::promise<void>, bluetooth::core::CoreInterface*)+192) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #11 pc 00000000008d2a2c  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::internal::Invoker<base::internal::BindState<void (*)(std::__1::promise<void>, bluetooth::core::CoreInterface*), std::__1::promise<void>, base::internal::UnretainedWrapper<bluetooth::core::CoreInterface>>, void ()>::RunOnce(base::internal::BindStateBase*)+52) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #12 pc 0000000000a4d324  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::debug::TaskAnnotator::RunTask(char const*, base::PendingTask*)+196) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #13 pc 0000000000a4c8a4  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::MessageLoop::RunTask(base::PendingTask*)+352) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #14 pc 0000000000a4cbb8  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::MessageLoop::DoWork()+452) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #15 pc 0000000000a4ef2c  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::MessagePumpDefault::Run(base::MessagePump::Delegate*)+100) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #16 pc 0000000000a5b458  /apex/com.android.btservices/lib64/libbluetooth_jni.so (base::RunLoop::Run()+64) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #17 pc 0000000000a3a824  /apex/com.android.btservices/lib64/libbluetooth_jni.so (bluetooth::common::MessageLoopThread::Run(std::__1::promise<void>)+324) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #18 pc 0000000000a3a3dc  /apex/com.android.btservices/lib64/libbluetooth_jni.so (bluetooth::common::MessageLoopThread::RunThread(bluetooth::common::MessageLoopThread*, std::__1::promise<void>)+48) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #19 pc 0000000000a3b060  /apex/com.android.btservices/lib64/libbluetooth_jni.so (void* std::__1::__thread_proxy[abi:v180000]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, void (*)(bluetooth::common::MessageLoopThread*, std::__1::promise<void>), bluetooth::common::MessageLoopThread*, std::__1::promise<void>>>(void*)+84) (BuildId: 6f08819253185bc44c9fec07ed93c598)
+//       #20 pc 000000000006c354  /apex/com.android.runtime/lib64/bionic/libc.so (__pthread_start(void*)+196) (BuildId: 1b9fecf834d610f77e641f026ca7269b)
+//       #21 pc 000000000005efc4  /apex/com.android.runtime/lib64/bionic/libc.so (__start_thread+64) (BuildId: 1b9fecf834d610f77e641f026ca7269b)
+// 
+** Monkey aborted due to error.
+Events injected: 5829
+:Sending rotation degree=0, persist=false
+:Dropped: keys=3 pointers=1 trackballs=0 flips=19 rotations=0
+## Network stats: elapsed time=989747ms (0ms mobile, 0ms wifi, 989747ms not connected)
+** System appears to have crashed at event 5829 of 20000 using seed 1001
