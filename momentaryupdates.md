@@ -664,3 +664,13 @@ is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
    repository's secrets and v18 and v19 carry CN=Mantra ARKOD, SHA-1 49:4A:CC…2B:6B (LOCAL_TASKS.md §5 is out of
    date). The keystore file is not in ~/.arkod-signing on the Mac: where its backup lives is for Marko to confirm.
    §6 the remote-cache token: **waiting for Marko's yes**, asked in the chat.
+
+## 1.10.2026, from the web app (version 8): Fetch when available
+
+FEATURES.md row 38 opens it here. Marko's words are in arkod_web's momentaryupdates.md ("There will be a
+button you need to create, fetch when available, and this will be a background service running").
+
+1. The Android app uses the same server: when the state and the phone's own cache both fail, it asks
+   `https://arkod-layer.pages.dev/api/later/answer?url=<the state's address>`; on a sheet that could not be read,
+   the button "Fetch when available" POSTs the address to `/api/later/want`; Settings → Services lists
+   `/api/later/wanted`. **Status:** open (the help pages already describe it: copied from arkod_web).
