@@ -615,9 +615,10 @@ Read: "VMS" is WMS (the ARKOD layer, the state's map service), "VFS" is WFS (par
 feature service), KAT is the cadastre's OSS (posjedovni list and search), ZK the land registry; "ArcCode"
 is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
 
-1. The private repository markoboskoauroville/ARKOD_cache. **Status:** waiting for Marko: this session may not
-   create repositories (GitHub: "sessions are bound to their configured repositories"); he creates it empty,
-   then it is attached here and filled.
+1. The private repository markoboskoauroville/ARKOD_cache. **Status:** done 1.10.2026: created by the local
+   Claude Code, attached to the cloud session, first push 04:3x: KAT complete (2580 posjedovni lists asked, 1985
+   with parcels, 9180 parcel records, the number index), ZK first pass (2051 of 2717 folios, 2017 histories). The
+   local Claude Code need not run the sweep (LOCAL_TASKS.md §1): the cloud session pushes the rest.
 2. Kukljica cached in it whole: WMS tiles, WFS outlines, KAT records and possession sheets, ZK folios.
    **Status:** sweeping since 1.10.2026 03:50 (scripts/sweep.py: possession sheets, records, folios current and
    with history, the k.o.'s extent, WMS tiles z14 to z18, WFS outlines), into a local folder until the repository
