@@ -536,3 +536,51 @@ Read: "playground" is the app as a whole, the map and everything on it.
    could not be read read again (KAT, ZK). **Status:** done in v19, each said on the map ("16:40 WFS
    back online · missing outlines asked"). Both help pages say so (section 11, and "A service is red"
    in section 14).
+
+## 1.10.2026, a cloud session with the state reachable: deploy, real tests, then the open list
+
+> Continue the ARKOD work from the previous cloud session (30.9 to 1.10.2026). "QR", "R code", "Arcode" always mean ARKOD.
+>
+> READ FIRST
+> - MANTRA_MANIFEST: START_HERE.md, README.md, modules/writing-styles.md (§0a: a message I send is written in my voice), MEMORY.md.
+> - In each repo: momentaryupdates.md (my requests word for word, with status), TAKEOVER.md, LESSONS.md. mantra_arkod/FEATURES.md is the one feature list both apps follow.
+>
+> WHERE THINGS ARE
+> - mantra_arkod: Android app "ARKOD Layer", v19. GitHub Actions builds the APK on every push to main.
+> - arkod_web: the same app as a web app, version 5, live at https://arkod-layer.pages.dev. Each push to main tests and deploys it (that repo has its own Cloudflare secrets).
+> - markoboskopossesions: the family site https://markoboskopossesions.pages.dev. It has a deploy workflow but no Cloudflare secrets in GitHub, so it is NOT yet deployed with the latest data (the Miroslav/Miroslava fix: 275 parcels).
+> - marinko_documents: private; family_tree.json, which the family site reads live.
+>
+> THIS ENVIRONMENT NOW HAS
+> - Network access: Custom. It includes api.cloudflare.com, the state's services api.uredjenazemlja.hr and oss.uredjenazemlja.hr, dl.google.com and maven.google.com, GitHub, npm, the pages.dev sites, OSM and Google.
+> - API credentials: a Cloudflare token (Bearer, api.cloudflare.com) and a GitHub token (Bearer, api.github.com and uploads.github.com). You do not see their values.
+> - CLOUDFLARE_ACCOUNT_ID may be in the environment variables. If it is not, ask me for it. Never ask for a token.
+>
+> DO, IN THIS ORDER
+> 1. Check the network: curl api.cloudflare.com, api.uredjenazemlja.hr and oss.uredjenazemlja.hr, and say what answers.
+> 2. Deploy markoboskopossesions to Cloudflare Pages:
+>    npx wrangler@3 pages deploy public --project-name markoboskopossesions --branch main
+>    wrangler may refuse to run without CLOUDFLARE_API_TOKEN in its own environment. If so, find a way that works with the injected credential (for example a placeholder token that the injected header replaces), or tell me plainly that it does not work. Then check the live site serves parcels.json with 275 parcels.
+> 3. Test both apps against the REAL state services, now that they are reachable: Kukljica (k.o. 334723), parcel 1358/3 (id 6436001) and 2449/2. Read 1358/3's land-registry history (folio 250 with historicalOverview=true) and give me everything about it in one code box.
+> 4. Then the open list in mantra_arkod/momentaryupdates.md and TODO.md:
+>    - the ARKOD launcher icon on Android (it still shows Mantra Trail's);
+>    - my family's parcels as a .arkod.json for Moje čestice;
+>    - the permanent signing key;
+>    - merging MANTRA_MANIFEST branch claude/gifted-curie-nbt328 (MT-WEB tests, "QR = ARKOD") into main.
+>    Ask me which comes first.
+>
+> RULES THAT DO NOT BEND
+> - Each new request of mine goes word for word into the right repo's momentaryupdates.md and is pushed before any code.
+> - No key or token in a repo, a commit or the chat. Show secrets masked only.
+> - Settings are in English; everything from the cadastre stays in Croatian.
+> - A feature goes into BOTH apps (FEATURES.md row) and into BOTH help pages, English and Croatian. The help is written in arkod_web/public/help/ and copied into the Android assets as FEATURES.md says.
+> - Test before saying done: Android has CoreTest (235) and scripts/verify.py; the web has npm test, npm run verify and npm run e2e. Watch CI until it is green.
+> - Versions are whole numbers. Say what was not tested, and why.
+
+1. The network checked: api.cloudflare.com, api.uredjenazemlja.hr, oss.uredjenazemlja.hr. **Status:** in progress.
+2. markoboskopossesions deployed with wrangler from the cloud session, parcels.json checked live (275).
+   **Status:** pending (that repository's momentaryupdates.md carries the item).
+3. Both apps tested against the real state: Kukljica, 1358/3 (id 6436001), 2449/2; 1358/3's land-registry
+   history (folio 250, historicalOverview=true) in one code box. **Status:** pending.
+4. The open list (launcher icon, the family's .arkod.json, the signing key, the manifest branch merge):
+   Marko chooses which comes first. **Status:** waiting for his word.
