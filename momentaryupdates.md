@@ -577,11 +577,17 @@ Read: "playground" is the app as a whole, the map and everything on it.
 > - Test before saying done: Android has CoreTest (235) and scripts/verify.py; the web has npm test, npm run verify and npm run e2e. Watch CI until it is green.
 > - Versions are whole numbers. Say what was not tested, and why.
 
-1. The network checked: api.cloudflare.com, api.uredjenazemlja.hr, oss.uredjenazemlja.hr. **Status:** in progress.
+1. The network checked: api.cloudflare.com, api.uredjenazemlja.hr, oss.uredjenazemlja.hr. **Status:** done: all
+   three answer (Cloudflare's account token active; WMS, OSS and the land registry 200; the WFS ORA-01000).
 2. markoboskopossesions deployed with wrangler from the cloud session, parcels.json checked live (275).
    **Status:** pending (that repository's momentaryupdates.md carries the item).
 3. Both apps tested against the real state: Kukljica, 1358/3 (id 6436001), 2449/2; 1358/3's land-registry
-   history (folio 250, historicalOverview=true) in one code box. **Status:** pending.
+   history (folio 250, historicalOverview=true) in one code box. **Status:** done 1.10.2026. Android: the app's
+   own addresses and parsers against the state (RealStateTest.kt, 6 cases, run with ARKOD_REAL=1, skipped in CI):
+   GetFeatureInfo, the search, both posjedovni lists, folio 250, all as the app shows them; the WFS answered
+   ORA-01000 the whole morning, and the app names it. CoreTest 235 of 235 on the JVM. The web: see arkod_web
+   (the state refuses some of Cloudflare's addresses). Found: historicalOverview=true changes nothing; the
+   history is lr-units/for-ldb-extract?historical=1, and its PDF the official "povijesni prikaz".
 4. The open list (launcher icon, the family's .arkod.json, the signing key, the manifest branch merge):
    Marko chooses which comes first. **Status:** waiting for his word.
 
