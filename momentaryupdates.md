@@ -636,3 +636,14 @@ is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
    create ARKOD_cache, deploy the family site, test the web app from Croatia, the emulator and the monkey on
    the Mac, the signing key and the remote-cache token at Marko's word, and what only Marko can do.
    **Status:** done: LOCAL_TASKS.md, and scripts/remote-cache/ (the sweep, for the Mac if the cloud data is lost).
+
+## 1.10.2026, the local Claude Code on the Mac: LOCAL_TASKS.md from section 0 to the end
+
+> Pull MANTRA_MANIFEST and markoboskoauroville/mantra_arkod into ~/Developer, then read mantra_arkod/LOCAL_TASKS.md and follow it from section 0 to the end. It was written by the cloud session on 1.10.2026 for everything it could not do: create the private repository ARKOD_cache, deploy markoboskopossesions with the 275 parcels, test arkod-layer.pages.dev against the real state from Croatia, run the Android app on a Pixel 7 emulator with the monkey and every test in TESTING.md, MANTRA_MANIFEST and MANIFEST_INTRO, and guide me through what only I can do. Sections 5 and 6 (the signing key and the remote cache token) need my yes first, so ask me. Every request of mine goes word for word into momentaryupdates.md before any code. No key or token is ever printed, committed or pasted into a chat. When you finish, write each status into the repositories' momentaryupdates.md, push, and give me one short report.
+
+1. §0 the manifests and the three repositories pulled and read. **Status:** in progress.
+2. §1 ARKOD_cache. **Status:** in progress.
+3. §2 markoboskopossesions deployed with 275 parcels. **Status:** in progress.
+4. §3 arkod-layer.pages.dev against the real state, from Croatia. **Status:** in progress.
+5. §4 the Pixel 7 emulator: the monkey, TESTING.md, the manifest tests. **Status:** in progress.
+6. §5 the permanent signing key, §6 the remote cache token. **Status:** waiting for Marko's yes.
