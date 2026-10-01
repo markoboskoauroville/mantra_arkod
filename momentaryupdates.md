@@ -696,3 +696,11 @@ Marko's words are in arkod_web's momentaryupdates.md ("What this means and how t
    them; Trail says why; the GOO light stays green (GoogleTiles: the EU refusal is an answer, not an outage).
    tilePattern keeps each placeholder where the server wants it. **Status:** done in v21 (EuSatelliteTest, 3
    cases; 243 unit cases, verify 267). Hybrid shows the photograph without street names (web only for now).
+
+## 1.10.2026, a long press on GOO chooses Google's view
+
+> I need a new feature inside my ArkodLayer app. Long press on the action bar for Google Maps. G O O. It needs to open different options for different views for Google Maps. Just that, and then when I choose the view it just closes. Easy.
+
+1. A long press on the GOO key opens a small choice of Google's views (map, satellite, terrain, hybrid); a tap
+   on one shows it and closes the choice. In both apps (FEATURES row 40) and both help pages.
+   **Status:** in progress.
