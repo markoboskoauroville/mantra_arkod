@@ -219,12 +219,15 @@ def tiles_over():
     for z in range(14, 19):
         n = 1 << z
         for lat, lon in inside:
-            # each sample stands for its 0.002° cell: the tiles of the cell's four corners
-            for dl in (-0.001, 0.001):
-                for dn in (-0.001, 0.001):
-                    la, lo = lat + dl, lon + dn
-                    x = int((lo + 180) / 360 * n)
-                    y = int((1 - math.asinh(math.tan(math.radians(la))) / math.pi) / 2 * n)
+            # each sample stands for its 0.002° cell: every tile the cell touches (a z18 tile is
+            # about 110 m, smaller than the cell, so the corners alone would leave gaps)
+            def xy(la, lo):
+                return (int((lo + 180) / 360 * n),
+                        int((1 - math.asinh(math.tan(math.radians(la))) / math.pi) / 2 * n))
+            x0, y0 = xy(lat + 0.001, lon - 0.001)
+            x1, y1 = xy(lat - 0.001, lon + 0.001)
+            for x in range(x0, x1 + 1):
+                for y in range(y0, y1 + 1):
                     out.add((z, x, y))
     return sorted(out)
 
