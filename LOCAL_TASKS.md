@@ -181,6 +181,30 @@ the token (step for Marko, below), then put it into Cloudflare without it passin
 `scripts/deploy.sh` does). The cloud session writes the reader (`functions/api/remote/`) and both apps'
 use of it; tell it the secret is in place.
 
+## 7. "Fetch when available": the one key the background service needs (1.10.2026)
+
+The web app (version 8) and the Android app (v20) hand a request the state did not answer to
+`arkod-layer.pages.dev/api/later`; a Cloudflare Worker, `arkod-fetcher`, asks the state again every ten
+minutes and keeps the answer in ARKOD_cache. Both are deployed and wait for one secret, `GITHUB_TOKEN`: today
+they answer "GITHUB_TOKEN is not set". This replaces the reader proposed in §6.
+
+**Step for Marko** (you cannot do it for him): github.com → Settings → Developer settings → Personal access
+tokens → Fine-grained tokens → Generate new token. Name "ARKOD fetcher", Repository access: Only select
+repositories → ARKOD_cache, Permissions: Contents → Read and write, nothing else. Generate and copy it.
+
+Then you put it in both places straight from the clipboard, never printed:
+
+    cd ~/Developer/arkod_web && git pull
+    F=~/Downloads/API/Cloudflare.api.txt
+    export CLOUDFLARE_ACCOUNT_ID=$(head -1 "$F" | sed -E 's#.*dash.cloudflare.com/([0-9a-f]{32}).*#\1#')
+    export CLOUDFLARE_API_TOKEN=$(grep -v '^\s*$' "$F" | tail -1 | tr -d '[:space:]')
+    pbpaste | tr -d '[:space:]' | npx --yes wrangler@3 secret put GITHUB_TOKEN -c fetcher/wrangler.toml
+    pbpaste | tr -d '[:space:]' | npx --yes wrangler@3 pages secret put GITHUB_TOKEN --project-name arkod-layer
+    pbcopy < /dev/null
+    gh workflow run deploy.yml -R markoboskoauroville/arkod_web   # a Pages secret takes effect with the next deploy
+
+Check: `curl -s https://arkod-layer.pages.dev/api/later/` says `"ready":true`. Then tell the cloud session.
+
 ## Steps only Marko can do (guide him; you cannot do them for him)
 
 - **The read-only token for ARKOD_cache** (only if he said yes to §6): github.com → Settings → Developer
