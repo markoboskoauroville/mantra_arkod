@@ -148,6 +148,8 @@ fun ArkodApp(
     var onlyMine by remember { mutableStateOf(store.onlyMine) }
     var parcelSearchOn by remember { mutableStateOf(store.parcelSearchOn) }
     var parcelView by remember { mutableStateOf(false) }
+    // GOO's LONG PRESS (1.10.2026, row 40): Google's four views, chosen in one tap
+    var googleViews by remember { mutableStateOf(false) }
     // THE MIDDLE OF THE MAP, which the top line shows (v3): where he looks, not where he is.
     var centre by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     // IMENIK (v3): the holders and owners of every sheet opened on this phone.
@@ -788,6 +790,9 @@ fun ArkodApp(
                     icon = R.drawable.ic_google,
                     up = layer.family == MapLayer.Family.GOOGLE,
                     onClick = { choose(Layers.byId(store.googleViewId)) },
+                    // Marko, 1.10.2026: "Long press on the action bar for Google Maps ... open different
+                    // options for different views ... and then when I choose the view it just closes."
+                    onLongClick = { googleViews = true },
                 )
                 MapKey(
                     word = "OSM",
@@ -970,6 +975,19 @@ fun ArkodApp(
                 },
                 onDelete = onDeleteTrack,
                 onClose = { showTracks = false },
+            )
+        }
+
+        if (googleViews) {
+            GoogleViews(
+                chosen = Layers.GOOGLE_ALL.indexOfFirst { it.id == store.googleViewId }.coerceAtLeast(0),
+                onChoose = { i ->
+                    val picked = Layers.GOOGLE_ALL[i]
+                    store.googleViewId = picked.id
+                    googleViews = false
+                    choose(picked)
+                },
+                onDismiss = { googleViews = false },
             )
         }
 
@@ -1276,15 +1294,26 @@ private fun RoundKey(@androidx.annotation.DrawableRes icon: Int, on: Boolean, on
  * three are told apart at a glance; lit amber while it is the map on the screen.
  */
 @Composable
-private fun RowScope.MapKey(word: String, @androidx.annotation.DrawableRes icon: Int, up: Boolean, onClick: () -> Unit) {
+private fun RowScope.MapKey(
+    word: String,
+    @androidx.annotation.DrawableRes icon: Int,
+    up: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+) {
     val ink = if (up) Paint.AmberBright else Paint.Sand
+    val tap by androidx.compose.runtime.rememberUpdatedState(onClick)
+    val hold by androidx.compose.runtime.rememberUpdatedState(onLongClick)
     Column(
         Modifier
             .weight(1f)
             .height(KEY)
             .clip(RoundedCornerShape(10.dp))
             .background(if (up) Paint.Amber.copy(alpha = 0.22f) else Color.Transparent)
-            .clickable(onClick = onClick),
+            .then(
+                if (onLongClick == null) Modifier.clickable(onClick = onClick)
+                else Modifier.pointerInput(Unit) { detectTapGestures(onTap = { tap() }, onLongPress = { hold?.invoke() }) }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -3117,4 +3146,32 @@ fun LaterButton(stateUrl: String) {
         }
     }, quiet = true, enabled = !busy)
     said?.let { Label(it, Paint.Dim, size = 12, align = TextAlign.Start, lines = 3) }
+}
+
+/**
+ * GOOGLE'S VIEWS, ON A LONG PRESS OF GOO (1.10.2026, FEATURES row 40): the same four as Settings → Google map,
+ * just above the key row; a choice shows Google's map in that view and closes; a tap anywhere else closes.
+ */
+@Composable
+private fun GoogleViews(chosen: Int, onChoose: (Int) -> Unit, onDismiss: () -> Unit) {
+    Box(
+        Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = { onDismiss() }) },
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Box(
+            Modifier
+                .safeDrawingPadding()
+                .padding(start = 16.dp, end = 16.dp, bottom = KEY + 40.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Paint.Card)
+                .pointerInput(Unit) { detectTapGestures { } }
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            Choice(
+                parts = listOf(Part("map"), Part("satellite"), Part("terrain"), Part("hybrid")),
+                chosen = chosen,
+                onChoose = onChoose,
+            )
+        }
+    }
 }

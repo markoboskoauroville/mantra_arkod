@@ -703,4 +703,6 @@ Marko's words are in arkod_web's momentaryupdates.md ("What this means and how t
 
 1. A long press on the GOO key opens a small choice of Google's views (map, satellite, terrain, hybrid); a tap
    on one shows it and closes the choice. In both apps (FEATURES row 40) and both help pages.
-   **Status:** in progress.
+   **Status:** done: web version 10 (67 browser checks: the four views above the keys, the one in use marked,
+   "terrain" shown, kept and closed, a tap elsewhere closes) and Android v22 (GoogleViews in Screens.kt; built by
+   CI, not yet tried on a phone).
