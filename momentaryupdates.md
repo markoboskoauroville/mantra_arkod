@@ -635,4 +635,4 @@ is ARKOD; "opčina" is the cadastral municipality (k.o.) KUKLJICA, 334723.
 1. The prompt, in the chat and in LOCAL_TASKS.md (so the local Claude Code can read it from the repository):
    create ARKOD_cache, deploy the family site, test the web app from Croatia, the emulator and the monkey on
    the Mac, the signing key and the remote-cache token at Marko's word, and what only Marko can do.
-   **Status:** in progress.
+   **Status:** done: LOCAL_TASKS.md, and scripts/remote-cache/ (the sweep, for the Mac if the cloud data is lost).
