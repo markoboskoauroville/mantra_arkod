@@ -738,3 +738,13 @@ k.o. 1613 KUŽELJ, 283 m², building 221 (1910), one flat of 118.8 m²; no publi
 CLOUD.md): building parcels found without the star, a clean sheet, land use / planned use / boniteta / buildings and
 the address on the sheet, public owners on "vlasnički", numbers on the map, 18-digit EIDs kept exact. Test 1: 261.
 
+## 11.10.2026, the country switch
+
+> In the settings, please switch between Slovenia and Croatia. Make a switch.
+
+1. Settings → Country: Croatia | Slovenia. The chosen country's cadastre is drawn, tapped, searched and fetched
+   ahead; the other state is not asked; the map goes to that country; the service lights show its services.
+   Moje čestice and kept sheets of either country stay and open from their own state. **Status:** v25
+   (Slovenia.Country, Store.country, tiles kept per country, 262 unit cases). Replaces v23-v24's drawing of both
+   states on the border.
+

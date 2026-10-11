@@ -282,6 +282,7 @@ class MainActivity : ComponentActivity() {
         // The screen applies safeDrawingPadding; this line is the other half of the same fact.
         WindowCompat.setDecorFitsSystemWindows(window, false)
         store = Store(this)
+        Slovenia.country = store.country
         locator = Locator(this)
         sensors = Sensors(this)
 

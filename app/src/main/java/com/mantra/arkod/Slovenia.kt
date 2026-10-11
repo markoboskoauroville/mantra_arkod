@@ -41,6 +41,32 @@ object Slovenia {
     const val PARCELS = "SI.GURS.KN:PARCELE"
     const val MUNICIPALITIES = "SI.GURS.KN:KATASTRSKE_OBCINE"
 
+    /**
+     * THE COUNTRY SWITCH (11.10.2026, v25). Marko: *"In the settings, please switch between Slovenia and
+     * Croatia. Make a switch."* The country chosen in Settings is the one whose cadastre is drawn, tapped,
+     * searched and fetched ahead; the other state is not asked at all. Moje čestice and the sheets kept
+     * from either country stay, and open from their own state, since a reference says which it is.
+     */
+    enum class Country(val word: String, val lat: Double, val lon: Double, val zoom: Int) {
+        CROATIA("Croatia", 44.45, 16.40, 7),
+        SLOVENIA("Slovenia", 46.12, 14.82, 8),
+        ;
+
+        companion object {
+            fun of(name: String?): Country = entries.firstOrNull { it.name == name } ?: CROATIA
+        }
+    }
+
+    @Volatile
+    var country: Country = Country.CROATIA
+
+    /** Whether a service belongs to the chosen country (Google and OSM to both): lights and checks follow it. */
+    fun serves(service: Services.Service, chosen: Country = country): Boolean = when (service) {
+        Services.Service.GURS -> chosen == Country.SLOVENIA
+        Services.Service.WMS, Services.Service.WFS, Services.Service.OSS, Services.Service.ZK -> chosen == Country.CROATIA
+        else -> true
+    }
+
     /** "SI1722": a Slovenian cadastral municipality, as this app writes it. */
     const val PREFIX = "SI"
 

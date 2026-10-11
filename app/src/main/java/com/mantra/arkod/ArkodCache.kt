@@ -51,11 +51,12 @@ object ArkodCache {
     }
 
     /**
-     * Where a tile lives under its folder. Tiles that touch Slovenia (v23) live under "si/": the ones
-     * kept before v23 there hold only Croatia's empty picture, and are never read again.
+     * Where a tile lives under its folder: Croatia's where they always were, Slovenia's under "si2/"
+     * (v25, the country switch). One place per country, so switching never shows the other state's
+     * picture; "si/" held v23-v24's pictures of both states laid together and is never read again.
      */
     private fun place(z: Int, x: Int, y: Int): String =
-        (if (Slovenia.statesFor(z, x, y).second) "si/" else "") + "$z/$x/$y.png"
+        (if (Slovenia.country == Slovenia.Country.SLOVENIA) "si2/" else "") + "$z/$x/$y.png"
 
     private fun tileFile(z: Int, x: Int, y: Int): File? =
         root?.let { File(it, "raw/" + place(z, x, y)) }

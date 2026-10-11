@@ -223,6 +223,11 @@ class Store(context: Context) {
         get() = Parcels.decodeLinks(prefs.getString(KEY_FOLIO_LINKS, "") ?: "")
         set(v) = prefs.edit().putString(KEY_FOLIO_LINKS, Parcels.encodeLinks(v)).apply()
 
+    /** The country whose cadastre is drawn (v25): Croatia unless he switched to Slovenia. */
+    var country: Slovenia.Country
+        get() = Slovenia.Country.of(prefs.getString(KEY_COUNTRY, null))
+        set(v) = prefs.edit().putString(KEY_COUNTRY, v.name).apply()
+
     /** Whether cadastre tiles are fetched ahead in the background. On unless he turns it off. */
     var prefetch: Boolean
         get() = prefs.getBoolean(KEY_PREFETCH, true)
@@ -234,6 +239,7 @@ class Store(context: Context) {
         private const val KEY_PARCEL_COLOUR = "parcelColour"
         private const val KEY_PARCEL_STYLE = "parcelStyle"
         private const val KEY_PREFETCH = "prefetch"
+        private const val KEY_COUNTRY = "country"
         private const val KEY_LAYER = "layer"
         private const val KEY_KEYS = "keys"
         private const val KEY_TRACK_COLOUR = "trackColour"

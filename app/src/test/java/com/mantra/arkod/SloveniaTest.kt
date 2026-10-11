@@ -144,4 +144,20 @@ class SloveniaTest {
         assertTrue((0 until h).all { y -> (out[y * w + 1] ushr 24) == 0xFF })
         assertTrue((0 until h).all { y -> out[y * w + 0] == 0 && out[y * w + 3] == 0 })
     }
+
+    /** Marko, 11.10.2026: "In the settings, please switch between Slovenia and Croatia. Make a switch." (v25) */
+    @Test fun theCountrySwitchDecidesWhoseServicesAreAskedAndCroatiaIsTheDefault() {
+        assertEquals(Slovenia.Country.CROATIA, Slovenia.Country.of(null))
+        assertEquals(Slovenia.Country.CROATIA, Slovenia.Country.of("nonsense"))
+        assertEquals(Slovenia.Country.SLOVENIA, Slovenia.Country.of("SLOVENIA"))
+        val hr = Slovenia.Country.CROATIA
+        val si = Slovenia.Country.SLOVENIA
+        assertTrue(Slovenia.serves(Services.Service.WMS, hr) && Slovenia.serves(Services.Service.ZK, hr))
+        assertFalse(Slovenia.serves(Services.Service.GURS, hr))
+        assertTrue(Slovenia.serves(Services.Service.GURS, si))
+        assertFalse(Slovenia.serves(Services.Service.WMS, si) || Slovenia.serves(Services.Service.OSS, si))
+        assertTrue(Slovenia.serves(Services.Service.OSM, si) && Slovenia.serves(Services.Service.GOOGLE, hr))
+        assertTrue("the map goes into the country chosen", Slovenia.inside(si.lat, si.lon))
+        assertFalse(Slovenia.inside(hr.lat, hr.lon))
+    }
 }

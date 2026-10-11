@@ -183,15 +183,10 @@ object ParcelNet {
 
     /** The parcel under a finger, in a fifth of a second; null in the sea or on an unnumbered road. */
     suspend fun at(lat: Double, lon: Double): Parcels.Parcel? = withContext(Dispatchers.IO) {
-        // SLOVENIA (v23): over the border GURS is asked, and its answer carries the outline too.
-        // On the border strip Croatia is asked first; where it has nothing, Slovenia.
-        if (!Slovenia.inside(lat, lon)) return@withContext Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon)))
-        val croatian = if (Slovenia.mayBeCroatia(lat, lon)) runCatching { Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon))) } else null
-        croatian?.getOrNull()?.let { return@withContext it }
-        val slovenian = runCatching { slovenianAt(lat, lon) }
-        // Both refused: Croatia's reason, which the WMS light already shows; else Slovenia's answer.
-        if (slovenian.isFailure && croatian?.isFailure == true) throw croatian.exceptionOrNull()!!
-        slovenian.getOrThrow()
+        // THE COUNTRY SWITCH (v25): the state chosen in Settings is the one asked. Slovenia's answer
+        // carries the outline too.
+        if (Slovenia.country == Slovenia.Country.SLOVENIA) slovenianAt(lat, lon)
+        else Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon)))
     }
 
     /** The Slovenian parcel under a point, with its outline, which is kept like any other. */
@@ -279,23 +274,15 @@ object ParcelNet {
 
     /** The cadastral municipality under the middle of the screen: ("334723", "KUKLJICA"). */
     suspend fun municipality(lat: Double, lon: Double): Pair<String, String>? = withContext(Dispatchers.IO) {
-        if (Slovenia.inside(lat, lon)) {
-            val hr = if (Slovenia.mayBeCroatia(lat, lon)) runCatching { Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))) }.getOrNull() else null
-            return@withContext hr ?: Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityAtUrl(lat, lon), readMs = 15_000))
-        }
+        if (Slovenia.country == Slovenia.Country.SLOVENIA)
+            return@withContext Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityAtUrl(lat, lon), readMs = 15_000))
         Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning")))
     }
 
     /** The municipality under a point with OSS's internal id too: (reg number, name, internal id). */
     suspend fun municipalityFull(lat: Double, lon: Double): Triple<String, String, String>? = withContext(Dispatchers.IO) {
         // SLOVENIA (v23): its municipality's "internal id" is its own "SI1722", which [ossSearch] routes.
-        if (Slovenia.inside(lat, lon)) {
-            val hr = if (Slovenia.mayBeCroatia(lat, lon)) runCatching {
-                val t = get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))
-                val (reg, name) = Parcels.zoningFromInfo(t)!!
-                Triple(reg, name, Parcels.zoningIdFromInfo(t)!!)
-            }.getOrNull() else null
-            if (hr != null) return@withContext hr
+        if (Slovenia.country == Slovenia.Country.SLOVENIA) {
             val (reg, name) = Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityAtUrl(lat, lon), readMs = 15_000)) ?: return@withContext null
             return@withContext Triple(reg, name, reg)
         }
@@ -452,20 +439,10 @@ object ParcelNet {
         }
     }
 
-    /**
-     * ONE TILE FROM WHICHEVER STATE HAS PARCELS UNDER IT (v23): Croatia's, Slovenia's, or both laid
-     * one over the other on the border. One state refusing still gives the other's half.
-     */
-    private fun stateTile(z: Int, x: Int, y: Int): ByteArray {
-        val (hr, si) = Slovenia.statesFor(z, x, y)
-        if (!si) return fetchTile(Parcels.tileUrl(z, x, y))
-        val slo = runCatching { sloveneTile(fetchTile(Slovenia.tileUrl(z, x, y))) }
-        if (!hr) return slo.getOrThrow()
-        val cro = runCatching { fetchTile(Parcels.tileUrl(z, x, y)) }
-        if (slo.isFailure) return cro.getOrThrow()
-        if (cro.isFailure) return slo.getOrThrow()
-        return overlay(cro.getOrThrow(), slo.getOrThrow())
-    }
+    /** ONE TILE FROM THE COUNTRY CHOSEN IN SETTINGS (v25): Croatia's WMS or Slovenia's (GURS). */
+    private fun stateTile(z: Int, x: Int, y: Int): ByteArray =
+        if (Slovenia.country == Slovenia.Country.SLOVENIA) sloveneTile(fetchTile(Slovenia.tileUrl(z, x, y)))
+        else fetchTile(Parcels.tileUrl(z, x, y))
 
     /** GURS's picture as lines only, should its style fill the parcels ([Slovenia.linesOnly]). */
     private fun sloveneTile(bytes: ByteArray): ByteArray {
@@ -479,17 +456,6 @@ object ParcelNet {
         if (lines === pixels) return bytes
         val out = Bitmap.createBitmap(lines, w, h, Bitmap.Config.ARGB_8888)
         return ByteArrayOutputStream(bytes.size).also { out.compress(Bitmap.CompressFormat.PNG, 100, it); out.recycle() }.toByteArray()
-    }
-
-    /** Two states' pictures of one tile, one over the other. */
-    private fun overlay(under: ByteArray, over: ByteArray): ByteArray {
-        val a = BitmapFactory.decodeByteArray(under, 0, under.size) ?: return over
-        val b = BitmapFactory.decodeByteArray(over, 0, over.size) ?: return under
-        val out = a.copy(Bitmap.Config.ARGB_8888, true)
-        a.recycle()
-        android.graphics.Canvas(out).drawBitmap(b, null, android.graphics.Rect(0, 0, out.width, out.height), null)
-        b.recycle()
-        return ByteArrayOutputStream(under.size + over.size).also { out.compress(Bitmap.CompressFormat.PNG, 100, it); out.recycle() }.toByteArray()
     }
 
     private fun fetchTile(url: String): ByteArray {

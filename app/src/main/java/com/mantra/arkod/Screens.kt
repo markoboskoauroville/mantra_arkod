@@ -637,7 +637,7 @@ fun ArkodApp(
     LaunchedEffect(Unit) {
         while (true) {
             val now = System.currentTimeMillis()
-            Services.Service.values().filter { it != Services.Service.GOOGLE }
+            Services.Service.values().filter { it != Services.Service.GOOGLE && Slovenia.serves(it) }
                 .filter { Services.due(Services.health.value[it], now, 180_000L) }
                 .forEach { s -> scope.launch { ParcelNet.check(s) } }
             delay(60_000)
@@ -1137,7 +1137,17 @@ fun ArkodApp(
                 folderName = store.exportFolderName ?: "not chosen yet",
                 onKeptParcel = { m, n -> settings = false; scope.launch { openKept(m, n) } },
                 onHelp = { lang -> settings = false; help = lang },
-                onCheckServices = { Services.Service.values().filter { it != Services.Service.GOOGLE }.forEach { s -> scope.launch { ParcelNet.check(s) } } },
+                onCountry = { picked ->
+                    // THE COUNTRY SWITCH (v25): the other state's lines go, the chosen one's are drawn,
+                    // and the map goes to that country.
+                    store.country = picked
+                    Slovenia.country = picked
+                    settings = false
+                    Canvases.reloadCadastre()
+                    Canvases.goTo(picked.lat, picked.lon, picked.zoom)
+                    Trail.say(if (picked == Slovenia.Country.SLOVENIA) "Slovenija: katastar GURS" else "Hrvatska: katastar DGU")
+                },
+                onCheckServices = { Services.Service.values().filter { it != Services.Service.GOOGLE && Slovenia.serves(it) }.forEach { s -> scope.launch { ParcelNet.check(s) } } },
                 onClose = {
                     settings = false
                     // The switch and the keywords may have changed there.
@@ -1254,7 +1264,7 @@ private fun ServiceLights(health: Map<Services.Service, Services.Health>, google
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Services.Service.values().filter { it != Services.Service.GOOGLE || googleKey }.forEach { s ->
+            Services.Service.values().filter { (it != Services.Service.GOOGLE || googleKey) && Slovenia.serves(it) }.forEach { s ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(9.dp).clip(CircleShape).background(ledColour(Services.light(health[s]))))
                     Box(Modifier.width(4.dp))

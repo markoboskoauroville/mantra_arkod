@@ -43,3 +43,13 @@ Thank you: every finding was right, and the real answers caught one more bug (be
 - **Part C** with **v24** (the build was started from this branch): SLO1–SLO8 as in LOCAL_PROMPT.md. At SLO4, Petrina 2
   should show *98/5, KUŽELJ, 283 m², "Kostel, Petrina 2", building 221 (1910), land use 54.8 % / 45.2 %, planned use,
   boniteta 55.
+
+## v25, 11.10.2026: the country switch (Marko's request)
+
+Settings → **Country: Croatia | Slovenia**. Only the chosen country's cadastre is drawn and asked; the map jumps
+there. For Part C: switch to **Slovenia** before SLO1, SLO2, SLO4, SLO5 and SLO6. **SLO3 changes:** at Petrina with
+Slovenia chosen, only the Slovenian bank has lines; switch to Croatia and only the Croatian bank has them, and the
+tap across the river opens the Croatian sheet. **SLO8:** switch back to Croatia first. New **SLO9:** the switch is
+remembered after force-stop, and the light row shows SLO only in Slovenia, WMS/WFS/KAT/ZK only in Croatia.
+Install **v25**.
+

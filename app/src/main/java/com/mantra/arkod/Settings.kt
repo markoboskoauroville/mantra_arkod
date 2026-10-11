@@ -86,6 +86,8 @@ fun SettingsFace(
     onCheckServices: () -> Unit = {},
     // Help (v18): "en" or "hr".
     onHelp: (String) -> Unit = {},
+    // The country switch (v25): whose cadastre is drawn.
+    onCountry: (Slovenia.Country) -> Unit = {},
 ) {
     val services by Services.health.collectAsState()
     val serviceLog by Services.log.collectAsState()
@@ -98,6 +100,7 @@ fun SettingsFace(
     var googleId by remember { mutableStateOf(store.googleViewId) }
     var keysOpen by remember { mutableStateOf(store.opened("keys") || keyring.isEmpty()) }
     var prefetch by remember { mutableStateOf(store.prefetch) }
+    var country by remember { mutableStateOf(store.country) }
     var cacheLabel by remember { mutableStateOf("…") }
     var keywords by remember { mutableStateOf(store.cacheKeywords) }
     var keptOpen by remember { mutableStateOf(false) }
@@ -298,6 +301,31 @@ fun SettingsFace(
             // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings
             // in the English language and all terminology from arkod in Croatian."* So a row here is
             // English, and a name the cadastre gives a thing (čestica, posjedovni list, k.o.) is not.
+            // THE COUNTRY SWITCH (v25): *"In the settings, please switch between Slovenia and Croatia."*
+            Group("Country") {
+                Box(Modifier.padding(12.dp)) {
+                    Choice(
+                        parts = Slovenia.Country.entries.map { Part(it.word) },
+                        chosen = country.ordinal,
+                        onChoose = { i ->
+                            val picked = Slovenia.Country.entries[i]
+                            if (picked != country) {
+                                country = picked
+                                onCountry(picked)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)) {
+                    Words(
+                        if (country == Slovenia.Country.SLOVENIA) "The parcels of Slovenia (GURS): lines, k.o., area, land use, buildings. Slovenia publishes no private owners."
+                        else "The parcels of Croatia (DGU): lines, posjedovni list, vlasnički list.",
+                        Paint.Dim, 12, TextAlign.Start,
+                    )
+                }
+            }
+
             Group("Moje čestice") {
                 Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
                 Hairline()
