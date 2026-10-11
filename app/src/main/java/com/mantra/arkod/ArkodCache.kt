@@ -50,12 +50,19 @@ object ArkodCache {
         root = File(context.filesDir, "arkod").apply { mkdirs() }
     }
 
+    /**
+     * Where a tile lives under its folder. Tiles that touch Slovenia (v23) live under "si/": the ones
+     * kept before v23 there hold only Croatia's empty picture, and are never read again.
+     */
+    private fun place(z: Int, x: Int, y: Int): String =
+        (if (Slovenia.statesFor(z, x, y).second) "si/" else "") + "$z/$x/$y.png"
+
     private fun tileFile(z: Int, x: Int, y: Int): File? =
-        root?.let { File(it, "raw/$z/$x/$y.png") }
+        root?.let { File(it, "raw/" + place(z, x, y)) }
 
     /** A restyled tile, kept per style: [key] is ParcelStyle.key (ink, transparency, weight). */
     private fun inkedFile(z: Int, x: Int, y: Int, key: String): File? =
-        root?.let { File(it, "ink-$key/$z/$x/$y.png") }
+        root?.let { File(it, "ink-$key/" + place(z, x, y)) }
 
     private fun write(file: File, bytes: ByteArray) {
         file.parentFile?.mkdirs()
@@ -78,7 +85,7 @@ object ArkodCache {
         val f = tileFile(z, x, y) ?: return
         runCatching { write(f, bytes) }
         // A new picture makes every recoloured copy of the old one wrong.
-        root?.listFiles()?.filter { it.name.startsWith("ink-") }?.forEach { File(it, "$z/$x/$y.png").delete() }
+        root?.listFiles()?.filter { it.name.startsWith("ink-") }?.forEach { File(it, place(z, x, y)).delete() }
     }
 
     fun inked(z: Int, x: Int, y: Int, key: String): ByteArray? {

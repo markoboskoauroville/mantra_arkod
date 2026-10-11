@@ -136,6 +136,8 @@ object ParcelNet {
                 Services.Service.ZK -> get(Parcels.booksUrl("KUKLJICA"), readMs = 15_000)
                 Services.Service.WFS -> get(Parcels.byReferenceUrl(listOf("334723-1358/3")), readMs = 45_000)
                 Services.Service.OSM -> get("https://tile.openstreetmap.org/0/0/0.png", readMs = 15_000)
+                // Ljubljana's middle, Kongresni trg: one parcel, one small answer (Slovenia, v23).
+                Services.Service.GURS -> get(Slovenia.atUrl(46.0505, 14.5036), readMs = 20_000)
                 Services.Service.GOOGLE -> Unit
             }
         }
@@ -181,11 +183,32 @@ object ParcelNet {
 
     /** The parcel under a finger, in a fifth of a second; null in the sea or on an unnumbered road. */
     suspend fun at(lat: Double, lon: Double): Parcels.Parcel? = withContext(Dispatchers.IO) {
-        Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon)))
+        // SLOVENIA (v23): over the border GURS is asked, and its answer carries the outline too.
+        // On the border strip Croatia is asked first; where it has nothing, Slovenia.
+        if (!Slovenia.inside(lat, lon)) return@withContext Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon)))
+        val croatian = if (Slovenia.mayBeCroatia(lat, lon)) runCatching { Parcels.parcelFromInfo(get(Parcels.infoUrl(lat, lon))) } else null
+        croatian?.getOrNull()?.let { return@withContext it }
+        val slovenian = runCatching { slovenianAt(lat, lon) }
+        // Both refused: Croatia's reason, which the WMS light already shows; else Slovenia's answer.
+        if (slovenian.isFailure && croatian?.isFailure == true) throw croatian.exceptionOrNull()!!
+        slovenian.getOrThrow()
     }
+
+    /** The Slovenian parcel under a point, with its outline, which is kept like any other. */
+    private fun slovenianAt(lat: Double, lon: Double): Parcels.Parcel? =
+        Slovenia.parcelAt(get(Slovenia.atUrl(lat, lon)), lat, lon)?.also { keepShapes(listOf(it)) }
 
     suspend fun record(parcelId: Long): Parcels.Record = withContext(Dispatchers.IO) {
         Parcels.parseRecord(getKept(Parcels.recordUrl(parcelId)))
+    }
+
+    /** The sheet of any parcel: Croatia's OSS by id, Slovenia's GURS by reference (v23). */
+    suspend fun record(parcel: Parcels.Parcel): Parcels.Record = withContext(Dispatchers.IO) {
+        if (!Slovenia.isReference(parcel.reference)) return@withContext Parcels.parseRecord(getKept(Parcels.recordUrl(parcel.id)))
+        val text = getKept(Slovenia.recordUrl(parcel.reference))
+        val ko = Slovenia.koId(parcel.municipality)
+        val name = runCatching { Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityUrl(ko), readMs = 15_000))?.second }.getOrNull()
+        Slovenia.parseRecord(text, parcel.reference, name) ?: throw Refused("GURS ne zna česticu ${parcel.number} u k.o. $ko")
     }
 
     /** Like [get], but a refusal is null: the land registry answers 404 for a number it lacks. */
@@ -223,11 +246,26 @@ object ParcelNet {
 
     /** The cadastral municipality under the middle of the screen: ("334723", "KUKLJICA"). */
     suspend fun municipality(lat: Double, lon: Double): Pair<String, String>? = withContext(Dispatchers.IO) {
+        if (Slovenia.inside(lat, lon)) {
+            val hr = if (Slovenia.mayBeCroatia(lat, lon)) runCatching { Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))) }.getOrNull() else null
+            return@withContext hr ?: Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityAtUrl(lat, lon), readMs = 15_000))
+        }
         Parcels.zoningFromInfo(get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning")))
     }
 
     /** The municipality under a point with OSS's internal id too: (reg number, name, internal id). */
     suspend fun municipalityFull(lat: Double, lon: Double): Triple<String, String, String>? = withContext(Dispatchers.IO) {
+        // SLOVENIA (v23): its municipality's "internal id" is its own "SI1722", which [ossSearch] routes.
+        if (Slovenia.inside(lat, lon)) {
+            val hr = if (Slovenia.mayBeCroatia(lat, lon)) runCatching {
+                val t = get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))
+                val (reg, name) = Parcels.zoningFromInfo(t)!!
+                Triple(reg, name, Parcels.zoningIdFromInfo(t)!!)
+            }.getOrNull() else null
+            if (hr != null) return@withContext hr
+            val (reg, name) = Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityAtUrl(lat, lon), readMs = 15_000)) ?: return@withContext null
+            return@withContext Triple(reg, name, reg)
+        }
         val text = get(Parcels.infoUrl(lat, lon, "cp:CP.CadastralZoning"))
         val (reg, name) = Parcels.zoningFromInfo(text) ?: return@withContext null
         val id = Parcels.zoningIdFromInfo(text) ?: return@withContext null
@@ -237,6 +275,14 @@ object ParcelNet {
     /** OSS's own public search: a number, or a whole possession sheet, in one municipality. */
     suspend fun ossSearch(municipalityId: String, number: String? = null, sheet: String? = null): List<Finding.Hit> =
         withContext(Dispatchers.IO) {
+            // SLOVENIA (v23): a number is asked of GURS; there are no possession sheets to search.
+            if (Slovenia.isMunicipality(municipalityId)) {
+                if (number == null) return@withContext emptyList()
+                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byReferenceUrl(listOf(Slovenia.reference(Slovenia.koId(municipalityId), number)))))
+                    .also { keepShapes(it) }
+                    .map { p -> Finding.Hit(id = p.id.toString(), title = "${p.number} · k.o. ${Slovenia.koId(p.municipality)} (SLO)",
+                        under = Parcels.areaLabel(p.areaM2), source = Finding.Source.PARCEL, ref = p.reference) }
+            }
             val c = (URL(Parcels.OSS_SEARCH).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 doOutput = true
@@ -266,12 +312,18 @@ object ParcelNet {
      */
     suspend fun suggest(municipalityReg: String, municipalityName: String, prefix: String): List<Finding.Hit> =
         withContext(Dispatchers.IO) {
+            if (Slovenia.isMunicipality(municipalityReg))
+                return@withContext Slovenia.parseSuggestions(getKeptQuiet(Slovenia.suggestUrl(municipalityReg, prefix), readMs = 15_000), municipalityName)
             Parcels.parseSuggestions(getKeptQuiet(Parcels.searchUrl(prefix, municipalityReg), readMs = 10_000), municipalityReg, municipalityName)
         }
 
     /** Parcels by number in one municipality, through OSS's search: one quick request each. */
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
+            if (Slovenia.isMunicipality(municipality)) {
+                val refs = numbers.map { Slovenia.reference(Slovenia.koId(municipality), it) }
+                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byReferenceUrl(refs))).also { keepShapes(it) }
+            }
             numbers.mapNotNull { n ->
                 val id = Parcels.parseSearch(getKeptQuiet(Parcels.searchUrl(n, municipality)), n) ?: return@mapNotNull null
                 Parcels.Parcel(id, n, "$municipality-$n", null, emptyList())
@@ -291,7 +343,11 @@ object ParcelNet {
         val missing = references.filter { r -> kept.none { it.reference == r } }
         if (missing.isEmpty()) return@withContext kept
         val fresh = try {
-            Parcels.parseParcels(get(Parcels.byReferenceUrl(missing), readMs = 90_000))
+            // SLOVENIA (v23): its references go to GURS, the rest to the Croatian WFS.
+            val (si, hr) = missing.partition { Slovenia.isReference(it) }
+            val sl = if (si.isEmpty()) emptyList() else runCatching { Slovenia.parseParcels(get(Slovenia.byReferenceUrl(si), readMs = 45_000)) }
+                .getOrElse { if (hr.isEmpty()) throw it else emptyList() }
+            sl + if (hr.isEmpty()) emptyList() else Parcels.parseParcels(get(Parcels.byReferenceUrl(hr), readMs = 90_000))
         } catch (e: Exception) {
             if (kept.isNotEmpty()) return@withContext kept
             throw e
@@ -358,10 +414,50 @@ object ParcelNet {
         val onPhone = ArkodCache.raw(z, x, y)
         if (onPhone != null && (!refresh || onPhone.second < ArkodCache.STALE_MS)) return onPhone.first
         return try {
-            fetchTile(Parcels.tileUrl(z, x, y)).also { ArkodCache.keepRaw(z, x, y, it) }
+            stateTile(z, x, y).also { ArkodCache.keepRaw(z, x, y, it) }
         } catch (e: Exception) {
             onPhone?.first ?: throw e
         }
+    }
+
+    /**
+     * ONE TILE FROM WHICHEVER STATE HAS PARCELS UNDER IT (v23): Croatia's, Slovenia's, or both laid
+     * one over the other on the border. One state refusing still gives the other's half.
+     */
+    private fun stateTile(z: Int, x: Int, y: Int): ByteArray {
+        val (hr, si) = Slovenia.statesFor(z, x, y)
+        if (!si) return fetchTile(Parcels.tileUrl(z, x, y))
+        val slo = runCatching { sloveneTile(fetchTile(Slovenia.tileUrl(z, x, y))) }
+        if (!hr) return slo.getOrThrow()
+        val cro = runCatching { fetchTile(Parcels.tileUrl(z, x, y)) }
+        if (slo.isFailure) return cro.getOrThrow()
+        if (cro.isFailure) return slo.getOrThrow()
+        return overlay(cro.getOrThrow(), slo.getOrThrow())
+    }
+
+    /** GURS's picture as lines only, should its style fill the parcels ([Slovenia.linesOnly]). */
+    private fun sloveneTile(bytes: ByteArray): ByteArray {
+        val picture = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return bytes
+        val w = picture.width
+        val h = picture.height
+        val pixels = IntArray(w * h)
+        picture.getPixels(pixels, 0, w, 0, 0, w, h)
+        picture.recycle()
+        val lines = Slovenia.linesOnly(pixels, w, h)
+        if (lines === pixels) return bytes
+        val out = Bitmap.createBitmap(lines, w, h, Bitmap.Config.ARGB_8888)
+        return ByteArrayOutputStream(bytes.size).also { out.compress(Bitmap.CompressFormat.PNG, 100, it); out.recycle() }.toByteArray()
+    }
+
+    /** Two states' pictures of one tile, one over the other. */
+    private fun overlay(under: ByteArray, over: ByteArray): ByteArray {
+        val a = BitmapFactory.decodeByteArray(under, 0, under.size) ?: return over
+        val b = BitmapFactory.decodeByteArray(over, 0, over.size) ?: return under
+        val out = a.copy(Bitmap.Config.ARGB_8888, true)
+        a.recycle()
+        android.graphics.Canvas(out).drawBitmap(b, null, android.graphics.Rect(0, 0, out.width, out.height), null)
+        b.recycle()
+        return ByteArrayOutputStream(under.size + over.size).also { out.compress(Bitmap.CompressFormat.PNG, 100, it); out.recycle() }.toByteArray()
     }
 
     private fun fetchTile(url: String): ByteArray {

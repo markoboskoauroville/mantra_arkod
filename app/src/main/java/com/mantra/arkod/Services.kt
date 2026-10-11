@@ -36,6 +36,11 @@ object Services {
             "Vlasnički list: owners, shares and burdens, from the land registry.",
             "Only owner sheets already on the phone open.",
         ),
+        GURS(
+            "SLO", "Slovenia's cadastre (GURS)",
+            "Draws Slovenia's parcel lines, says which parcel is under a tap there, its outline, k.o. and area, and finds a number in a Slovenian k.o.",
+            "No Slovenian parcel lines where the phone has none kept, and a tap in Slovenia cannot say which parcel it is. Croatia is not affected.",
+        ),
         OSM(
             "OSM", "OpenStreetMap",
             "The default map.",
@@ -54,6 +59,7 @@ object Services {
         "inspire/cp/wfs" in url -> Service.WFS
         "oss.uredjenazemlja.hr" in url && ("/lr/" in url || "/lr-units/" in url || "search-lr-parcels" in url) -> Service.ZK
         "oss.uredjenazemlja.hr" in url -> Service.OSS
+        "eprostor.gov.si" in url -> Service.GURS
         "openstreetmap.org" in url -> Service.OSM
         "googleapis.com" in url -> Service.GOOGLE
         else -> null

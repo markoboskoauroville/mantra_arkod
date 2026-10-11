@@ -271,7 +271,7 @@ fun ArkodApp(
 
     suspend fun openCard(parcel: Parcels.Parcel) {
         card = ParcelCard(parcel)
-        val answer = runCatching { ParcelNet.record(parcel.id) }
+        val answer = runCatching { ParcelNet.record(parcel) }
         val keptSince = ParcelNet.kept
         val keptFar = ParcelNet.keptFar
         if (card?.parcel?.id != parcel.id) return
@@ -285,6 +285,12 @@ fun ArkodApp(
         // THE OWNER SHEET (29.9.2026): the folios the cadastre links to, else the one he found by
         // hand for this parcel before; asked after the record, so the first two tabs never wait.
         val record = answer.getOrNull() ?: return
+        // SLOVENIA (v23): GURS gives no owners and the Slovenian land register asks for a sign-in;
+        // the sheet says so, and nothing is asked of the Croatian land registry.
+        if (Slovenia.isReference(parcel.reference)) {
+            card = card?.copy(folios = emptyList())
+            return
+        }
         val folios = runCatching {
             ParcelNet.ownerSheets(record).ifEmpty {
                 store.folioLinks[parcel.reference]?.let { (book, unit) -> listOfNotNull(ParcelNet.folio(book, unit)) }.orEmpty()
@@ -354,6 +360,7 @@ fun ArkodApp(
                 Trail.say(Services.said(e) { clock.format(java.util.Date(it)) })
                 // MAKE IT WORK (v19): a service back, what waited for it is done at once.
                 if (e.online) when (e.service) {
+                    Services.Service.GURS -> { Canvases.reloadCadastre(); Trail.say("${clock.format(java.util.Date(e.at))} SLO back online · Slovenia's parcels are drawn again") }
                     Services.Service.WMS -> { Canvases.reloadCadastre(); Trail.say("${clock.format(java.util.Date(e.at))} WMS back online · the ARKOD layer is drawn again") }
                     Services.Service.WFS -> { Trail.say("${clock.format(java.util.Date(e.at))} WFS back online · missing outlines asked"); fillShapes() }
                     Services.Service.OSS, Services.Service.ZK -> card?.takeIf { it.problem != null || it.folioProblem != null }?.let { c ->
@@ -464,7 +471,7 @@ fun ArkodApp(
         val ref = "$municipality-$number"
         val p = ParcelQuery.decodeShape(kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ArkodCache.shape(ref) })
             ?: marks.firstOrNull { it.reference == ref && it.rings.isNotEmpty() }?.let { Parcels.Parcel(it.id, it.number, it.reference, null, it.rings) }
-        if (p == null || p.id <= 0L) { goToNumber(municipality, number); return }
+        if (p == null || p.id == 0L) { goToNumber(municipality, number); return }
         select(p)
         val (lat, lon) = p.middle
         ParcelsShown.pin = lat to lon
@@ -529,8 +536,9 @@ fun ArkodApp(
             return
         }
         card = null
-        val rings = runCatching { ParcelNet.outline(lat, lon) }.getOrNull()
-        select(parcel.copy(rings = rings.orEmpty()))
+        // Slovenia's answer brings the outline with it (v23); Croatia's is traced from the picture.
+        val rings = parcel.rings.ifEmpty { runCatching { ParcelNet.outline(lat, lon) }.getOrNull().orEmpty() }
+        select(parcel.copy(rings = rings))
         Trail.say("${parcel.number}$hidden · dodirnite ponovno za list")
     }
 
@@ -2197,7 +2205,8 @@ private fun ParcelCardView(
     var filter by remember(card.parcel.reference) { mutableStateOf("") }
     // THE THREE TABS (29.9.2026): land use, possession sheet, owner sheet. The possession sheet
     // first, as before, since it is what he opens the sheet for most.
-    var tab by remember(card.parcel.reference) { mutableStateOf(Parcels.Tab.POSSESSION) }
+    // A Slovenian sheet opens on what GURS gives: the parcel's own attributes (v23).
+    var tab by remember(card.parcel.reference) { mutableStateOf(if (Slovenia.isReference(card.parcel.reference)) Parcels.Tab.USE else Parcels.Tab.POSSESSION) }
     val folios = card.folios.orEmpty()
     val rows = remember(record, folios) {
         val base = record?.let { Parcels.sheetRows(it) }.orEmpty()
@@ -2315,6 +2324,7 @@ private fun ParcelCardView(
                     if (tab == Parcels.Tab.OWNER) {
                         when {
                             card.folios == null -> Label("pitam zemljišnu knjigu za vlasnike…", Paint.Dim, size = 13, align = TextAlign.Start)
+                            Slovenia.isReference(card.parcel.reference) -> Unit
                             folios.isEmpty() -> FolioFinder(record, card.folioProblem, onFindFolio)
                             else -> card.folioProblem?.let { Label(it, Paint.Red, size = 13, align = TextAlign.Start) }
                         }

@@ -706,3 +706,29 @@ Marko's words are in arkod_web's momentaryupdates.md ("What this means and how t
    **Status:** done: web version 10 (67 browser checks: the four views above the keys, the one in use marked,
    "terrain" shown, kept and closed, a tap elsewhere closes) and Android v22 (GoogleViews in Screens.kt; built by
    CI, not yet tried on a phone).
+
+## 11.10.2026, Slovenia
+
+> Please upgrade my Android app, ArcodLayer, to support streams from Slovenia, to have Katastar from Slovenia for any address in Slovenia. So the same principle apply Croatia, now Slovenia, neighboring country. Please update the app.
+
+> please do a test for owner sheet and other sheets we can get for a place in slovenia, in slovenia called petrina, and the street is petrina 2 Who is the owner of that house? Petrina 2
+
+1. Slovenia's cadastre in the Android app (FEATURES row 41). **Status:** v23: Slovenia.kt (GURS WMS and WFS),
+   ParcelNet routes by place and by reference ("SI1621-1234/5"), tiles on the border drawn from both states, the
+   sheet from GURS, the SLO light. Test 1: 252 cases in the app's suite (SloveniaTest 10), verify 268; the app's
+   Kotlin compiled in the cloud against android-35. **Not yet measured against GURS:** this environment's network
+   policy refused ipi.eprostor.gov.si, so the attribute names (KO_ID, ST_PARCELE, POVRSINA) are read tolerantly and
+   the first real answer is a tap in Slovenia on the phone (TESTING.md, SLO1-SLO4 below).
+2. Petrina 2 (Kostel, on the Kolpa opposite Brod na Kupi). **Status:** a unit case for Petrina (Slovenia, drawn
+   from both states, its sheet without owners). Who owns the house is not something the app can show: GURS
+   publishes no owners, and the Slovenian land register (e-ZK, sodisce.si) shows them only after a sign-in.
+   On the phone: search "Petrina 2" (Google field), tap the house, tap again: k.o., parcel number, area, GURS's
+   attributes; the owner tab says where the owners are read.
+3. The web app (arkod_web) gets the same row. **Status:** open; not reachable from this session.
+
+SLO checks for the local Claude Code (TESTING.md style), from the v23 release:
+- SLO1 Ljubljana z17: Slovenian parcel lines drawn; the SLO light green.
+- SLO2 a tap in Ljubljana, then a second: the sheet opens on "uporaba" with k.o. and area.
+- SLO3 Petrina z18: the lines on both banks of the Kolpa (Slovenia and Croatia).
+- SLO4 keep a Slovenian parcel in Moje čestice; restart with no signal: still drawn and its sheet opens.
+

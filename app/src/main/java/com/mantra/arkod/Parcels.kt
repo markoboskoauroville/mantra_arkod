@@ -557,8 +557,14 @@ object Parcels {
             appendLine("površina: ${areaLabel(record.areaM2.toIntOrNull() ?: parcel.areaM2)}")
             if (record.address.isNotBlank()) appendLine("adresa: ${record.address}")
             appendLine()
-            appendLine("NAČIN UPORABE")
-            record.uses.forEach { appendLine("  ${it.name}, ${it.areaM2} m², posjedovni list ${it.sheet}") }
+            if (Slovenia.isMunicipality(record.municipalityNumber)) {
+                appendLine(Slovenia.HEAD)
+                record.uses.forEach { appendLine("  ${it.name}: ${it.areaM2}") }
+                appendLine("  ${Slovenia.OWNERS_NOTE}")
+            } else {
+                appendLine("NAČIN UPORABE")
+                record.uses.forEach { appendLine("  ${it.name}, ${it.areaM2} m², posjedovni list ${it.sheet}") }
+            }
             record.sheets.forEach { sheet ->
                 appendLine()
                 appendLine("POSJEDOVNI LIST ${sheet.number}")
@@ -585,7 +591,8 @@ object Parcels {
             ring.forEach { appendLine("  %.6f, %.6f".format(java.util.Locale.ROOT, it.first, it.second)) }
         }
         appendLine()
-        appendLine("izvor: Državna geodetska uprava, oss.uredjenazemlja.hr; spremljeno $madeAt, ARKOD Layer")
+        appendLine(if (Slovenia.isReference(parcel.reference)) "izvor: Geodetska uprava Republike Slovenije (GURS), ipi.eprostor.gov.si; spremljeno $madeAt, ARKOD Layer"
+            else "izvor: Državna geodetska uprava, oss.uredjenazemlja.hr; spremljeno $madeAt, ARKOD Layer")
     }
 
     /**
@@ -604,7 +611,7 @@ object Parcels {
         if (!row.heading.startsWith(HEAD_FOLIO_PARCELS)) null
         else Regex("""^\*?\d+(/\d+)?""").find(row.main.trim())?.value
 
-    fun sheetRows(record: Record): List<SheetRow> = buildList {
+    fun sheetRows(record: Record): List<SheetRow> = if (Slovenia.isMunicipality(record.municipalityNumber)) Slovenia.sheetRows(record) else buildList {
         record.uses.forEach { add(SheetRow(HEAD_USE, "${it.name}  ${it.areaM2} m²", "p.l. ${it.sheet}")) }
         record.sheets.forEach { sheet ->
             sheet.owners.forEach { add(SheetRow("$HEAD_POSSESSION ${sheet.number}", it.name, it.share, it.address)) }
@@ -627,7 +634,7 @@ object Parcels {
     const val HEAD_REGISTRY = "ZEMLJIŠNA KNJIGA"
 
     fun tabOf(row: SheetRow): Tab = when {
-        row.heading.startsWith(HEAD_USE) -> Tab.USE
+        row.heading.startsWith(HEAD_USE) || row.heading.startsWith(Slovenia.HEAD) -> Tab.USE
         row.heading.startsWith(HEAD_POSSESSION) -> Tab.POSSESSION
         else -> Tab.OWNER
     }

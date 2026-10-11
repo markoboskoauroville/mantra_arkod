@@ -332,3 +332,27 @@ sheet shows the note itself.
 
 Also: where-am-I from far out goes to z17; the first view moved west so Istria is on the screen; the
 download's size is rounded (176 MB, as the label says, not 175).
+
+## 11.10.2026 — v23, Slovenia
+
+**GURS, the same shape as the Croatian state.** Slovenia's land cadastre is open data on a GeoServer
+(ipi.eprostor.gov.si): a WMS for the lines and a WFS whose answer carries each parcel's number, municipality,
+area and outline at once, so a tap in Slovenia is one request where Croatia needs two.
+
+**Which state is asked is decided by place, then by reference.** A wide outline of Slovenia says where GURS is
+worth asking; a narrow one, five kilometres inside the Croatian border, says where Croatia is not. On the strip
+between, a tile is drawn from both pictures laid one over the other, and a tap asks Croatia first. A Slovenian
+parcel's reference is "SI<k.o.>-<number>" and its id GURS's own, negative, so Moje čestice, the kept outlines and
+a file each know which state to ask, and the sniffer (which skips ids under one) leaves it alone.
+
+**Tiles kept before v23 on Slovenian ground** hold Croatia's empty picture; tiles that touch Slovenia now live
+under "si/", so those are never read again.
+
+**No owners.** GURS publishes none and the Slovenian land register needs a sign-in, so the Slovenian sheet shows
+GURS's attributes and says where the owners are read, on the possession and owner tabs alike.
+
+**Measured nothing against GURS.** The session's network policy refused eprostor.gov.si. The attribute names are
+read in several spellings, the axis order from the numbers themselves (Slovenia's latitudes and longitudes never
+overlap), and should GURS's style fill its parcels, a tile is reduced to the edges between its colours before it
+is restyled. The first real answer is SLO1-SLO4 on a phone.
+

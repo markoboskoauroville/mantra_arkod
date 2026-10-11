@@ -81,6 +81,8 @@ object Flyer {
             return
         } ?: return
         synchronized(seen) { if (!seen.add(p.id)) return }
+        // Slovenia publishes no names (v23): nothing on its sheets for the words to match.
+        if (Slovenia.isReference(p.reference)) return
         val record = runCatching { Parcels.parseRecord(read(Parcels.recordUrl(p.id))) }.getOrElse {
             update { s -> s.copy(problem = "cadastre (KAT) not answering") }
             return
