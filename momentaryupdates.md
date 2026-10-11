@@ -748,3 +748,12 @@ the address on the sheet, public owners on "vlasnički", numbers on the map, 18-
    (Slovenia.Country, Store.country, tiles kept per country, 262 unit cases). Replaces v23-v24's drawing of both
    states on the border.
 
+## 11.10.2026, search in Slovenia mode (with a screenshot)
+
+> This is slovenia mode and searc results comming from Croatia please limit search results
+
+The screenshot: "petrina 2, petrina" with Slovenia chosen offered "ul. Mire Petrina 2, 10090, Zagreb".
+1. Google's place search follows Settings → Country. **Status:** v26. Autocomplete asks region "si", in Slovenian
+   (it was fixed to "hr"); Text Search is held to the country's box and drops any place whose address names
+   another country. Croatia unchanged. 263 unit cases.
+

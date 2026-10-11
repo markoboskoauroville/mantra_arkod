@@ -160,4 +160,23 @@ class SloveniaTest {
         assertTrue("the map goes into the country chosen", Slovenia.inside(si.lat, si.lon))
         assertFalse(Slovenia.inside(hr.lat, hr.lon))
     }
+
+    /** Marko, 11.10.2026, a screenshot: "This is slovenia mode and search results coming from Croatia" (v26). */
+    @Test fun thePlaceSearchIsHeldToTheChosenCountry() {
+        val si = Slovenia.Country.SLOVENIA
+        val hr = Slovenia.Country.CROATIA
+        assertEquals("si" to "sl", si.region to si.language)
+        assertEquals("hr" to "hr", hr.region to hr.language)
+        assertFalse(Slovenia.inCountry("ul. Mire Petrina 2, 10090, Zagreb, Hrvatska", si))
+        assertFalse(Slovenia.inCountry("ul. Mire Petrina 2, 10090 Zagreb, Croatia", si))
+        assertTrue(Slovenia.inCountry("Petrina 2, 1336 Kostel, Slovenija", si))
+        assertTrue(Slovenia.inCountry("Petrina 2, 1336 Vas", si))
+        assertFalse(Slovenia.inCountry("Petrina 2, 1336 Kostel, Slovenia", hr))
+        assertTrue(Slovenia.inCountry("ul. Mire Petrina 2, 10090, Zagreb, Hrvatska", hr))
+        assertFalse(Slovenia.inCountry("Via Roma 1, Trieste, Italia", si))
+        // Petrina is inside Slovenia's search box; Zagreb is too (a box is a box), so its places go by their address
+        val b = si.box
+        assertTrue(45.4648 in b[0]..b[2] && 14.8531 in b[1]..b[3])
+        assertFalse(45.4648 in hr.box[0]..hr.box[2] && 19.6 in hr.box[1]..hr.box[3])
+    }
 }

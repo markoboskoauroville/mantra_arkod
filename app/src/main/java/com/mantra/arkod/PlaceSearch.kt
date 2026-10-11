@@ -60,8 +60,9 @@ object PlaceSearch {
     private fun autocomplete(text: String, key: String, from: Fix?, session: String): List<Finding.Hit> {
         val body = JSONObject()
             .put("input", text)
-            .put("languageCode", "hr")
-            .put("includedRegionCodes", JSONArray().put("hr"))
+            // THE COUNTRY SWITCH (v26): only places in the country chosen in Settings.
+            .put("languageCode", Slovenia.country.language)
+            .put("includedRegionCodes", JSONArray().put(Slovenia.country.region))
             .put("sessionToken", session)
         near(from)?.let {
             body.put("origin", it)
@@ -80,11 +81,16 @@ object PlaceSearch {
     }
 
     private fun textSearch(text: String, key: String, from: Fix?): List<Finding.Hit> {
-        val body = JSONObject().put("textQuery", text).put("pageSize", 10).put("languageCode", "hr").put("regionCode", "hr")
-        near(from)?.let { body.put("locationBias", JSONObject().put("circle", JSONObject().put("center", it).put("radius", 50_000.0))) }
+        val body = JSONObject().put("textQuery", text).put("pageSize", 10).put("languageCode", Slovenia.country.language).put("regionCode", Slovenia.country.region)
+        // THE COUNTRY SWITCH (v26): Text Search takes the region as a preference only, so it is held
+        // inside the chosen country's box, and an address naming another country is dropped below.
+        val b = Slovenia.country.box
+        body.put("locationRestriction", JSONObject().put("rectangle", JSONObject()
+            .put("low", JSONObject().put("latitude", b[0]).put("longitude", b[1]))
+            .put("high", JSONObject().put("latitude", b[2]).put("longitude", b[3]))))
         val a = post(TEXT, key, body, "places.id,places.displayName,places.formattedAddress,places.location").optJSONArray("places")
             ?: return emptyList()
-        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.mapNotNull { p ->
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { Slovenia.inCountry(it.optString("formattedAddress")) }.mapNotNull { p ->
             val loc = p.optJSONObject("location") ?: return@mapNotNull null
             val lat = loc.optDouble("latitude")
             val lon = loc.optDouble("longitude")

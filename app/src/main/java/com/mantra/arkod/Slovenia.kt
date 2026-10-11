@@ -47,9 +47,17 @@ object Slovenia {
      * searched and fetched ahead; the other state is not asked at all. Moje čestice and the sheets kept
      * from either country stay, and open from their own state, since a reference says which it is.
      */
-    enum class Country(val word: String, val lat: Double, val lon: Double, val zoom: Int) {
-        CROATIA("Croatia", 44.45, 16.40, 7),
-        SLOVENIA("Slovenia", 46.12, 14.82, 8),
+    enum class Country(
+        val word: String, val lat: Double, val lon: Double, val zoom: Int, val region: String, val language: String,
+        /** The country's box (south, west, north, east): Google's Text Search is held inside it. */
+        val box: DoubleArray,
+        /** How an address names the country, in either language: the last part of a place's address. */
+        val names: List<String>,
+    ) {
+        // region: the country Google's place search is held to (v26: Slovenia had answered with Zagreb's
+        // "ul. Mire Petrina 2"); language: the one its addresses come back in.
+        CROATIA("Croatia", 44.45, 16.40, 7, "hr", "hr", doubleArrayOf(42.30, 13.40, 46.60, 19.50), listOf("hrvatska", "croatia")),
+        SLOVENIA("Slovenia", 46.12, 14.82, 8, "si", "sl", doubleArrayOf(45.40, 13.35, 46.90, 16.65), listOf("slovenija", "slovenia")),
         ;
 
         companion object {
@@ -59,6 +67,21 @@ object Slovenia {
 
     @Volatile
     var country: Country = Country.CROATIA
+
+    /** Every country name an address might end with, the two here and their neighbours'. */
+    private val COUNTRY_NAMES = listOf("hrvatska", "croatia", "slovenija", "slovenia", "italia", "italija", "italy",
+        "österreich", "avstrija", "austria", "austrija", "magyarország", "madžarska", "hungary", "mađarska",
+        "bosna i hercegovina", "bosnia and herzegovina", "srbija", "serbia", "crna gora", "montenegro")
+
+    /**
+     * Whether a place belongs to the chosen country (v26): an address whose last part names another
+     * country is not, one that names none ("10090 Zagreb") is left to Google's region filter.
+     */
+    fun inCountry(address: String, chosen: Country = country): Boolean {
+        val last = address.substringAfterLast(',').trim().lowercase()
+        if (last in chosen.names) return true
+        return last !in COUNTRY_NAMES
+    }
 
     /** Whether a service belongs to the chosen country (Google and OSM to both): lights and checks follow it. */
     fun serves(service: Services.Service, chosen: Country = country): Boolean = when (service) {
