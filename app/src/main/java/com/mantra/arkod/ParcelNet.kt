@@ -208,7 +208,40 @@ object ParcelNet {
         val text = getKept(Slovenia.recordUrl(parcel.reference))
         val ko = Slovenia.koId(parcel.municipality)
         val name = runCatching { Slovenia.parseMunicipality(getKeptQuiet(Slovenia.municipalityUrl(ko), readMs = 15_000))?.second }.getOrNull()
-        Slovenia.parseRecord(text, parcel.reference, name) ?: throw Refused("GURS ne zna česticu ${parcel.number} u k.o. $ko")
+        val record = Slovenia.parseRecord(text, parcel.reference, name) ?: throw Refused("GURS ne zna česticu ${parcel.number} u k.o. $ko")
+        slovenianMore(record, text, parcel)
+    }
+
+    /**
+     * THE REST OF WHAT GURS PUBLISHES (the phone's S4, 11.10.2026): land use, planned use, soil rating,
+     * the buildings on the parcel with their parts and address, and a public owner. Each asked on its own
+     * and kept like any answer; one that fails leaves its rows out and the sheet still opens.
+     */
+    private fun slovenianMore(record: Parcels.Record, text: String, parcel: Parcels.Parcel): Parcels.Record {
+        val eid = Slovenia.eidOf(text, record.number) ?: parcel.id.takeIf { it < 0 }?.let { (-it).toString() }
+        val rings = parcel.rings.ifEmpty { Slovenia.parseParcels(text).firstOrNull { it.number == record.number }?.rings.orEmpty() }
+        fun quiet(url: String) = runCatching { getKeptQuiet(url, readMs = 20_000) }.getOrNull()
+        val rows = ArrayList<Parcels.SheetRow>()
+        if (eid != null) {
+            quiet(Slovenia.byParcelUrl(Slovenia.LAND_USE, eid))?.let { rows += Slovenia.landUseRows(it) }
+            quiet(Slovenia.byParcelUrl(Slovenia.PLANNED_USE, eid))?.let { rows += Slovenia.plannedUseRows(it) }
+            quiet(Slovenia.byParcelUrl(Slovenia.RATING, eid))?.let { rows += Slovenia.ratingRows(it) }
+        }
+        var address: String? = null
+        val ring = rings.firstOrNull().orEmpty()
+        if (ring.isNotEmpty()) {
+            val box = doubleArrayOf(ring.minOf { it.first }, ring.minOf { it.second }, ring.maxOf { it.first }, ring.maxOf { it.second })
+            quiet(Slovenia.buildingsUrl(box))?.let { Slovenia.buildings(it, rings) }.orEmpty().forEach { b ->
+                rows += b.row
+                if (b.eid.isNotBlank()) quiet(Slovenia.partsUrl(b.eid))?.let { Slovenia.partRows(it, b.number) }?.let { (parts, at) ->
+                    rows += parts
+                    if (address == null) address = at
+                }
+            }
+            val (lat, lon) = parcel.copy(rings = rings).middle
+            quiet(Slovenia.publicOwnersUrl(lat, lon))?.let { rows += Slovenia.publicOwnerRows(it) }
+        }
+        return Slovenia.withMore(record, rows, address)
     }
 
     /** Like [get], but a refusal is null: the land registry answers 404 for a number it lacks. */
@@ -278,7 +311,7 @@ object ParcelNet {
             // SLOVENIA (v23): a number is asked of GURS; there are no possession sheets to search.
             if (Slovenia.isMunicipality(municipalityId)) {
                 if (number == null) return@withContext emptyList()
-                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byReferenceUrl(listOf(Slovenia.reference(Slovenia.koId(municipalityId), number)))))
+                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byNumbersUrl(municipalityId, listOf(number))))
                     .also { keepShapes(it) }
                     .map { p -> Finding.Hit(id = p.id.toString(), title = "${p.number} · k.o. ${Slovenia.koId(p.municipality)} (SLO)",
                         under = Parcels.areaLabel(p.areaM2), source = Finding.Source.PARCEL, ref = p.reference) }
@@ -321,8 +354,7 @@ object ParcelNet {
     suspend fun find(municipality: String, numbers: List<String>): List<Parcels.Parcel> =
         withContext(Dispatchers.IO) {
             if (Slovenia.isMunicipality(municipality)) {
-                val refs = numbers.map { Slovenia.reference(Slovenia.koId(municipality), it) }
-                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byReferenceUrl(refs))).also { keepShapes(it) }
+                return@withContext Slovenia.parseParcels(getKeptQuiet(Slovenia.byNumbersUrl(municipality, numbers))).also { keepShapes(it) }
             }
             numbers.mapNotNull { n ->
                 val id = Parcels.parseSearch(getKeptQuiet(Parcels.searchUrl(n, municipality)), n) ?: return@mapNotNull null

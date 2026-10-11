@@ -352,6 +352,8 @@ object Parcels {
         val uses: List<Use>,
         val sheets: List<Sheet>,
         val landBooks: List<LandBook> = emptyList(),
+        /** Rows a state gives beside the record (Slovenia, v23: land use, buildings, public owners). */
+        val extra: List<SheetRow> = emptyList(),
     )
 
     fun parseRecord(json: String): Record {
@@ -560,6 +562,10 @@ object Parcels {
             if (Slovenia.isMunicipality(record.municipalityNumber)) {
                 appendLine(Slovenia.HEAD)
                 record.uses.forEach { appendLine("  ${it.name}: ${it.areaM2}") }
+                record.extra.groupBy { it.heading }.forEach { (heading, rows) ->
+                    appendLine(heading)
+                    rows.forEach { r -> appendLine("  " + listOf(r.main, r.side, r.under).filter { it.isNotBlank() }.joinToString(" · ")) }
+                }
                 appendLine("  ${Slovenia.OWNERS_NOTE}")
             } else {
                 appendLine("NAČIN UPORABE")
@@ -634,7 +640,7 @@ object Parcels {
     const val HEAD_REGISTRY = "ZEMLJIŠNA KNJIGA"
 
     fun tabOf(row: SheetRow): Tab = when {
-        row.heading.startsWith(HEAD_USE) || row.heading.startsWith(Slovenia.HEAD) -> Tab.USE
+        row.heading.startsWith(HEAD_USE) || row.heading.startsWith(Slovenia.HEAD) || row.heading.endsWith(Slovenia.TAG) -> Tab.USE
         row.heading.startsWith(HEAD_POSSESSION) -> Tab.POSSESSION
         else -> Tab.OWNER
     }
@@ -684,7 +690,7 @@ object Parcels {
     fun zoningIdFromInfo(text: String): String? = parseInfo(text)?.get("ID")
 
     /** "parcel 334723-2449_3.txt": the reference, with the stroke a file name cannot hold. */
-    fun textFileName(parcel: Parcel): String = "cestica ${parcel.reference.replace('/', '_')}.txt"
+    fun textFileName(parcel: Parcel): String = "cestica ${parcel.reference.replace('/', '_').replace("*", "z")}.txt"
 
     /** "12401" as "12 401 m²", the way a surveyor writes it. */
     fun areaLabel(m2: Int?): String {

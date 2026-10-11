@@ -732,3 +732,9 @@ SLO checks for the local Claude Code (TESTING.md style), from the v23 release:
 - SLO3 Petrina z18: the lines on both banks of the Kolpa (Slovenia and Croatia).
 - SLO4 keep a Slovenian parcel in Moje čestice; restart with no signal: still drawn and its sheet opens.
 
+Round 1 (11.10.2026, the phone's measurements in tests/slovenia/RESULTS.md): GURS answered as Slovenia.kt expected
+(PARCELE, KO_ID, ST_PARCELE, POVRSINA, NAZIV; longitude first; lines, not fills). **Petrina 2 = parcel *98/5,
+k.o. 1613 KUŽELJ, 283 m², building 221 (1910), one flat of 118.8 m²; no public owner.** FIX 1 (v24, tests/slovenia/
+CLOUD.md): building parcels found without the star, a clean sheet, land use / planned use / boniteta / buildings and
+the address on the sheet, public owners on "vlasnički", numbers on the map, 18-digit EIDs kept exact. Test 1: 261.
+

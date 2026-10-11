@@ -123,9 +123,16 @@ object Slovenia {
 
     // --- the picture ---------------------------------------------------------------------------
 
+    /**
+     * The lines and, over them, the numbers (11.10.2026, measured from the phone: GURS's PARCELE has two
+     * styles, nep_kn_parcele, the lines alone, and nep_kn_parcele_lbl), so a Slovenian tile carries its
+     * numbers as a Croatian one does. GURS draws in green; the restyle keeps only the alpha, so the ink is ours.
+     */
+    const val TILE_LAYERS = "LAYERS=$PARCELS,$PARCELS&STYLES=nep_kn_parcele,nep_kn_parcele_lbl"
+
     fun tileUrl(z: Int, x: Int, y: Int): String {
         val b = Parcels.tileBox(z, x, y)
-        return "$WMS?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=$PARCELS&STYLES=" +
+        return "$WMS?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&$TILE_LAYERS" +
             "&FORMAT=image/png&TRANSPARENT=true&CRS=EPSG:3857&WIDTH=${Parcels.TILE_PX}&HEIGHT=${Parcels.TILE_PX}" +
             "&FORMAT_OPTIONS=dpi:180&BBOX=${b[0]},${b[1]},${b[2]},${b[3]}"
     }
@@ -200,9 +207,52 @@ object Slovenia {
     /** The sheet's question: the parcel itself, by its reference; its answer is kept like a Croatian record. */
     fun recordUrl(reference: String): String = byReferenceUrl(listOf(reference))
 
-    /** Numbers in a municipality that begin with what he typed. */
-    fun suggestUrl(koId: String, prefix: String, limit: Int = 12): String =
-        wfs(PARCELS) + "&COUNT=$limit" + cql("KO_ID=${koId(koId).filter { it.isDigit() }} AND ST_PARCELE LIKE ${quoted(prefix.trim() + "%")}")
+    /**
+     * A NUMBER AS HE TYPES IT, AND AS A BUILDING PARCEL (11.10.2026, the phone's S1): Slovenia writes a
+     * building parcel with a star, "*98/5" (Petrina 2's own), and nobody types the star. "98/5" asks both.
+     */
+    fun numberVariants(n: String): List<String> {
+        val bare = n.trim().removePrefix("*")
+        return if (bare.isEmpty()) emptyList() else listOf(bare, "*$bare")
+    }
+
+    /** Parcels by number in one municipality, each number with and without the star. */
+    fun byNumbersUrl(municipality: String, numbers: List<String>): String =
+        byReferenceUrl(numbers.flatMap { numberVariants(it) }.distinct().map { reference(koId(municipality), it) })
+
+    /** Numbers in a municipality that begin with what he typed, building parcels ("*98/…") included. */
+    fun suggestUrl(koId: String, prefix: String, limit: Int = 12): String {
+        val bare = prefix.trim().removePrefix("*")
+        return wfs(PARCELS) + "&COUNT=$limit" + cql("KO_ID=${koId(koId).filter { it.isDigit() }} AND " +
+            "(ST_PARCELE LIKE ${quoted("$bare%")} OR ST_PARCELE LIKE ${quoted("*$bare%")})")
+    }
+
+    // --- the rest of what GURS publishes about a parcel (the phone's S4, 11.10.2026) -------------
+
+    /** Actual land use (dejanska raba), planned use (namenska raba) or soil rating (boniteta), by the parcel's EID. */
+    fun byParcelUrl(type: String, eid: String): String = wfs(type) + "&COUNT=20" + cql("EID_PARCELA=${quoted(eid)}")
+
+    const val LAND_USE = "SI.GURS.KN:PARCELE_X_DEJANSKE_RABE"
+    const val PLANNED_USE = "SI.GURS.KN:PARCELE_X_NAMENSKE_RABE"
+    const val RATING = "SI.GURS.KN:PARCELE_X_BONITETE"
+    const val BUILDINGS = "SI.GURS.KN:STAVBE"
+    const val BUILDING_PARTS = "SI.GURS.KN:DELI_STAVB"
+    const val PUBLIC_OWNERS = "SI.GURS.KN:PARCELE_JAVNI_LASTNIKI"
+
+    /** The buildings over a parcel's box (a box, south west north east). */
+    fun buildingsUrl(box: DoubleArray): String =
+        wfs(BUILDINGS) + "&COUNT=20&BBOX=${box[0]},${box[1]},${box[2]},${box[3]},urn:ogc:def:crs:EPSG::4326"
+
+    /** The parts of one building (a flat, a shop), with their address; this type has no shape, so by EID only. */
+    fun partsUrl(eidBuilding: String): String = wfs(BUILDING_PARTS) + "&COUNT=50" + cql("EID_STAVBA=${quoted(eidBuilding)}")
+
+    /** A public body owning the parcel (the state, a municipality): GURS's WMS layer, asked at one point. */
+    fun publicOwnersUrl(lat: Double, lon: Double): String {
+        val d = 0.0002
+        return "$WMS?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=$PUBLIC_OWNERS&QUERY_LAYERS=$PUBLIC_OWNERS" +
+            "&STYLES=&CRS=EPSG:4326&BBOX=${lat - d},${lon - d},${lat + d},${lon + d}" +
+            "&WIDTH=101&HEIGHT=101&I=50&J=50&FEATURE_COUNT=5&INFO_FORMAT=application/json"
+    }
 
     // --- the answers ---------------------------------------------------------------------------
 
@@ -223,7 +273,11 @@ object Slovenia {
     }
 
     /** "1722.0" as "1722": a number GeoServer wrote as a decimal. */
-    private fun whole(s: String): String = s.toDoubleOrNull()?.takeIf { it == Math.floor(it) && !s.contains('/') }?.toLong()?.toString() ?: s
+    private fun whole(s: String): String {
+        // Digits stay digits: GURS's EIDs have 18 of them, more than a Double holds ("…102" read back as "…096").
+        if (s.all { it.isDigit() }) return s
+        return Regex("""^(\d+)\.0+$""").find(s)?.groupValues?.get(1) ?: s
+    }
 
     /** One point of GeoJSON as (latitude, longitude), whichever order the server wrote it in. */
     private fun latLon(pt: JSONArray): Pair<Double, Double> {
@@ -285,10 +339,115 @@ object Slovenia {
 
     const val HEAD = "KATASTER SLOVENIJE (GURS)"
 
-    /** Where a Slovenian parcel's owners are read: the land register, after signing in. */
-    const val OWNERS_NOTE = "Slovenija (GURS) ne objavljuje vlasnike ni posjednike. Vlasnike pokazuje slovenska zemljišna knjiga (e-ZK, sodisce.si), nakon prijave."
+    /** Every heading GURS's own rows carry; such a row belongs on the "uporaba" tab. */
+    const val TAG = "(GURS)"
 
-    private val SKIP = Regex("(?i)^(geom.*|the_geom|shape.*|bbox)$")
+    /** Where a private owner is read: the land register, after signing in, or an extract from a court or a notary. */
+    const val OWNERS_NOTE = "Vlasnike fizičke osobe Slovenija (GURS) ne objavljuje. Vidi ih slovenska zemljišna knjiga (e-ZK, uz prijavu) " +
+        "ili izvadak iz zemljišne knjige na sudu ili kod javnog bilježnika; za to trebaju k.o. i broj čestice odozgo."
+
+    /** Not for a person: the shapes, the ids and codes, the other three languages, the coordinates. */
+    private val SKIP = Regex("(?i)^(geom.*|.*_geom|the_geom|shape.*|bbox|featureid|eid.*|.*_id|.*_sifra|.*_(en|it|hu)|.*_opis_sl|e_cen|n_cen|naziv|ko_id|st_parcele|povrsina)$")
+
+    /** "1613 KUŽELJ" → "KUŽELJ": GURS writes a parcel's k.o. number first. */
+    fun bareName(name: String): String = name.trim().replace(Regex("""^\d+\s+"""), "")
+
+    /**
+     * GURS's attributes worth a row: a coded field only as its Slovene name ("UPRAVNI_STATUSI_NAZIV_SL" as
+     * "upravni statusi"), never its raw code beside it; nulls left out. As (label, value).
+     */
+    fun attributeRows(p: JSONObject): List<Pair<String, String>> {
+        val keys = p.keys().asSequence().toList()
+        val named = keys.filter { it.endsWith("_NAZIV_SL", ignoreCase = true) }.map { it.dropLast(9).uppercase() }.toSet()
+        return keys.sorted()
+            .filterNot { k -> SKIP.matches(k) && !k.endsWith("_NAZIV_SL", ignoreCase = true) }
+            .filterNot { k -> k.uppercase() in named }
+            .mapNotNull { k -> p.opt(k)?.takeIf { it != JSONObject.NULL && it !is JSONObject && it !is JSONArray }?.let { k to it.toString().trim() } }
+            .filter { it.second.isNotBlank() && it.second != "null" }
+            .map { (k, v) -> k.lowercase().removeSuffix("_naziv_sl").replace('_', ' ') to whole(v) }
+    }
+
+    private fun features(json: String): List<JSONObject> {
+        val a = runCatching { JSONObject(json).optJSONArray("features") }.getOrNull() ?: return emptyList()
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optJSONObject("properties") }
+    }
+
+    /** The parcel's EID in GURS's answer, for the questions asked by parcel. */
+    fun eidOf(json: String, number: String? = null): String? =
+        features(json).firstOrNull { number == null || it.first(NUMBER_KEYS) == number }?.first(ID_KEYS)?.let(::whole)
+
+    private fun share(p: JSONObject): String = p.opt("DELEZ")?.takeIf { it != JSONObject.NULL }?.let { "${whole(it.toString())} %" }.orEmpty()
+
+    /** Actual land use: "poseljena zemljišča, tloris stavbe  54.8 %", one row each. */
+    fun landUseRows(json: String): List<Parcels.SheetRow> = features(json).mapNotNull { p ->
+        val name = p.optString("DEJANSKE_RABE_NAZIV").takeIf { it.isNotBlank() && it != "null" } ?: return@mapNotNull null
+        Parcels.SheetRow("DEJANSKA RABA $TAG", name, share(p))
+    }
+
+    /** Planned use, from the municipality's plan. */
+    fun plannedUseRows(json: String): List<Parcels.SheetRow> = features(json).mapNotNull { p ->
+        val name = p.optString("VRSTA_NAMENSKE_RABE_NAZIV_SL").takeIf { it.isNotBlank() && it != "null" } ?: return@mapNotNull null
+        Parcels.SheetRow("NAMENSKA RABA $TAG", name, share(p))
+    }
+
+    /** Soil rating over its part of the parcel. */
+    fun ratingRows(json: String): List<Parcels.SheetRow> = features(json).mapNotNull { p ->
+        val b = p.opt("BONITETA")?.takeIf { it != JSONObject.NULL }?.toString() ?: return@mapNotNull null
+        val m2 = p.optString("POVRSINA").toDoubleOrNull()?.let { "${Math.round(it)} m²" }.orEmpty()
+        Parcels.SheetRow("BONITETA $TAG", "boniteta ${whole(b)}", m2)
+    }
+
+    /** A building GURS lists over the parcel: its number, EID, and where its outline's middle is. */
+    data class Building(val number: String, val eid: String, val middle: Pair<Double, Double>?, val row: Parcels.SheetRow)
+
+    /** The buildings of an answer whose outline's middle lies in the parcel ([rings] empty: every one). */
+    fun buildings(json: String, rings: List<List<Pair<Double, Double>>>): List<Building> {
+        val a = runCatching { JSONObject(json).optJSONArray("features") }.getOrNull() ?: return emptyList()
+        return (0 until a.length()).mapNotNull { a.optJSONObject(it) }.mapNotNull { f ->
+            val p = f.optJSONObject("properties") ?: return@mapNotNull null
+            val number = p.opt("ST_STAVBE")?.toString()?.let(::whole) ?: return@mapNotNull null
+            val eid = p.first(listOf("EID_STAVBA", "EID"))?.let(::whole).orEmpty()
+            val shape = listOf(f.optJSONObject("geometry"), p.optJSONObject("OBRIS_GEOM"), p.optJSONObject("NADZEMNI_GEOM")).firstOrNull { it != null }
+            val ring = rings(shape).firstOrNull().orEmpty()
+            val middle = if (ring.isEmpty()) null else ring.sumOf { it.first } / ring.size to ring.sumOf { it.second } / ring.size
+            if (rings.isNotEmpty() && middle != null && rings.none { Parcels.contains(it, middle.first, middle.second) }) return@mapNotNull null
+            fun s(k: String) = p.opt(k)?.takeIf { it != JSONObject.NULL }?.toString()?.trim()?.takeIf { it.isNotBlank() }?.let(::whole)
+            val under = listOfNotNull(
+                s("TIPI_STAVB_NAZIV_SL"),
+                s("STEVILO_ETAZ")?.let { "etaža $it" },
+                s("STEVILO_STANOVANJ")?.let { "stanova $it" },
+                s("LETO_OBNOVE_STREHE")?.let { "krov obnovljen $it" },
+                s("LETO_OBNOVE_FASADE")?.let { "fasada obnovljena $it" },
+                listOfNotNull(s("ELEKTRIKA_NAZIV_SL")?.let { "struja $it" }, s("VODOVOD_NAZIV_SL")?.let { "voda $it" },
+                    s("KANALIZACIJA_NAZIV_SL")?.let { "kanalizacija $it" }).joinToString(", ").takeIf { it.isNotBlank() },
+            ).joinToString(" · ")
+            Building(number, eid, middle, Parcels.SheetRow("STAVBA $number $TAG", "stavba $number", s("LETO_IZGRADNJE")?.let { "izgrađena $it" }.orEmpty(), under))
+        }
+    }
+
+    /** The parts of a building (a flat, a shop) as rows, and the address they give. */
+    fun partRows(json: String, building: String): Pair<List<Parcels.SheetRow>, String?> {
+        val ps = features(json)
+        val rows = ps.map { p ->
+            fun s(k: String) = p.opt(k)?.takeIf { it != JSONObject.NULL }?.toString()?.trim()?.takeIf { it.isNotBlank() }?.let(::whole)
+            Parcels.SheetRow("STAVBA $building $TAG",
+                "dio ${s("ST_DELA_STAVBE") ?: "?"}: ${s("VRSTE_DEJANSKIH_RAB_DEL_ST_NAZIV_SL") ?: "dio stavbe"}",
+                (s("UPORABNA_POVRSINA") ?: s("POVRSINA"))?.let { "$it m²" }.orEmpty(),
+                listOfNotNull(s("NASLOV_DELA_STAVBE"), s("ETAZE_DELA_STAVBE")?.let { "etaža $it" }).joinToString(" · "))
+        }
+        return rows to ps.firstNotNullOfOrNull { p -> p.optString("NASLOV_DELA_STAVBE").takeIf { it.isNotBlank() && it != "null" } }
+    }
+
+    /** A public owner (the state, a municipality), from the WMS layer of public owners; empty for anyone else. */
+    fun publicOwnerRows(json: String): List<Parcels.SheetRow> = features(json).mapNotNull { p ->
+        val said = attributeRows(p).filterNot { (k, _) -> k.contains("datum") }
+        if (said.isEmpty()) null
+        else Parcels.SheetRow("${Parcels.HEAD_REGISTRY} (SLO) · javni vlasnik", said.first().second, "", said.drop(1).joinToString(" · ") { "${it.first}: ${it.second}" })
+    }
+
+    /** What [ParcelNet] adds to a Slovenian record from the other questions: the rows, and an address when a building gave one. */
+    fun withMore(record: Parcels.Record, rows: List<Parcels.SheetRow>, address: String?): Parcels.Record =
+        record.copy(extra = record.extra + rows, address = address ?: record.address)
 
     /**
      * THE SHEET OF A SLOVENIAN PARCEL: the same Record the Croatian sheet shows. Its municipality and
@@ -304,28 +463,32 @@ object Slovenia {
         val p = f.optJSONObject("properties") ?: return null
         val ko = p.first(KO_KEYS)?.let(::whole) ?: koId(reference.substringBefore('-'))
         val area = p.first(AREA_KEYS)?.toDoubleOrNull()?.let { Math.round(it).toString() }.orEmpty()
-        val attributes = p.keys().asSequence().toList().sorted()
-            .filterNot { SKIP.matches(it) }
-            .mapNotNull { k -> p.opt(k)?.takeIf { it != JSONObject.NULL && it !is JSONObject && it !is JSONArray }?.let { k to it.toString().trim() } }
-            .filter { it.second.isNotBlank() }
+        val attributes = attributeRows(p)
         return Parcels.Record(
             number = p.first(NUMBER_KEYS) ?: number,
-            municipality = (municipalityName ?: p.first(NAME_KEYS) ?: ko).uppercase(),
+            municipality = bareName(municipalityName ?: p.first(NAME_KEYS) ?: ko).uppercase(),
             municipalityNumber = municipality(ko),
             address = "",
             areaM2 = area,
-            uses = attributes.map { (k, v) -> Parcels.Use(k.lowercase().replace('_', ' '), whole(v), "") },
+            uses = attributes.map { (k, v) -> Parcels.Use(k, v, "") },
             sheets = emptyList(),
             landBooks = emptyList(),
         )
     }
 
-    /** The Slovenian sheet as rows: GURS's attributes, and where the owners are. */
+    /**
+     * The Slovenian sheet as rows. "uporaba": the parcel, its land use, planned use, soil rating and its
+     * buildings with their parts and address; "posjedovni" and "vlasnički": a public owner when there is
+     * one, and where a private owner is read.
+     */
     fun sheetRows(record: Parcels.Record): List<Parcels.SheetRow> = buildList {
         add(Parcels.SheetRow(HEAD, "k.o. ${record.municipality} (${koId(record.municipalityNumber)})", "",
-            "površina ${Parcels.areaLabel(record.areaM2.toIntOrNull())}"))
+            listOfNotNull("površina ${Parcels.areaLabel(record.areaM2.toIntOrNull())}", record.address.takeIf { it.isNotBlank() }).joinToString(" · ")))
         record.uses.forEach { add(Parcels.SheetRow(HEAD, it.name, it.areaM2)) }
+        val owners = record.extra.filter { Parcels.tabOf(it) == Parcels.Tab.OWNER }
+        addAll(record.extra - owners.toSet())
         add(Parcels.SheetRow("${Parcels.HEAD_POSSESSION} (SLO)", "posjednici", "", OWNERS_NOTE))
-        add(Parcels.SheetRow("${Parcels.HEAD_REGISTRY} (SLO)", "vlasnici", "", OWNERS_NOTE))
+        addAll(owners)
+        add(Parcels.SheetRow("${Parcels.HEAD_REGISTRY} (SLO)", if (owners.isEmpty()) "vlasnici" else "drugi vlasnici", "", OWNERS_NOTE))
     }
 }
