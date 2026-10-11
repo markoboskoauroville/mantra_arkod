@@ -763,3 +763,10 @@ The screenshot: "petrina 2, petrina" with Slovenia chosen offered "ul. Mire Petr
 
 1. Settings → Country moved to the very top, above "Kept on this phone". **Status:** v27.
 
+## 11.10.2026, a close button on the Google key panel (with a screenshot)
+
+> give close button to this dialog
+
+1. "Google map needs an API key" has a ✕ in its title row; the map under it shows, and any map key (GOO, OSM,
+   OFF) brings the panel back. **Status:** v28.
+

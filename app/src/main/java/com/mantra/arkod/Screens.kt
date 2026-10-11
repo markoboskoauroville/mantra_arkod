@@ -543,7 +543,11 @@ fun ArkodApp(
     }
 
     /** One of the three maps, chosen by its key. The choice is remembered for the next run. */
+    /** The Google key panel closed with its ✕ (v28); any map key opens it again. */
+    var keyHelpClosed by remember { mutableStateOf(false) }
+
     fun choose(picked: MapLayer) {
+        keyHelpClosed = false
         // The key of the map already up asks it to load again, and changes nothing else (B2, v1).
         if (picked.id == layer.id) {
             CanvasHolder.canvas?.load()
@@ -691,11 +695,12 @@ fun ArkodApp(
                 onFetch = onFetchOfflineMap,
                 onChooseFile = onChooseMapFile,
             )
-            layer.family == MapLayer.Family.GOOGLE && !googleUsable -> GoogleKeyHelp(
+            layer.family == MapLayer.Family.GOOGLE && !googleUsable && !keyHelpClosed -> GoogleKeyHelp(
                 keyring = keyring,
                 onPaste = onPasteKey,
                 onImport = onImportKeys,
                 onTest = onTestKey,
+                onClose = { keyHelpClosed = true },
             )
         }
 
@@ -1405,6 +1410,7 @@ private fun GoogleKeyHelp(
     onPaste: (String) -> Unit,
     onImport: () -> Unit,
     onTest: (Keyring.Key) -> Unit,
+    onClose: () -> Unit,
 ) {
     val open = androidx.compose.ui.platform.LocalUriHandler.current
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -1415,6 +1421,9 @@ private fun GoogleKeyHelp(
             Glyph(R.drawable.ic_key, Paint.Sand)
             Spacer(Modifier.width(10.dp))
             Label("Google map needs an API key", Paint.Sand, size = 16, align = TextAlign.Start, modifier = Modifier.weight(1f))
+            // CLOSE (v28, from his screenshot: "give close button to this dialog"): the map under it
+            // (the aerial photograph where Google refuses satellite) shows; a map key brings it back.
+            IconAction(R.drawable.ic_close, null, onClick = onClose, tint = Paint.Sand)
         }
         keyring.forEach { key ->
             // A key he gave that Google refused: Google's own words, and a way to try again.
