@@ -140,6 +140,31 @@ fun SettingsFace(
                 ) { Words("✕", Paint.Sand, 18) }
             }
 
+            // THE COUNTRY SWITCH (v25), AT THE VERY TOP (v27): *"please slovenia Croatia switch at top of settings"*
+            Group("Country") {
+                Box(Modifier.padding(12.dp)) {
+                    Choice(
+                        parts = Slovenia.Country.entries.map { Part(it.word) },
+                        chosen = country.ordinal,
+                        onChoose = { i ->
+                            val picked = Slovenia.Country.entries[i]
+                            if (picked != country) {
+                                country = picked
+                                onCountry(picked)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)) {
+                    Words(
+                        if (country == Slovenia.Country.SLOVENIA) "The parcels of Slovenia (GURS): lines, k.o., area, land use, buildings. Slovenia publishes no private owners."
+                        else "The parcels of Croatia (DGU): lines, posjedovni list, vlasnički list.",
+                        Paint.Dim, 12, TextAlign.Start,
+                    )
+                }
+            }
+
             // WHAT THE PHONE KEEPS, ON TOP (v12): *"Inside the settings, always show at the top the size
             // of the cache file. I am aware because we are now sniffing, we are caching everything."*
             // The same switch as the cache key on the map, and his cache criteria.
@@ -301,31 +326,6 @@ fun SettingsFace(
             // SETTINGS IN ENGLISH, THE CADASTRE IN CROATIAN (29.9.2026, v3): *"Write all the settings
             // in the English language and all terminology from arkod in Croatian."* So a row here is
             // English, and a name the cadastre gives a thing (čestica, posjedovni list, k.o.) is not.
-            // THE COUNTRY SWITCH (v25): *"In the settings, please switch between Slovenia and Croatia."*
-            Group("Country") {
-                Box(Modifier.padding(12.dp)) {
-                    Choice(
-                        parts = Slovenia.Country.entries.map { Part(it.word) },
-                        chosen = country.ordinal,
-                        onChoose = { i ->
-                            val picked = Slovenia.Country.entries[i]
-                            if (picked != country) {
-                                country = picked
-                                onCountry(picked)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Box(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)) {
-                    Words(
-                        if (country == Slovenia.Country.SLOVENIA) "The parcels of Slovenia (GURS): lines, k.o., area, land use, buildings. Slovenia publishes no private owners."
-                        else "The parcels of Croatia (DGU): lines, posjedovni list, vlasnički list.",
-                        Paint.Dim, 12, TextAlign.Start,
-                    )
-                }
-            }
-
             Group("Moje čestice") {
                 Opens("Moje čestice", R.drawable.ic_parcels, under = "$myParcelCount kept", onClick = onMyParcels)
                 Hairline()

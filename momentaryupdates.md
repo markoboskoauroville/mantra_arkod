@@ -757,3 +757,9 @@ The screenshot: "petrina 2, petrina" with Slovenia chosen offered "ul. Mire Petr
    (it was fixed to "hr"); Text Search is held to the country's box and drops any place whose address names
    another country. Croatia unchanged. 263 unit cases.
 
+## 11.10.2026, the switch at the top
+
+> please slovenia Croatia switch at top of settings
+
+1. Settings → Country moved to the very top, above "Kept on this phone". **Status:** v27.
+
