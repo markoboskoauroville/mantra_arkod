@@ -1,0 +1,1 @@
+https://api.uredjenazemlja.hr/services/inspire/cp_wms/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&LAYERS=cp:CP.CadastralParcel&QUERY_LAYERS=cp:CP.CadastralParcel&STYLES=&CRS=EPSG:4326&BBOX=45.46459668,14.85291820,45.46499668,14.85331820&WIDTH=101&HEIGHT=101&I=50&J=50&FEATURE_COUNT=1&INFO_FORMAT=text/plain

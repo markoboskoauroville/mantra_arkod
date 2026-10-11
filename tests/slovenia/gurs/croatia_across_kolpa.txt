@@ -1,0 +1,7 @@
+Results for FeatureType 'http://cp_wms:CP.CadastralParcel':
+--------------------------------------------
+ID = 18315528
+GEOMETRY = [GEOMETRY (Polygon) with 9 points]
+BROJ_CESTICE = 75/6
+MATICNI_BROJ_KO = 304506
+--------------------------------------------

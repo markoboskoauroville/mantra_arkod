@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SI.GURS.KN="https://ipi.eprostor.sigov.si/SI.GURS.KN" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:wfs="http://www.opengis.net/wfs/2.0" elementFormDefault="qualified" targetNamespace="https://ipi.eprostor.sigov.si/SI.GURS.KN">
+  <xsd:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="https://ipi.eprostor.gov.si/wfs-si-gurs-kn/schemas/gml/3.2.1/gml.xsd"/>
+  <xsd:complexType name="PARCELEType">
+    <xsd:complexContent>
+      <xsd:extension base="gml:AbstractFeatureType">
+        <xsd:sequence>
+          <xsd:element maxOccurs="1" minOccurs="0" name="FEATUREID" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="EID" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="EID_PARCELA" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="PARCELA_ID" nillable="false" type="xsd:integer"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="KO_ID" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="NAZIV" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="ST_PARCELE" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="POVRSINA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="DOLOCITEV_POVRSINE" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_SIFRA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_NAZIV_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_OPIS_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_NAZIV_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_OPIS_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_NAZIV_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_OPIS_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_NAZIV_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="METODE_DOLOCITVE_POVRSINE_OPIS_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUS_ID" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_SIFRA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_NAZIV_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_OPIS_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_NAZIV_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_OPIS_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_NAZIV_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_OPIS_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_NAZIV_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="UPRAVNI_STATUSI_OPIS_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="E_CEN" nillable="true" type="xsd:decimal"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="N_CEN" nillable="true" type="xsd:decimal"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="GEOM" nillable="true" type="gml:GeometryPropertyType"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="DATUM_SYS" nillable="true" type="xsd:dateTime"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="BONITETA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="ZNESEK_KD" nillable="true" type="xsd:decimal"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_SIFRA" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_NAZIV_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_OPIS_SL" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_NAZIV_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_OPIS_EN" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_NAZIV_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_OPIS_IT" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_NAZIV_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SKUPNI_DEL_ETAZNA_LASTNINA_OPIS_HU" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="GRAD_PARC" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="OMEJITEV" nillable="true" type="xsd:string"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:element name="PARCELE" substitutionGroup="gml:AbstractFeature" type="SI.GURS.KN:PARCELEType"/>
+</xsd:schema>

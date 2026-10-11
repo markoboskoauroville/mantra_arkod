@@ -1,0 +1,1156 @@
+<?xml version="1.0" encoding="UTF-8"?><WMS_Capabilities xmlns:inspire_vs="http://inspire.ec.europa.eu/schemas/inspire_vs/1.0" xmlns:inspire_common="http://inspire.ec.europa.eu/schemas/common/1.0" version="1.3.0" updateSequence="4106" xmlns="http://www.opengis.net/wms" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wms https://ipi.eprostor.gov.si/wms-si-gurs-kn/schemas/wms/1.3.0/capabilities_1_3_0.xsd http://inspire.ec.europa.eu/schemas/inspire_vs/1.0 http://inspire.ec.europa.eu/schemas/inspire_vs/1.0/inspire_vs.xsd">
+  <Service>
+    <Name>WMS</Name>
+    <Title/>
+    <Abstract/>
+    <KeywordList/>
+    <OnlineResource xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/"/>
+    <ContactInformation>
+      <ContactPersonPrimary>
+        <ContactPerson/>
+        <ContactOrganization/>
+      </ContactPersonPrimary>
+      <ContactPosition/>
+      <ContactAddress>
+        <AddressType/>
+        <Address/>
+        <City/>
+        <StateOrProvince/>
+        <PostCode/>
+        <Country/>
+      </ContactAddress>
+      <ContactVoiceTelephone/>
+      <ContactFacsimileTelephone/>
+      <ContactElectronicMailAddress/>
+    </ContactInformation>
+    <Fees>none</Fees>
+    <AccessConstraints>none</AccessConstraints>
+  </Service>
+  <Capability>
+    <Request>
+      <GetCapabilities>
+        <Format>text/xml</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?SERVICE=WMS&amp;"/>
+            </Get>
+            <Post>
+              <OnlineResource xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?SERVICE=WMS&amp;"/>
+            </Post>
+          </HTTP>
+        </DCPType>
+      </GetCapabilities>
+      <GetMap>
+        <Format>image/png</Format>
+        <Format>application/atom+xml</Format>
+        <Format>application/json;type=geojson</Format>
+        <Format>application/json;type=topojson</Format>
+        <Format>application/json;type=utfgrid</Format>
+        <Format>application/pdf</Format>
+        <Format>application/rss+xml</Format>
+        <Format>application/vnd.google-earth.kml+xml</Format>
+        <Format>application/vnd.google-earth.kml+xml;mode=networklink</Format>
+        <Format>application/vnd.google-earth.kmz</Format>
+        <Format>application/vnd.mapbox-vector-tile</Format>
+        <Format>image/geotiff</Format>
+        <Format>image/geotiff8</Format>
+        <Format>image/gif</Format>
+        <Format>image/jpeg</Format>
+        <Format>image/png; mode=8bit</Format>
+        <Format>image/svg+xml</Format>
+        <Format>image/tiff</Format>
+        <Format>image/tiff8</Format>
+        <Format>image/vnd.jpeg-png</Format>
+        <Format>image/vnd.jpeg-png8</Format>
+        <Format>text/html; subtype=openlayers</Format>
+        <Format>text/html; subtype=openlayers2</Format>
+        <Format>text/html; subtype=openlayers3</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?SERVICE=WMS&amp;"/>
+            </Get>
+          </HTTP>
+        </DCPType>
+      </GetMap>
+      <GetFeatureInfo>
+        <Format>text/plain</Format>
+        <Format>application/vnd.ogc.gml</Format>
+        <Format>text/xml</Format>
+        <Format>application/vnd.ogc.gml/3.1.1</Format>
+        <Format>text/xml; subtype=gml/3.1.1</Format>
+        <Format>text/html</Format>
+        <Format>application/json</Format>
+        <DCPType>
+          <HTTP>
+            <Get>
+              <OnlineResource xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?SERVICE=WMS&amp;"/>
+            </Get>
+          </HTTP>
+        </DCPType>
+      </GetFeatureInfo>
+    </Request>
+    <Exception>
+      <Format>XML</Format>
+      <Format>INIMAGE</Format>
+      <Format>BLANK</Format>
+      <Format>JSON</Format>
+    </Exception>
+    <Layer>
+      <Title/>
+      <Abstract/>
+      <!--Limited list of EPSG projections:-->
+      <CRS>EPSG:3035</CRS>
+      <CRS>EPSG:3794</CRS>
+      <CRS>EPSG:3857</CRS>
+      <CRS>EPSG:3912</CRS>
+      <CRS>EPSG:4258</CRS>
+      <CRS>EPSG:4326</CRS>
+      <CRS>EPSG:4765</CRS>
+      <CRS>CRS:84</CRS>
+      <EX_GeographicBoundingBox>
+        <westBoundLongitude>13.156452347013044</westBoundLongitude>
+        <eastBoundLongitude>625500.0</eastBoundLongitude>
+        <southBoundLatitude>45.4003353414981</southBoundLatitude>
+        <northBoundLatitude>195500.0</northBoundLatitude>
+      </EX_GeographicBoundingBox>
+      <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="625500.0" maxy="195500.0"/>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:BONITETE</Name>
+        <Title>NEP_OST_BONITETE</Title>
+        <Abstract>Bonitete</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_BONITETE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_ostalo_bpn</Name>
+          <Title>Poligoni parcel BPN, obarvani po atributu BONITETA</Title>
+          <Abstract># Obris parcel BPN: vijolična linija (50%), 1 piksel, vidnost od 1:50 do 1:15.100 | Razred 0: bela ploskev (10%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 10,20,30,40,50,60,70,80,90,100: temno zelena ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1: 15 100 | Razredi 1,11,21,31,41,51,61,71,81,91: zelena ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 2,12,22,32,42,52,62,72,82,92; svetlo zelena ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 3,13,23,33,43,53,63,73,83,93: zeleno-rumena ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 4,14,24,34,44,54,64,74,84,94: rumena ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 5,15,25,35,45,55,65,75,85,95: oranžna ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 6,16,26,36,46,56,66,76,86,96: temno oranžna ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 7,17,27,37,47,57,67,77,87,97: rdeče oranžna ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 8,18,28,38,48,58,68,78,88,98: rdeča ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:15 100 | Razredi 9,19,29,39,49,59,69,79,89,99: temno vijolična ploskev (50%), vijolična obroba, 1 piksel, vidnost od 1:50 do 1:100 100
+      </Abstract>
+          <LegendURL width="278" height="240">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ABONITETE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_ostalo_bpn_lbl</Name>
+          <Title>Oznake parcel BPN</Title>
+          <Abstract># Oznake parcel BPN: rdeč tekst (Verdana, 12 pikslov env=fontSize), bela halo obrobo (90%), vidnost od 1:100 do 1:10 001</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ABONITETE&amp;style=nep_ostalo_bpn_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:DALJICE</Name>
+        <Title>NEP_DALJICE</Title>
+        <Abstract>Daljice parcel</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_DALJICE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_daljice</Name>
+          <Title>Daljice parcel</Title>
+          <Abstract>Sloj daljic iz katerih so sestavljene parcele # Obarvano glede na upravni status in natančnost, vidnost od 1: 50 do 1: 10 100.
+			</Abstract>
+          <LegendURL width="287" height="120">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ADALJICE"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:DEJANSKE_RABE</Name>
+        <Title>NEP_OST_DEJANSKE_RABE</Title>
+        <Abstract>Skupne dejanske rabe</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_DEJANSKE_RABE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_skup_draba</Name>
+          <Title>Skupna dejanska raba zemljišč</Title>
+          <Abstract>V skupnem sloju dejanske rabe zemljišč se vodijo poligoni dejanskih rab zemljišč, ki jih posredujejo upravljavci posameznih matičnih evidenc dejanske rabe. # Obarvani glede na upravljavca, ploskev (70%), vidnost od 1: 250 do 1: 10 100.
+      </Abstract>
+          <LegendURL width="392" height="440">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ADEJANSKE_RABE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_skup_draba_lbl</Name>
+          <Title>Oznake skupne dejanske rabe zemljišč</Title>
+          <Abstract># Oznake skupne dejanske rabe zemljišč: rdeč tekst, bela halo obrobo (90%), vidnost od 1:250 do 1:10 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ADEJANSKE_RABE&amp;style=nep_skup_draba_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>80.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:EI_NA_STAVBI</Name>
+        <Title>MZIP_EI_NA_STAVBI</Title>
+        <Abstract>Centroid stavbe z informacijo o številu energetskih izkaznic</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>MZIP_EI_NA_STAVBI</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>ei_na_stavbi</Name>
+          <Title>MZI - energetske izkaznice na stavbi - centroidi</Title>
+          <Abstract># Obstoj energetske izkaznice: rumen krog, 14 pikslov, rumen odebeljen tekst (Verdana, 12 pikslov), črna halo obroba (10%), vidnost od 1:80 do 1:10000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AEI_NA_STAVBI"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>80.0</MinScaleDenominator>
+        <MaxScaleDenominator>10001.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:ETAZE</Name>
+        <Title>NEP_ETAZE</Title>
+        <Abstract>Etaže</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_ETAZE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>generic</Name>
+          <Title>Generic</Title>
+          <Abstract>Generic style</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AETAZE"/>
+          </LegendURL>
+        </Style>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:ETAZE_X_DELI_STAVB</Name>
+        <Title>NEP_ETAZE_X_DELI_STAVB</Title>
+        <Abstract>Etaže na posameznih delih stavbe</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_ETAZE_X_DELI_STAVB</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>generic</Name>
+          <Title>Generic</Title>
+          <Abstract>Generic style</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AETAZE_X_DELI_STAVB"/>
+          </LegendURL>
+        </Style>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:GOZDNO_GOSP_OBM</Name>
+        <Title>NEP_OST_GOZDNO_GOSP_OBM</Title>
+        <Abstract>Podatki o gozdnih gospodarskih območjih, rastiščnem koeficientu in odprtosti</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_GOZDNO_GOSP_OBM</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>kn_nep_ost_ggo_rk</Name>
+          <Title>Obris poligonov za odprtost in rastiščni koeficient</Title>
+          <Abstract># Obris poligonov za odprtost in rastiščni koeficient: rumena črta, 1 piksel, vidnost od 1:50 do 100 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AGOZDNO_GOSP_OBM"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>kn_nep_ost_ggo_rk_lbl</Name>
+          <Title>Labele poligonov za odprtost in rastiščni koeficient</Title>
+          <Abstract>Labele poligonov za odprtost in rastiščni koeficient: rumen tekst (Verdana, 12 pikslov), rumena halo obroba (10%), vidnost od 1:50 do 1:100 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AGOZDNO_GOSP_OBM&amp;style=kn_nep_ost_ggo_rk_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>100100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:GRADBENE_PARCELE</Name>
+        <Title>NEP_GRADBENE_PARCELE</Title>
+        <Abstract>Gradbene parcele</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_GRADBENE_PARCELE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_gradbene_parcele</Name>
+          <Title>Gradbene parcele - poligoni</Title>
+          <Abstract>#Poligoni gradbenih parcel, vidnost od 1:50 do 1:5 100</Abstract>
+          <LegendURL width="349" height="60">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AGRADBENE_PARCELE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_gradbene_parcele_lbl</Name>
+          <Title>Gradbene parcele</Title>
+          <Abstract># Gradbene parcele: siv tekst (Liberation Sans, 15 pikslov env=fontSize), vidnost od 1:50 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AGRADBENE_PARCELE&amp;style=nep_kn_gradbene_parcele_lbl"/>
+          </LegendURL>
+        </Style>
+        <MaxScaleDenominator>10000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:HISNE_STEVILKE</Name>
+        <Title>NEP_HISNE_STEVILKE</Title>
+        <Abstract>Hišne številke</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_HISNE_STEVILKE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_rpe_hs</Name>
+          <Title>Hišne številke</Title>
+          <Abstract># Hišne številke: spodaj zelen trikotnik env=strokeLineColor, 9 pikslov, črna obroba, 1.5 piksla , vidnost od 1:50 do 1:10 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AHISNE_STEVILKE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_rpe_hs_lbl</Name>
+          <Title>Hišne številke</Title>
+          <Abstract># Hišne številke: črn tekst  env=fontColor, (Verdana, 14/12/11 pikslov), vidnost od 1:100 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AHISNE_STEVILKE&amp;style=nep_rpe_hs_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:KATASTRSKE_OBCINE</Name>
+        <Title>NEP_KATASTRSKE_OBCINE</Title>
+        <Abstract>Katastrske občine</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_KATASTRSKE_OBCINE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_katastrske_obcine</Name>
+          <Title>Meje katastrskih občin</Title>
+          <Abstract># Meje katastrskih občin: sv. zelena črtkana linija env=strokeLineColor, vidnost od 1:50 do 1:150 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AKATASTRSKE_OBCINE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_katastrske_obcine_lbl</Name>
+          <Title>Imena katastrskih občin</Title>
+          <Abstract># Imena katastrskih občin: temno zelen tekst env=fillColorText (Verdana, 24 pikslov env=fontSize), vidnost od 1:50 do 1:80 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AKATASTRSKE_OBCINE&amp;style=nep_kn_katastrske_obcine_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>150100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:NAMENSKE_RABE</Name>
+        <Title>NEP_OST_NAMENSKE_RABE</Title>
+        <Abstract>Namenska raba parcel</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_NAMENSKE_RABE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_ost_namenska_raba</Name>
+          <Title>Osnovna namenska raba - informativni sloj</Title>
+          <Abstract># Osnovna namenska raba - informativni sloj: barvanje glede na opis namena, 1 piksel, vidnost od 1:50 do 25 100</Abstract>
+          <LegendURL width="623" height="980">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ANAMENSKE_RABE"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>25010.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:NASLOVI_HS</Name>
+        <Title>NEP_NASLOVI_HS</Title>
+        <Abstract/>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_NASLOVI_HS</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_naslovi</Name>
+          <Title>Naslovi</Title>
+          <Abstract># Naslovi: spodaj zelen! kvadratek, 9 pikslov, črna obroba, 1.5 piksla env=strokeLineColor, vidnost od 1:100 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ANASLOVI_HS"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_naslovi_lbl</Name>
+          <Title>Naslovi</Title>
+          <Abstract># Naslovi: zelen tekst (Verdana, 11 pikslov env=fontSize), vidnost od 1:100 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ANASLOVI_HS&amp;style=nep_kn_naslovi_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>1.0</MinScaleDenominator>
+        <MaxScaleDenominator>10000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OBMOCJA_SP_PRAVIC</Name>
+        <Title>NEP_OBMOCJA_SP_PRAVIC</Title>
+        <Abstract>Območja stvarno pravnih pravic</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OBMOCJA_SP_PRAVIC</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_obmocja_sp_pravic</Name>
+          <Title>Območja služnosti in območja stavbne praviceObmočja služnosti in območja stavbne pravice</Title>
+          <Abstract>#Območja služnosti in območja stavbne pravice: modra linija env=strokeLineColor, vidnost od 1:50 do 1:100 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOBMOCJA_SP_PRAVIC"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_obmocja_sp_pravic_lbl</Name>
+          <Title>Območja služnosti in območja stavbne pravice</Title>
+          <Abstract>#Območja služnosti in območja stavbne pravice: moder tekst (Verdana, 11 pikslov env=fontSize), vidnost od 1:50 do 1:100 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOBMOCJA_SP_PRAVIC&amp;style=nep_kn_obmocja_sp_pravic_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>100100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OBMOCJA_SP_PRAVIC_GRADBENA_PARCELA</Name>
+        <Title>NEP_OBMOCJA_SP_PRAVIC_GRADBENA_PARCELA</Title>
+        <Abstract/>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OBMOCJA_SP_PRAVIC_GRADBENA_PARCELA</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.33659761036674</westBoundLongitude>
+          <eastBoundLongitude>16.653138894521472</eastBoundLongitude>
+          <southBoundLatitude>45.40851529615776</southBoundLatitude>
+          <northBoundLatitude>46.891463696345504</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.33659761036674" miny="45.40851529615776" maxx="16.653138894521472" maxy="46.891463696345504"/>
+        <BoundingBox CRS="EPSG:3794" minx="373217.6542445397" miny="31118.298050262034" maxx="625999.741424352" maxy="194661.54622136615"/>
+        <Style>
+          <Name>generic</Name>
+          <Title>Generic</Title>
+          <Abstract>Generic style</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOBMOCJA_SP_PRAVIC_GRADBENA_PARCELA"/>
+          </LegendURL>
+        </Style>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OMEJITVE</Name>
+        <Title>NEP_OST_OMEJITVE</Title>
+        <Abstract>Omejitve oz. območja soglasij</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_OMEJITVE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>kn_nep_zk_obmocje_soglasij</Name>
+          <Title>Omejitev parcelacij</Title>
+          <Abstract># Omejitev parcelacij: pastelno modro zelen poligon, vidnost od 1:80 do 1:100 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOMEJITVE"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>80.0</MinScaleDenominator>
+        <MaxScaleDenominator>120000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OSNOVNI_PARCELE</Name>
+        <Title>NEP_OSNOVNI_PARCELE</Title>
+        <Abstract>Osnovni podatki o parceli</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OSNOVNI_PARCELE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_parcele</Name>
+          <Title>Poligoni parcel</Title>
+          <Abstract># Parcele: zelena linija debeline 0.5, env=strokeLineColor; strokeWidthNeurejena, vidnost od 1:50 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_PARCELE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_parcele_lbl</Name>
+          <Title>Parcele</Title>
+          <Abstract># Parcele: zelen tekst env=fontColor, Verdana, 11 pikslov env=wms_scale_denominator, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_PARCELE&amp;style=nep_kn_parcele_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OSNOVNI_PARCELE_CENTROID</Name>
+        <Title>NEP_OSNOVNI_PARCELE_CENTROID</Title>
+        <Abstract>Sloj centroidov parcel, izračunan iz E_CEN in N_CEN.</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OSNOVNI_PARCELE_CENTROID</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_parcele_cent_lbl</Name>
+          <Title>Parcele</Title>
+          <Abstract># Parcele centoridi: zelen tekst env=fontColor, Verdana, 11 pikslov env=wms_scale_denominator, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_PARCELE_CENTROID"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OSNOVNI_STAVBE</Name>
+        <Title>NEP_OSNOVNI_STAVBE</Title>
+        <Abstract>Osnovni podatki o stavbi, obris stavbe</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OSNOVNI_STAVBE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe</Name>
+          <Title>Obrisi stavb</Title>
+          <Abstract># Tlorisi stavb: oranžna linija env=strokeLineColor, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="119" height="40">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_STAVBE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_stavbe_lbl</Name>
+          <Title>Stavbe</Title>
+          <Abstract># Stavbe: oranžen tekst (Verdana, 11 pikslov env=fontColor), vidnost od 1:80 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_STAVBE&amp;style=nep_kn_stavbe_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:OSNOVNI_STAVBE_CENTROID</Name>
+        <Title>NEP_OSNOVNI_STAVBE_CENTROID</Title>
+        <Abstract>Centorid stavb</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OSNOVNI_STAVBE_CENTROID</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe_lbl</Name>
+          <Title>Stavbe</Title>
+          <Abstract># Stavbe: oranžen tekst (Verdana, 11 pikslov env=fontColor), vidnost od 1:80 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AOSNOVNI_STAVBE_CENTROID"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>80.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:PARCELE</Name>
+        <Title>NEP_PARCELE</Title>
+        <Abstract>Podatki o parcelah</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_PARCELE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_parcele</Name>
+          <Title>Poligoni parcel</Title>
+          <Abstract># Parcele: zelena linija debeline 0.5, env=strokeLineColor; strokeWidthNeurejena, vidnost od 1:50 do 1:10 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APARCELE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_parcele_lbl</Name>
+          <Title>Parcele</Title>
+          <Abstract># Parcele: zelen tekst env=fontColor, Verdana, 11 pikslov env=wms_scale_denominator, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APARCELE&amp;style=nep_kn_parcele_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:PARCELE_JAVNI_LASTNIKI</Name>
+        <Title>NEP_PARCELE_JAVNI_LASTNIKI</Title>
+        <Abstract/>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_PARCELE_JAVNI_LASTNIKI</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.33659761036674</westBoundLongitude>
+          <eastBoundLongitude>16.653138894521472</eastBoundLongitude>
+          <southBoundLatitude>45.40851529615776</southBoundLatitude>
+          <northBoundLatitude>46.891463696345504</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.33659761036674" miny="45.40851529615776" maxx="16.653138894521472" maxy="46.891463696345504"/>
+        <BoundingBox CRS="EPSG:3794" minx="373217.6542445397" miny="31118.298050262034" maxx="625999.741424352" maxy="194661.54622136615"/>
+        <Style>
+          <Name>nep_kn_parcele_javni_lastniki</Name>
+          <Title>Parcele v javnem lastništvu - poligoni</Title>
+          <Abstract>#Poligoni parcel v javnem lastništvu#črna linija, ploskev obarvana glede na lastništvo:
+				lastnik Republika Slovenija: rdeča ploskev,
+				lastnik občina: modra ploskev,
+				morebitna javna lastnina: rumena ploskev,
+				mešana javna lastnina: vijolična ploskev,
+				vidnost od 1:50 do 1:10 100
+          		prosojnost 70 %</Abstract>
+          <LegendURL width="207" height="80">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APARCELE_JAVNI_LASTNIKI"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_parcele_javni_lastniki_lbl</Name>
+          <Title>Parcele</Title>
+          <Abstract># Parcele: črn tekst env=fontColor, Verdana, 11 pikslov env=wms_scale_denominator, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APARCELE_JAVNI_LASTNIKI&amp;style=nep_kn_parcele_javni_lastniki_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:POSEBNI_REZIMI</Name>
+        <Title>NEP_OST_POSEBNI_REZIMI</Title>
+        <Abstract>Posebni režimi</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_OST_POSEBNI_REZIMI</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>kn_nep_ost_posebni_rezimi</Name>
+          <Title>Območja posebnih režimov</Title>
+          <Abstract># Obrisi posebnih režimov: oranžna linija, 1 piksel, vidnost od 1:50 do 1:100 000 | Labela označuje kombinacije posebnih režimov, VN - Vodovarstveno območje | GR - Gozdni rezervat| GVM - Varovalni gozd | GZ - Zaprti gozd</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APOSEBNI_REZIMI"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>kn_nep_ost_posebni_rezimi_lbl</Name>
+          <Title>Oznake posebnih režimov</Title>
+          <Abstract># VVO - Najožja vodovarstvena območja, razen na kraškem območju: oranžen tekst, vidnost od 1:50 do 1:100 100 | Labela označuje kombinacije posebnih režimov, VN - Vodovarstveno območje | GR - Gozdni rezervat| GVM - Varovalni gozd | GZ - Zaprti gozd</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3APOSEBNI_REZIMI&amp;style=kn_nep_ost_posebni_rezimi_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>110000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:SESTAVINE_DST</Name>
+        <Title>NEP_SESTAVINE_DST</Title>
+        <Abstract>Sestavine delov stavb - atriji, parkirišča</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_SESTAVINE_DST</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>kn_nep_sestavine_dst</Name>
+          <Title>kn_nep_sestavine_dst</Title>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASESTAVINE_DST"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>kn_nep_sestavine_dst_lbl</Name>
+          <Title>Sestavine delov stavb</Title>
+          <Abstract># Sestavine delov stavb: rdeč tekst (Verdana, 10/8/6 pikslov env=fontColor), vidnost od 1:80 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASESTAVINE_DST&amp;style=kn_nep_sestavine_dst_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>5100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:STAVBE</Name>
+        <Title>NEP_STAVBE</Title>
+        <Abstract>temporary</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_STAVBE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe</Name>
+          <Title>Obrisi stavb</Title>
+          <Abstract># Tlorisi stavb: oranžna linija env=strokeLineColor, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="119" height="40">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:STAVBE_OBRIS</Name>
+        <Title>NEP_STAVBE_OBRIS</Title>
+        <Abstract>Obris stavbe</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_STAVBE_OBRIS</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe</Name>
+          <Title>Obrisi stavb</Title>
+          <Abstract># Tlorisi stavb: oranžna linija env=strokeLineColor, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="119" height="40">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_OBRIS"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_stavbe_lbl</Name>
+          <Title>Stavbe</Title>
+          <Abstract># Stavbe: oranžen tekst (Verdana, 11 pikslov env=fontColor), vidnost od 1:80 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_OBRIS&amp;style=nep_kn_stavbe_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:STAVBE_PARCELE</Name>
+        <Title>NEP_STAVBE_PARCELE</Title>
+        <Abstract>Parcele pod stavbami</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_STAVBE_PARCELE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe_parcele</Name>
+          <Title>Linija grafike stavbe parcele zkn</Title>
+          <Abstract># ZKN poligon stavbe parcele: zelen krog env=strokeColor z zelenim polnjenjem env=fillColor, vidnost od 1:50 do 1:10 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_PARCELE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_stavbe_parcele_lbl</Name>
+          <Title>Centroidi stavbe na parceli</Title>
+          <Abstract># Centroidi stavbe na parceli: rdeč tekst (Liberation Sans, 12 pikslov env=fontSize), vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_PARCELE&amp;style=nep_kn_stavbe_parcele_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:STAVBE_TLORIS</Name>
+        <Title>NEP_STAVBE_TLORIS</Title>
+        <Abstract>Tlorisi stavb</Abstract>
+        <KeywordList>
+          <Keyword>NEP_STAVBE_TLORIS</Keyword>
+          <Keyword>features</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_stavbe</Name>
+          <Title>Obrisi stavb</Title>
+          <Abstract># Tlorisi stavb: oranžna linija env=strokeLineColor, vidnost od 1:50 do 1:5 000</Abstract>
+          <LegendURL width="119" height="40">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_TLORIS"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_stavbe_lbl</Name>
+          <Title>Stavbe</Title>
+          <Abstract># Stavbe: oranžen tekst (Verdana, 11 pikslov env=fontColor), vidnost od 1:80 do 1:5 000</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ASTAVBE_TLORIS&amp;style=nep_kn_stavbe_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>50.0</MinScaleDenominator>
+        <MaxScaleDenominator>5000.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:TOCKE</Name>
+        <Title>NEP_TOCKE</Title>
+        <Abstract>Točke zemljiškega katastra</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_TOCKE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_tocke</Name>
+          <Title>Točke parcel</Title>
+          <Abstract>ZK točke # natančnost "nad 1 meter" zelena  pika, natančnost "pod 1 meter" umazano rumena pika, "natančnost ni določena" rumena pika; velikost 6px s temnejšo obrobo, vidnost od 1: 50 do 1: 2 500.
+			</Abstract>
+          <LegendURL width="224" height="60">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ATOCKE"/>
+          </LegendURL>
+        </Style>
+        <Style>
+          <Name>nep_kn_tocke_lbl</Name>
+          <Title>Oznake točk parcel</Title>
+          <Abstract>Oznake točk # Črn tekst env=fillColor, velikost 14/12px z belo obrobo env=font-size, vidnost od 1: 50 do 1: 2 500.
+      </Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3ATOCKE&amp;style=nep_kn_tocke_lbl"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>2600.0</MaxScaleDenominator>
+      </Layer>
+      <Layer queryable="1" opaque="0">
+        <Name>SI.GURS.KN:UREJENE_MEJE</Name>
+        <Title>NEP_UREJENE_MEJE</Title>
+        <Abstract>Urejene meje - daljice s statusom 2</Abstract>
+        <KeywordList>
+          <Keyword>features</Keyword>
+          <Keyword>NEP_UREJENE_MEJE</Keyword>
+        </KeywordList>
+        <CRS>EPSG:3794</CRS>
+        <CRS>CRS:84</CRS>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>13.156452347013044</westBoundLongitude>
+          <eastBoundLongitude>16.64681574383942</eastBoundLongitude>
+          <southBoundLatitude>45.4003353414981</southBoundLatitude>
+          <northBoundLatitude>46.898964415098156</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+        <BoundingBox CRS="CRS:84" minx="13.156452347013044" miny="45.4003353414981" maxx="16.64681574383942" maxy="46.898964415098156"/>
+        <BoundingBox CRS="EPSG:3794" minx="359500.0" miny="30500.0" maxx="625500.0" maxy="195500.0"/>
+        <Style>
+          <Name>nep_kn_zk_urejene_meje</Name>
+          <Title>Urejene meje parcel</Title>
+          <Abstract># Urejene meje parcel: sv. zelena linija, debelina 2.5, env=strokeLineColor, vidnost od 1:50 do 1:10 100</Abstract>
+          <LegendURL width="20" height="20">
+            <Format>image/png</Format>
+            <OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:type="simple" xlink:href="https://ipi.eprostor.gov.si/wms-si-gurs-kn/ows?service=WMS&amp;request=GetLegendGraphic&amp;format=image%2Fpng&amp;width=20&amp;height=20&amp;layer=SI.GURS.KN%3AUREJENE_MEJE"/>
+          </LegendURL>
+        </Style>
+        <MinScaleDenominator>40.0</MinScaleDenominator>
+        <MaxScaleDenominator>10100.0</MaxScaleDenominator>
+      </Layer>
+    </Layer>
+  </Capability>
+</WMS_Capabilities>

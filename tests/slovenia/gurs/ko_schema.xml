@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SI.GURS.KN="https://ipi.eprostor.sigov.si/SI.GURS.KN" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:wfs="http://www.opengis.net/wfs/2.0" elementFormDefault="qualified" targetNamespace="https://ipi.eprostor.sigov.si/SI.GURS.KN">
+  <xsd:import namespace="http://www.opengis.net/gml/3.2" schemaLocation="https://ipi.eprostor.gov.si/wfs-si-gurs-kn/schemas/gml/3.2.1/gml.xsd"/>
+  <xsd:complexType name="KATASTRSKE_OBCINEType">
+    <xsd:complexContent>
+      <xsd:extension base="gml:AbstractFeatureType">
+        <xsd:sequence>
+          <xsd:element maxOccurs="1" minOccurs="0" name="FEATUREID" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="EID_KATASTRSKA_OBCINA" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="KO_ID" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="NAZIV" nillable="true" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="SIFKO" nillable="true" type="xsd:long"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="GEOM" nillable="true" type="gml:GeometryPropertyType"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="DATUM_SYS" nillable="true" type="xsd:dateTime"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <xsd:element name="KATASTRSKE_OBCINE" substitutionGroup="gml:AbstractFeature" type="SI.GURS.KN:KATASTRSKE_OBCINEType"/>
+</xsd:schema>
