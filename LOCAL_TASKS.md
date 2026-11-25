@@ -81,7 +81,7 @@ Its GitHub Actions deploy fails on every push because two secrets are missing. S
 
 If the file is not there or the run is red: `bash ~/Developer/markoboskopossesions/scripts/deploy.sh`
 deploys straight from the Mac. Either way, check the result as the person who uses it: open
-https://markoboskopossesions.pages.dev, log in as marko, and confirm the parcel list shows **275**
+https://possessions.markobosko.org, log in as marko, and confirm the parcel list shows **275**
 (`/data/parcels.json` behind the login has `parcels` of length 275, `generated` 2026-09-30). Write the
 outcome as item 21 in markoboskopossesions' `momentaryupdates.md`.
 
@@ -93,11 +93,11 @@ a connection from Croatia meets it. This is the most useful test only the Mac ca
 
     cd ~/Developer/arkod_web && git pull && npm ci && npm run real
 
-It drives Chromium at 390 x 844 against https://arkod-layer.pages.dev (version 7 or later): the ARKOD
+It drives Chromium at 390 x 844 against https://arkod.markobosko.org (version 7 or later): the ARKOD
 layer at 1358/3, a tap, the second tap, the posjedovni list 1225, the vlasnički list (z.k. uložak 250),
 "2449/2 kukljica", the lights. Run it three times, a few minutes apart. Also:
 
-    for i in $(seq 1 10); do curl -s -o /dev/null -w "%{http_code} " "https://arkod-layer.pages.dev/api/oss/cad/parcel-info?parcelId=6436001&n=$i"; done; echo
+    for i in $(seq 1 10); do curl -s -o /dev/null -w "%{http_code} " "https://arkod.markobosko.org/api/oss/cad/parcel-info?parcelId=6436001&n=$i"; done; echo
 
 Ten separate connections; count the 200s. Write both results (how many checks passed, how many 200s) into
 arkod_web's `momentaryupdates.md` under "1.10.2026, tested against the real state", with the time of day.
@@ -169,7 +169,7 @@ that the first permanent build needs one last uninstall.
 Marko wants both apps to read ARKOD_cache when the state does not answer. A private repository needs a
 credential to read, and it cannot sit in the APK or the page. The cloud session's proposal, waiting for
 his word: the web app's server (arkod-layer on Cloudflare Pages) reads the repository with a read-only
-token and answers at `https://arkod-layer.pages.dev/api/remote/...`; the Android app asks the same
+token and answers at `https://arkod.markobosko.org/api/remote/...`; the Android app asks the same
 address and needs no secret. Anyone using the web app can then read the cache through it (it is the
 state's public data; the repository itself stays private). **Ask Marko.** On his yes, guide him through
 the token (step for Marko, below), then put it into Cloudflare without it passing through the chat:
@@ -184,7 +184,7 @@ use of it; tell it the secret is in place.
 ## 7. "Fetch when available": the one key the background service needs (1.10.2026)
 
 The web app (version 8) and the Android app (v20) hand a request the state did not answer to
-`arkod-layer.pages.dev/api/later`; a Cloudflare Worker, `arkod-fetcher`, asks the state again every ten
+`arkod.markobosko.org/api/later`; a Cloudflare Worker, `arkod-fetcher`, asks the state again every ten
 minutes and keeps the answer in ARKOD_cache. Both are deployed and wait for one secret, `GITHUB_TOKEN`: today
 they answer "GITHUB_TOKEN is not set". This replaces the reader proposed in §6.
 
@@ -203,7 +203,7 @@ Then you put it in both places straight from the clipboard, never printed:
     pbcopy < /dev/null
     gh workflow run deploy.yml -R markoboskoauroville/arkod_web   # a Pages secret takes effect with the next deploy
 
-Check: `curl -s https://arkod-layer.pages.dev/api/later/` says `"ready":true`. Then tell the cloud session.
+Check: `curl -s https://arkod.markobosko.org/api/later/` says `"ready":true`. Then tell the cloud session.
 
 ## Steps only Marko can do (guide him; you cannot do them for him)
 
@@ -212,7 +212,7 @@ Check: `curl -s https://arkod-layer.pages.dev/api/later/` says `"ready":true`. T
   expiration as he likes (a year), Repository access: Only select repositories → ARKOD_cache, Permissions:
   Contents → Read-only, nothing else. Generate, copy it, and run the `pbpaste` line above. He never pastes
   it into a chat.
-- **Opening a sheet on his phone, in Croatia**: arkod-layer.pages.dev in Safari, find "1358/3 kukljica",
+- **Opening a sheet on his phone, in Croatia**: arkod.markobosko.org in Safari, find "1358/3 kukljica",
   open the sheet, look at the lights (WMS, WFS, KAT, ZK). If KAT or ZK is red with "the state refused this
   site's address", tell the cloud session.
 - **Installing the APK on his own phone** after §5 (one uninstall first), and saying whether the launcher
